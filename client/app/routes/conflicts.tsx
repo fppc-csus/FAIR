@@ -1,69 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { AlertCircle, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Filter, RotateCcw } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const severityOrder: Record<string, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
-
 type Conflict = { id: string; politicianName: string; city: string; conflictType: string; severity: string; agendaItemSummary: string; detectedAt: string };
 type SortKey = "severity" | "detectedAt";
-type SortDirection = "asc" | "desc";
+const title = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (character) => character.toUpperCase());
+const severityClass = (severity: string) => severity.toUpperCase() === "HIGH" ? "bg-red-50 text-red-800 ring-red-200" : severity.toUpperCase() === "MEDIUM" ? "bg-amber-50 text-amber-800 ring-amber-200" : "bg-blue-50 text-blue-800 ring-blue-200";
 
-function ToggleList({ label, options, selected, onChange }: { label: string; options: string[]; selected: string[]; onChange: (value: string[]) => void }) {
-  return <fieldset><legend className="mb-2 text-sm font-semibold text-slate-800">{label}</legend><div className="flex flex-wrap gap-x-4 gap-y-2">{options.map((option) => <label key={option} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={selected.includes(option)} onChange={(event) => onChange(event.target.checked ? [...selected, option] : selected.filter((item) => item !== option))} className="h-4 w-4 rounded border-slate-400 text-indigo-700 focus:ring-indigo-600" />{option}</label>)}</div></fieldset>;
-}
-
-function badgeClass(severity: string) {
-  if (severity.toUpperCase() === "HIGH") return "bg-red-100 text-red-800 ring-red-200";
-  if (severity.toUpperCase() === "MEDIUM") return "bg-amber-100 text-amber-800 ring-amber-200";
-  return "bg-blue-100 text-blue-800 ring-blue-200";
-}
-
-export function meta() {
-  return [{ title: "Public conflicts dashboard | FAIR" }, { name: "description", content: "Browse detected public-interest conflicts." }];
-}
+export function meta() { return [{ title: "Conflict flags | FAIR" }, { name: "description", content: "Browse potential conflicts identified from public Form 700 disclosures and local government agendas." }]; }
 
 export default function ConflictsDashboard() {
-  const [conflicts, setConflicts] = useState<Conflict[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [city, setCity] = useState("");
-  const [types, setTypes] = useState<string[]>([]);
-  const [severities, setSeverities] = useState<string[]>([]);
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("detectedAt");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [page, setPage] = useState(1);
+  const [conflicts, setConflicts] = useState<Conflict[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
+  const [city, setCity] = useState(""); const [type, setType] = useState(""); const [severity, setSeverity] = useState(""); const [sort, setSort] = useState<SortKey>("detectedAt"); const [page, setPage] = useState(1);
+  useEffect(() => { const controller = new AbortController(); fetch(`${API_URL}/api/conflicts`, { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error("The conflict list is unavailable right now."); return response.json(); }).then((payload) => setConflicts(Array.isArray(payload.data) ? payload.data : [])).catch((reason) => { if (reason.name !== "AbortError") setError(reason.message); }).finally(() => setLoading(false)); return () => controller.abort(); }, []);
+  const cities = useMemo(() => [...new Set(conflicts.map((item) => item.city).filter(Boolean))].sort(), [conflicts]);
+  const types = useMemo(() => [...new Set(conflicts.map((item) => item.conflictType).filter(Boolean))].sort(), [conflicts]);
+  const filtered = useMemo(() => conflicts.filter((item) => (!city || item.city === city) && (!type || item.conflictType === type) && (!severity || item.severity.toUpperCase() === severity)).sort((left, right) => sort === "severity" ? (severityOrder[right.severity.toUpperCase()] ?? 0) - (severityOrder[left.severity.toUpperCase()] ?? 0) : new Date(right.detectedAt).getTime() - new Date(left.detectedAt).getTime()), [conflicts, city, type, severity, sort]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)); const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE); const hasFilters = Boolean(city || type || severity);
+  function updateFilter(setter: (value: string) => void, value: string) { setter(value); setPage(1); }
+  function clearFilters() { setCity(""); setType(""); setSeverity(""); setPage(1); }
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_URL}/api/conflicts`).then(async (response) => {
-      if (!response.ok) throw new Error("The public conflicts list is unavailable right now.");
-      return response.json();
-    }).then((payload) => { if (!cancelled) setConflicts(Array.isArray(payload.data) ? payload.data : []); }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : "Unable to load conflicts."); }).finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  const cities = useMemo(() => [...new Set(conflicts.map((item) => item.city))].sort(), [conflicts]);
-  const conflictTypes = useMemo(() => [...new Set(conflicts.map((item) => item.conflictType))].sort(), [conflicts]);
-  const availableSeverities = useMemo(() => [...new Set(conflicts.map((item) => item.severity.toUpperCase()))].sort(), [conflicts]);
-  const filtered = useMemo(() => conflicts.filter((item) => {
-    const date = item.detectedAt.slice(0, 10);
-    return (!city || item.city === city) && (!types.length || types.includes(item.conflictType)) && (!severities.length || severities.includes(item.severity.toUpperCase())) && (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
-  }).sort((left, right) => {
-    const a = sortKey === "severity" ? severityOrder[left.severity.toUpperCase()] ?? 0 : new Date(left.detectedAt).getTime();
-    const b = sortKey === "severity" ? severityOrder[right.severity.toUpperCase()] ?? 0 : new Date(right.detectedAt).getTime();
-    return sortDirection === "asc" ? a - b : b - a;
-  }), [city, conflicts, fromDate, severities, sortDirection, sortKey, toDate, types]);
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  useEffect(() => setPage(1), [city, fromDate, severities, sortDirection, sortKey, toDate, types]);
-  function toggleSort(key: SortKey) { if (key === sortKey) setSortDirection((value) => value === "asc" ? "desc" : "asc"); else { setSortKey(key); setSortDirection("desc"); } }
-
-  return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 md:px-8"><div className="mx-auto max-w-7xl"><header className="mb-8 border-b border-indigo-200 pb-6"><p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-700">FAIR</p><h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Public conflicts dashboard</h1><p className="mt-3 max-w-3xl text-slate-600">Browse detected potential conflicts of interest from public Form 700 disclosures and city agenda items.</p></header>
-    <section aria-labelledby="filters-heading" className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-5 flex items-center gap-2"><SlidersHorizontal size={19} aria-hidden="true" className="text-indigo-700" /><h2 id="filters-heading" className="font-semibold">Filter conflicts</h2></div><div className="grid gap-6 lg:grid-cols-4"><label className="text-sm font-semibold text-slate-800">City<select value={city} onChange={(event) => setCity(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-normal"><option value="">All cities</option>{cities.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><ToggleList label="Conflict type" options={conflictTypes} selected={types} onChange={setTypes} /><ToggleList label="Severity" options={availableSeverities} selected={severities} onChange={setSeverities} /><div className="grid grid-cols-2 gap-3"><label className="text-sm font-semibold text-slate-800">From<input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 font-normal" /></label><label className="text-sm font-semibold text-slate-800">To<input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 font-normal" /></label></div></div></section>
-    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-800"><AlertCircle className="mr-2 inline" size={18} />{error}</div>}{loading && <p className="rounded-xl bg-white p-8 text-center text-slate-600 shadow-sm">Loading detected conflicts…</p>}
-    {!loading && !error && <section aria-label="Detected conflicts" className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-200 px-5 py-4 text-sm text-slate-600">{filtered.length} conflict{filtered.length === 1 ? "" : "s"} found</div>{visible.length === 0 ? <div className="px-5 py-14 text-center"><h2 className="text-lg font-semibold">No conflicts match these filters</h2><p className="mt-2 text-slate-600">Try clearing a filter or expanding the date range.</p></div> : <><div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-100 text-slate-700"><tr><th className="px-4 py-3">Politician</th><th className="px-4 py-3">City</th><th className="px-4 py-3">Conflict type</th><th className="px-4 py-3"><button type="button" onClick={() => toggleSort("severity")} className="underline decoration-dotted underline-offset-4">Severity {sortKey === "severity" && (sortDirection === "asc" ? "↑" : "↓")}</button></th><th className="px-4 py-3">Agenda item</th><th className="px-4 py-3"><button type="button" onClick={() => toggleSort("detectedAt")} className="underline decoration-dotted underline-offset-4">Detected {sortKey === "detectedAt" && (sortDirection === "asc" ? "↑" : "↓")}</button></th></tr></thead><tbody>{visible.map((conflict) => <tr key={conflict.id} className="border-t border-slate-200 hover:bg-indigo-50"><td className="px-4 py-4 font-medium"><Link to={`/conflicts/${conflict.id}`} className="text-indigo-700 underline underline-offset-2">{conflict.politicianName}</Link></td><td className="px-4 py-4">{conflict.city}</td><td className="px-4 py-4">{conflict.conflictType}</td><td className="px-4 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${badgeClass(conflict.severity)}`}>{conflict.severity}</span></td><td className="max-w-sm px-4 py-4 text-slate-700">{conflict.agendaItemSummary}</td><td className="whitespace-nowrap px-4 py-4">{new Date(conflict.detectedAt).toLocaleDateString()}</td></tr>)}</tbody></table></div><nav aria-label="Conflict pages" className="flex items-center justify-between border-t border-slate-200 px-5 py-4"><span className="text-sm text-slate-600">Page {page} of {pageCount}</span><div className="flex gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"><ChevronLeft size={16} />Previous</button><button type="button" disabled={page === pageCount} onClick={() => setPage((current) => current + 1)} className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50">Next<ChevronRight size={16} /></button></div></nav></>}</section>}</div></main>;
+  return <main className="page-shell"><header className="max-w-3xl"><p className="eyebrow">Public review</p><h1 className="mt-3 text-4xl font-bold tracking-tight">Conflict flags</h1><p className="mt-4 text-lg leading-8 text-slate-600">Explore potential overlaps between reported financial interests and local government agenda items. A flag supports review; it does not establish a legal conflict.</p></header>
+    <section className="surface mt-8 p-5" aria-labelledby="filter-heading"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Filter size={18} className="text-blue-700" /><h2 id="filter-heading" className="font-semibold">Filter records</h2></div>{hasFilters && <button type="button" onClick={clearFilters} className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"><RotateCcw size={15} /> Clear filters</button>}</div><div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4"><label className="text-sm font-semibold text-slate-700">City<select value={city} onChange={(event) => updateFilter(setCity, event.target.value)} className="field mt-2"><option value="">All cities</option>{cities.map((value) => <option key={value}>{value}</option>)}</select></label><label className="text-sm font-semibold text-slate-700">Flag type<select value={type} onChange={(event) => updateFilter(setType, event.target.value)} className="field mt-2"><option value="">All flag types</option>{types.map((value) => <option key={value} value={value}>{title(value)}</option>)}</select></label><label className="text-sm font-semibold text-slate-700">Severity<select value={severity} onChange={(event) => updateFilter(setSeverity, event.target.value)} className="field mt-2"><option value="">All severities</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></label><label className="text-sm font-semibold text-slate-700">Sort by<select value={sort} onChange={(event) => { setSort(event.target.value as SortKey); setPage(1); }} className="field mt-2"><option value="detectedAt">Most recent</option><option value="severity">Highest severity</option></select></label></div></section>
+    {error && <div role="alert" className="surface mt-6 border-red-200 bg-red-50 p-5 text-red-800"><AlertCircle className="mr-2 inline" size={18} />{error}</div>}{loading && <div className="surface mt-6 p-8 text-slate-600" role="status">Loading conflict flags…</div>}
+    {!loading && !error && <section className="mt-6" aria-label="Conflict flag results"><div className="mb-4 flex items-center justify-between gap-4"><p className="text-sm text-slate-600"><strong className="text-slate-950">{filtered.length}</strong> record{filtered.length === 1 ? "" : "s"}</p><p className="text-sm text-slate-500">Page {page} of {pageCount}</p></div>{visible.length === 0 ? <div className="surface p-12 text-center"><h2 className="text-lg font-semibold">No records match these filters</h2><p className="mt-2 text-sm text-slate-600">Clear a filter to broaden the results.</p></div> : <div className="space-y-3">{visible.map((conflict) => <Link key={conflict.id} to={`/conflicts/${conflict.id}`} className="surface group grid gap-4 p-5 transition hover:border-blue-300 md:grid-cols-[1fr_auto] md:items-center"><div><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${severityClass(conflict.severity)}`}>{conflict.severity}</span><span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title(conflict.conflictType)}</span></div><h2 className="mt-3 text-lg font-semibold group-hover:text-blue-800">{conflict.politicianName}</h2><p className="mt-1 text-sm text-slate-500">{conflict.city} · Detected {new Date(conflict.detectedAt).toLocaleDateString()}</p><p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{conflict.agendaItemSummary}</p></div><span className="text-sm font-semibold text-blue-700">Review details →</span></Link>)}</div>}
+      {pageCount > 1 && <nav aria-label="Results pagination" className="mt-6 flex items-center justify-end gap-2"><button className="button-secondary px-3" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}><ChevronLeft size={17} /> Previous</button><button className="button-secondary px-3" disabled={page === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>Next <ChevronRight size={17} /></button></nav>}</section>}
+  </main>;
 }

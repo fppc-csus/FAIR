@@ -5,12 +5,14 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 import { Toaster } from "react-hot-toast";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import { SiteHeader } from "./components/SiteHeader";
+import { SiteFooter } from "./components/SiteFooter";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -45,12 +47,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
   return (
     <>
-      <SiteHeader />
-      <main>
+      {!isAdminRoute && <SiteHeader />}
+      <div id="main-content">
         <Outlet />
-      </main>
+      </div>
+      {!isAdminRoute && <SiteFooter />}
     </>
   );
 }
@@ -72,14 +78,17 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="page-shell">
+      <section className="surface mx-auto max-w-2xl p-8 text-center sm:p-12">
+      <p className="eyebrow">FAIR</p>
+      <h1 className="mt-3 text-3xl font-bold tracking-tight">{message}</h1>
+      <p className="mt-3 text-slate-600">{details}</p>
       {stack && (
         <pre className="w-full overflow-x-auto p-4">
           <code>{stack}</code>
         </pre>
       )}
+      </section>
     </main>
   );
 }

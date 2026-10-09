@@ -3,8 +3,8 @@ import { Welcome } from "../welcome/welcome";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "FAIR" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "FAIR | Financial Accountability & Interest Review" },
+    { name: "description", content: "Explore potential overlaps between California public officials’ financial disclosures and local government agenda items." },
   ];
 }
 

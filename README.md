@@ -168,15 +168,22 @@ The frontend uses its own `client/.env` with `VITE_API_URL`, `VITE_SUPABASE_URL`
 | Form 700 schedule parsers | `server/tests/unit/` | Schedules A, B, C/D/E |
 | Legistar ingestion | `server/tests/integration/legistarIngestion.test.js` | Integration |
 | Fixtures | `server/tests/fixtures/*.xlsx` | Valid + malformed samples |
+| Frontend UI and auth helpers | `client/app/**/*.test.ts(x)` | Vitest + React Testing Library |
 
 ```bash
+cd client
+npm test
+npm run typecheck
+npm run build
+
 cd server
-npm test    # wire in package.json when Jest/Vitest runner is added
+npm test
 ```
+
+The admin login stores the complete Supabase session under `fair.admin.session`, including the refresh token used to renew an expired access token. If the public Supabase URL or anon key is missing or still contains the placeholder value from `client/.env.example`, the login page displays setup guidance instead of exposing a fake privileged session.
 
 ### _To complete in CSC 191_
 
-- [ ] Add `npm test` script and document runner (Jest recommended; CI already expects it)
 - [ ] Unit tests for Apify normalization and PDF text extraction
 - [ ] Integration tests for fuse.js + Gemini resolution boundaries (0.7 / 0.85)
 - [ ] E2E smoke tests for public browse and admin upload (Playwright or Cypress)

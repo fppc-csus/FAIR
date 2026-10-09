@@ -1,88 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { ArrowLeft, LockKeyhole, ShieldCheck } from "lucide-react";
+import { getAdminSession, isAdminAuthConfigured, signInWithPassword } from "../adminAuth";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
+export function meta() { return [{ title: "Admin sign in | FAIR" }]; }
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setError("Admin sign-in is not configured. Set the public Supabase URL and anon key.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-        body: JSON.stringify({ email, password }),
-      });
-      const session = await response.json();
-      if (!response.ok || typeof session.access_token !== "string") {
-        throw new Error(session.msg ?? session.message ?? "Email or password is incorrect.");
-      }
-
-      localStorage.setItem("adminAccessToken", session.access_token);
-      localStorage.setItem("isAdmin", "true");
-      window.location.assign("/admin/sources");
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : "Sign-in failed.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <section className="w-full max-w-md border border-slate-300 bg-white p-8 shadow-sm">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-800">FAIR / Admin</p>
-        <h1 className="mb-6 text-2xl font-semibold text-slate-950">Sign in</h1>
-
-        <form className="space-y-4" onSubmit={handleLogin}>
-          <div>
-            <label htmlFor="admin-email" className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-            <input
-              id="admin-email"
-              type="email"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="admin@example.com"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="admin-password" className="mb-1 block text-sm font-medium text-slate-700">Password</label>
-            <input
-              id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
-          >
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </button>
-          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-        </form>
-      </section>
-    </main>
-  );
+  const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [error, setError] = useState<string | null>(null); const [isSubmitting, setIsSubmitting] = useState(false);
+  const configured = isAdminAuthConfigured(); const navigate = useNavigate(); const location = useLocation();
+  const destination = typeof location.state === "object" && location.state && "from" in location.state ? String(location.state.from) : "/admin/sources";
+  useEffect(() => { getAdminSession().then(() => navigate(destination, { replace: true })).catch(() => undefined); }, [destination, navigate]);
+  async function handleLogin(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setError(null); setIsSubmitting(true); try { await signInWithPassword(email.trim(), password); navigate(destination, { replace: true }); } catch (loginError) { setError(loginError instanceof Error ? loginError.message : "Sign-in failed."); } finally { setIsSubmitting(false); } }
+  return <main className="grid min-h-screen bg-slate-100 lg:grid-cols-[0.9fr_1.1fr]"><section className="flex flex-col justify-between bg-slate-950 p-8 text-white sm:p-12 lg:p-16"><Link to="/" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white"><ArrowLeft size={16} /> Return to public site</Link><div className="my-16 max-w-lg"><span className="grid h-12 w-12 place-items-center rounded-xl bg-blue-600"><ShieldCheck size={26} /></span><p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-blue-300">FAIR administration</p><h1 className="mt-4 text-4xl font-bold tracking-tight">Manage records securely.</h1><p className="mt-5 text-lg leading-8 text-slate-300">Authorized staff can upload Form 700 files, maintain official records, and manage agenda ingestion sources.</p></div><p className="text-xs leading-5 text-slate-400">Administrative actions use Supabase authentication and protected server endpoints.</p></section><section className="flex items-center justify-center p-6 sm:p-12"><div className="w-full max-w-md"><div className="surface p-7 sm:p-9"><LockKeyhole className="text-blue-700" size={25} /><h2 className="mt-5 text-2xl font-bold tracking-tight">Admin sign in</h2><p className="mt-2 text-sm leading-6 text-slate-600">Use an authorized Supabase account. Public registration is not available.</p>
+    {!configured ? <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><p className="font-semibold">Authentication is not configured</p><p className="mt-1">Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to <code>client/.env</code>. A fake login is intentionally not enabled because admin APIs modify real data.</p></div> : <form className="mt-7 space-y-5" onSubmit={handleLogin}><label className="block text-sm font-semibold text-slate-700" htmlFor="admin-email">Email<input id="admin-email" type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@example.gov" className="field mt-2" /></label><label className="block text-sm font-semibold text-slate-700" htmlFor="admin-password">Password<input id="admin-password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="field mt-2" /></label><button type="submit" disabled={isSubmitting} className="button-primary w-full">{isSubmitting ? "Signing in…" : "Sign in securely"}</button>{error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}</form>}
+  </div></div></section></main>;
 }

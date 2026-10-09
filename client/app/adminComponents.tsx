@@ -1,49 +1,18 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, Navigate, useLocation } from "react-router";
-import { LogOut } from "lucide-react";
+import { Link, NavLink, Navigate, useLocation } from "react-router";
+import { Database, FileUp, LogOut, ShieldCheck, UsersRound } from "lucide-react";
 import { getAdminSession, signOut } from "./adminAuth";
 
 export function AdminGuard({ children }: { children: ReactNode }) {
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const location = useLocation();
-
-  useEffect(() => {
-    let active = true;
-    getAdminSession()
-      .then(() => active && setAuthorized(true))
-      .catch(() => active && setAuthorized(false));
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (authorized === null) return <div className="p-8 text-sm text-slate-600">Checking admin session...</div>;
+  const [authorized, setAuthorized] = useState<boolean | null>(null); const location = useLocation();
+  useEffect(() => { let active = true; getAdminSession().then(() => { if (active) setAuthorized(true); }).catch(() => { if (active) setAuthorized(false); }); return () => { active = false; }; }, []);
+  if (authorized === null) return <main className="grid min-h-screen place-items-center bg-slate-100"><div className="surface p-6 text-sm text-slate-600" role="status">Checking admin session…</div></main>;
   if (!authorized) return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   return <>{children}</>;
 }
 
+const links = [{ to: "/admin/upload", label: "Upload", Icon: FileUp }, { to: "/admin/politicians", label: "Officials", Icon: UsersRound }, { to: "/admin/sources", label: "Sources", Icon: Database }];
 export function AdminNav({ title }: { title: string }) {
-  async function handleSignOut() {
-    await signOut();
-    window.location.assign("/admin/login");
-  }
-
-  return (
-    <header className="border-b border-slate-300 bg-white">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <div>
-          <Link to="/admin/upload" className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-800">FAIR / Admin</Link>
-          <h1 className="mt-1 text-xl font-semibold text-slate-950">{title}</h1>
-        </div>
-        <nav className="flex items-center gap-2 text-sm">
-          <Link className="rounded px-3 py-2 text-slate-700 hover:bg-slate-100" to="/admin/upload">Upload</Link>
-          <Link className="rounded px-3 py-2 text-slate-700 hover:bg-slate-100" to="/admin/politicians">Politicians</Link>
-          <Link className="rounded px-3 py-2 text-slate-700 hover:bg-slate-100" to="/admin/sources">Sources</Link>
-          <button className="ml-2 inline-flex items-center gap-2 rounded border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={handleSignOut} type="button">
-            <LogOut size={16} aria-hidden="true" /> Sign out
-          </button>
-        </nav>
-      </div>
-    </header>
-  );
+  async function handleSignOut() { await signOut(); window.location.assign("/admin/login"); }
+  return <header className="border-b border-slate-200 bg-white"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="flex min-h-20 flex-wrap items-center justify-between gap-4 py-3"><div className="flex items-center gap-3"><Link to="/admin/sources" className="grid h-10 w-10 place-items-center rounded-lg bg-slate-950 text-white" aria-label="FAIR admin home"><ShieldCheck size={21} /></Link><div><p className="text-xs font-bold uppercase tracking-wider text-blue-700">FAIR Admin</p><h1 className="mt-0.5 text-lg font-semibold text-slate-950">{title}</h1></div></div><div className="flex flex-wrap items-center gap-1"><nav className="flex items-center gap-1" aria-label="Admin navigation">{links.map(({ to, label, Icon }) => <NavLink key={to} to={to} className={({ isActive }) => `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-blue-50 text-blue-800" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"}`}><Icon size={16} /> <span className="hidden sm:inline">{label}</span></NavLink>)}</nav><span className="mx-1 h-6 w-px bg-slate-200" /><button className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950" onClick={handleSignOut} type="button"><LogOut size={16} /><span className="hidden sm:inline">Sign out</span></button></div></div></div></header>;
 }

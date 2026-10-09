@@ -107,10 +107,10 @@ export default function AdminPoliticiansPage() {
 
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="min-h-screen bg-slate-50 text-slate-900">
         <AdminNav title="Politician master list" />
         <main className="mx-auto max-w-7xl space-y-6 px-5 py-8">
-          <section className="border border-slate-300 bg-white p-5 sm:p-6">
+          <section className="surface p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div><h2 className="text-lg font-semibold">{editingId ? "Edit politician" : "Add politician"}</h2><p className="mt-1 text-sm text-slate-600">Name, district, and city are required.</p></div>
               {editingId && <button className="inline-flex items-center gap-1 px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" type="button" onClick={resetForm}><X size={16} /> Cancel edit</button>}
@@ -128,7 +128,7 @@ export default function AdminPoliticiansPage() {
             {deleting && <div className="mt-4 flex flex-wrap items-center gap-3 border border-amber-300 bg-amber-50 p-3 text-sm"><span>Delete {deleting.name}? This cannot be undone.</span><button type="button" onClick={deletePolitician} className="bg-red-800 px-3 py-1.5 font-medium text-white hover:bg-red-900">Confirm delete</button><button type="button" onClick={() => setDeleting(null)} className="px-3 py-1.5 text-slate-700 hover:bg-white">Cancel</button></div>}
           </section>
 
-          <section className="border border-slate-300 bg-white">
+          <section className="surface overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
               <div><h2 className="font-semibold">Politicians</h2><p className="text-sm text-slate-600">{visiblePoliticians.length} of {politicians.length} records</p></div>
               <input type="search" aria-label="Search politicians" placeholder="Search name, city, district" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full border border-slate-300 px-3 py-2 sm:max-w-xs" />

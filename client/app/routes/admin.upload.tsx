@@ -121,10 +121,10 @@ export default function AdminUploadPage() {
 
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="min-h-screen bg-slate-50 text-slate-900">
         <AdminNav title="Form 700 upload" />
         <main className="mx-auto max-w-5xl space-y-6 px-5 py-8">
-          <section className="border border-slate-300 bg-white p-5 sm:p-7">
+          <section className="surface p-5 sm:p-7">
             <div className="mb-5 flex items-start gap-3">
               <div className="bg-emerald-100 p-2 text-emerald-900"><FileUp size={20} /></div>
               <div>
@@ -134,7 +134,7 @@ export default function AdminUploadPage() {
             </div>
 
             <label className="mb-2 block text-sm font-medium" htmlFor="politician">Match to politician <span className="font-normal text-slate-500">(optional)</span></label>
-            <select id="politician" value={politicianId} onChange={(event) => setPoliticianId(event.target.value)} className="mb-5 w-full max-w-xl border border-slate-300 bg-white px-3 py-2.5">
+            <select id="politician" value={politicianId} onChange={(event) => setPoliticianId(event.target.value)} className="field mb-5 max-w-xl">
               <option value="">Automatically match from cover page</option>
               {politicians.map((politician) => <option key={politician.id} value={politician.id}>{politician.name} · {politician.city || politician.district}</option>)}
             </select>
@@ -165,7 +165,7 @@ export default function AdminUploadPage() {
             )}
 
             <div className="mt-5 flex justify-end">
-              <button type="button" onClick={uploadFile} disabled={!file || uploading} className="bg-emerald-800 px-5 py-2.5 font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={uploadFile} disabled={!file || uploading} className="button-primary">
                 {uploading ? "Processing..." : "Upload Form 700"}
               </button>
             </div>
