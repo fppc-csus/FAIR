@@ -1,0 +1,11 @@
+{
+  "actorSpecification": 1,
+  "name": "fair-agenda-pdf-finder",
+  "title": "FAIR City Council Agenda PDF Finder",
+  "description": "Discover public council agenda PDFs for FAIR's ingestion pipeline.",
+  "version": "1.0",
+  "dockerfile": "../Dockerfile",
+  "dockerContextDir": "..",
+  "readme": "../README.md",
+  "input": "./INPUT_SCHEMA.json"
+}

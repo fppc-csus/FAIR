@@ -8,7 +8,7 @@ vi.mock('../../src/lib/auth.js', () => ({
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
-    dataSource: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    dataSource: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
     agendaItem: { deleteMany: vi.fn(), findMany: vi.fn(), createMany: vi.fn() },
     syncLog: { create: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
     $transaction: vi.fn((operations) => Promise.all(operations)),
@@ -192,6 +192,46 @@ describe('source edit and delete', () => {
 });
 
 describe('on-demand source sync', () => {
+  it('creates a city-only discovery source and starts a run', async () => {
+    vi.stubEnv('APIFY_TOKEN', 'token');
+    vi.stubEnv('APIFY_ACTOR_ID', 'fair/finder');
+    prisma.dataSource.findFirst.mockResolvedValue(null);
+    const call = vi.fn().mockResolvedValue({ status: 'SUCCEEDED', defaultDatasetId: 'dataset' });
+    ApifyClient.mockImplementation(function () { return {
+      actor: () => ({ get: async () => ({ id: 'fair/finder' }), call }),
+      dataset: () => ({ listItems: async () => ({ items: [] }) }),
+    }; });
+    prisma.agendaItem.findMany.mockResolvedValue([]);
+    const response = await request(app).post('/api/admin/sources/discover').send({ cityName: ' Example ' });
+    expect(response.status).toBe(202);
+    expect(response.body.sourceId).toBe('source-1');
+    await vi.waitFor(() => expect(call).toHaveBeenCalledWith({ cityName: 'Example' }, { timeout: 600 }));
+    expect(prisma.dataSource.create).toHaveBeenCalledWith({ data: expect.objectContaining({ cityName: 'Example', apifyActorId: 'fair/finder', startUrl: null }) });
+  });
+
+  it('rejects invalid city discovery input before creating sources', async () => {
+    expect((await request(app).post('/api/admin/sources/discover').send({ cityName: ' ' })).status).toBe(400);
+    expect(prisma.dataSource.create).not.toHaveBeenCalled();
+  });
+
+  it('returns document links without exposing non-URL content', async () => {
+    prisma.agendaItem.findMany.mockResolvedValue([
+      { id: 'pdf', title: 'Agenda', itemText: 'https://city.gov/a.pdf', meetingDate: null },
+      { id: 'text', itemText: 'not a URL' },
+    ]);
+    const response = await request(app).get('/api/admin/sources/source-1/documents');
+    expect(response.body).toEqual([{ id: 'pdf', title: 'Agenda', pdfUrl: 'https://city.gov/a.pdf', meetingDate: null }]);
+  });
+
+  it('records failed Actor runs rather than importing partial datasets', async () => {
+    vi.stubEnv('APIFY_TOKEN', 'token');
+    prisma.dataSource.findUnique.mockResolvedValue({ id: 'source-1', cityName: 'Example', sourceType: 'apify', apifyActorId: 'finder' });
+    ApifyClient.mockImplementation(function () { return { actor: () => ({ call: async () => ({ status: 'FAILED', statusMessage: 'No unique official website' }) }) }; });
+    await request(app).post('/api/admin/sources/source-1/sync');
+    await vi.waitFor(() => expect(prisma.syncLog.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'failed', errors: { message: 'Actor FAILED: No unique official website' } }) })));
+    expect(prisma.agendaItem.createMany).not.toHaveBeenCalled();
+  });
+
   it('starts a Legistar ingestion and returns a running sync-log ID', async () => {
     const response = await request(app).post('/api/admin/sources/source-1/sync');
 
@@ -266,9 +306,9 @@ describe('on-demand source sync', () => {
     const response = await request(app).post('/api/admin/sources/source-1/sync');
 
     expect(response.status).toBe(202);
-    await vi.waitFor(() => expect(datasetListItems).toHaveBeenCalledWith({ limit: 1000 }));
+    await vi.waitFor(() => expect(datasetListItems).toHaveBeenCalledWith({ limit: 1000, offset: 0 }));
     expect(actor).toHaveBeenCalledWith('fair/agenda-scraper');
-    expect(actorCall).toHaveBeenCalledWith({ cityName: 'Elk Grove' });
+    expect(actorCall).toHaveBeenCalledWith({ cityName: 'Elk Grove' }, { timeout: 600 });
     await vi.waitFor(() => expect(prisma.agendaItem.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({
         sourceType: 'apify',

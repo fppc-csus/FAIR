@@ -1,0 +1,8 @@
+{
+  "startUrl": "https://www.lemongrove.ca.gov/our-government/city-clerk-s-office/city-council-meeting-info/meeting-agenda-archive",
+  "cityName": "City of Lemon Grove",
+  "maxDepth": 2,
+  "maxPages": 200,
+  "sameDomainOnly": true,
+  "lookbackDays": 14
+}

@@ -278,6 +278,35 @@ _Update JIRA keys (`FAIR-*`) and calendar dates when your PO locks the 191 sprin
 
 ## Documentation index
 
+### Deployable Apify Actor
+
+**Admin city discovery:** On the admin Sources page, use **Find city council
+agendas**, enter a California city name, and select **Find and scrape agendas**.
+The server uses `APIFY_ACTOR_ID` and `APIFY_TOKEN`; rebuild the Actor from the
+updated `apify/` folder before using city-only input. No new database migration
+or search-provider key is required. The Actor resolves exact city-government
+matches from CISA's `.gov` registry, then searches static HTML for dated agenda
+PDFs. Supply the optional official agenda URL when lookup is ambiguous or the
+city is not covered. Results include upcoming meetings and the last 14 days.
+
+The panel displays progress/errors and links to discovered files. Sources are
+saved for later manual syncs. This admin path saves document URLs using the
+existing Apify source ingestion; it does **not** parse their contents for
+conflict matching. The separate PDF ingestion job handles text parsing. New
+admin sources are not automatically added to that job's hard-coded city list.
+Discovery uses the existing in-process sync runner, so keep the backend alive
+until completion; restarting it may leave a running status requiring operator
+recovery. Static crawling, redirects, and registry coverage limitations are
+documented in the Actor README.
+
+The standalone agenda PDF finder lives in `apify/`. See
+[`apify/README.md`](apify/README.md) for input, limitations, local tests, and GitHub
+deployment. After pushing the folder, configure an Apify Git repository source
+as `https://github.com/fppc-csus/FAIR.git#main:apify` (adjust the branch if needed).
+Set `APIFY_ACTOR_ID` and `APIFY_TOKEN` on the server to use the existing ingestion
+pipeline. The Actor only discovers PDFs; the backend parses and persists items.
+
+
 | Topic | Doc |
 |-------|-----|
 | Conflict rules | [`docs/conflict_rules.md`](docs/conflict_rules.md) |

@@ -75,9 +75,18 @@ async function validateSourceInput(body) {
     cityName,
     sourceType: 'apify',
     legistarBaseUrl: null,
-    apifyActorId: await validateApifyActorId(body.apifyActorId),
-    startUrl: null,
+    apifyActorId: await validateApifyActorId(body.apifyActorId || process.env.APIFY_ACTOR_ID),
+    startUrl: validateStartUrl(body.startUrl),
   };
+}
+
+function validateStartUrl(value) {
+  if (value == null || value === '') return null;
+  const url = new URL(value);
+  if (url.protocol !== 'https:' || url.username || url.password || url.hostname === 'localhost') {
+    throw new Error('Use a public HTTPS council agenda URL.');
+  }
+  return url.href;
 }
 
 function sendValidationError(res, error) {
@@ -131,8 +140,17 @@ async function runApifySource(source) {
   if (!process.env.APIFY_TOKEN) throw new Error('Apify is not configured on the server (APIFY_TOKEN is missing).');
 
   const client = new ApifyClient({ token: process.env.APIFY_TOKEN });
-  const run = await client.actor(source.apifyActorId).call({ cityName: source.cityName });
-  const { items = [] } = await client.dataset(run.defaultDatasetId).listItems({ limit: 1000 });
+  const run = await client.actor(source.apifyActorId).call({
+    cityName: source.cityName,
+    ...(source.startUrl ? { startUrl: source.startUrl } : {}),
+  }, { timeout: 600 });
+  if (run.status && run.status !== 'SUCCEEDED') throw new Error(`Actor ${run.status}: ${run.statusMessage || 'Check the Apify run log.'}`);
+  const items = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page = await client.dataset(run.defaultDatasetId).listItems({ limit: 1000, offset });
+    items.push(...(page.items ?? []));
+    if ((page.items?.length ?? 0) < 1000) break;
+  }
   const existing = await prisma.agendaItem.findMany({
     where: { cityId: source.id },
     select: { itemText: true },
@@ -141,7 +159,7 @@ async function runApifySource(source) {
   const seenItemTexts = new Set();
   const rows = items.flatMap((item) => {
     const url = item.pdf_url ?? item.pdfUrl ?? item.agenda_url ?? item.url ?? null;
-    const title = item.title ?? item.agenda_title ?? item.agendaTitle ?? item.name ?? (url ? 'Agenda PDF' : null);
+    const title = item.document_title ?? item.title ?? item.agenda_title ?? item.agendaTitle ?? item.name ?? (url ? 'Agenda PDF' : null);
     const itemText = url ?? item.text ?? item.description ?? JSON.stringify(item);
     if (existingItemTexts.has(itemText) || seenItemTexts.has(itemText)) return [];
     seenItemTexts.add(itemText);
@@ -229,6 +247,7 @@ router.get('/', requireAdmin, async (req, res) => {
         sourceType: source.sourceType,
         legistarBaseUrl: source.legistarBaseUrl,
         apifyActorId: source.apifyActorId,
+        startUrl: source.startUrl,
         enabled: source.enabled,
         lastSyncTime: source.lastSyncedAt,
         totalAgendaItems,
@@ -240,6 +259,43 @@ router.get('/', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('[admin/sources] failed to load sources', err);
     return res.status(500).json({ error: 'Failed to load sources.' });
+  }
+});
+
+// Create/reuse a city source and start discovery without waiting for the crawl.
+router.post('/discover', requireAdmin, async (req, res) => {
+  try {
+    const cityName = typeof req.body.cityName === 'string' ? req.body.cityName.trim() : '';
+    if (!cityName || cityName.length > 100) return res.status(400).json({ error: 'Enter a California city name (1–100 characters).' });
+    const data = await validateSourceInput({ cityName, sourceType: 'Apify', startUrl: req.body.startUrl });
+    const existing = await prisma.dataSource.findFirst({ where: { cityName: { equals: cityName, mode: 'insensitive' }, sourceType: 'apify' } });
+    if (existing) {
+      const active = await prisma.syncLog.findFirst({ where: { dataSourceId: existing.id, status: 'running' } });
+      if (active) return res.status(409).json({ error: 'This city already has a running sync.' });
+    }
+    const source = existing
+      ? await prisma.dataSource.update({ where: { id: existing.id }, data: { ...data, startUrl: data.startUrl ?? existing.startUrl, enabled: true } })
+      : await prisma.dataSource.create({ data });
+    const syncLog = await prisma.syncLog.create({ data: { dataSourceId: source.id, sourceType: 'apify', status: 'running' } });
+    void executeSourceSync(source, syncLog.id).catch((error) => console.error('[admin/sources] discovery result persistence failed', error));
+    return res.status(202).json({ sourceId: source.id, syncLogId: syncLog.id, status: 'running' });
+  } catch (error) {
+    return sendValidationError(res, error);
+  }
+});
+
+router.get('/:id/documents', requireAdmin, async (req, res) => {
+  try {
+    const rows = await prisma.agendaItem.findMany({
+      where: { cityId: req.params.id, sourceType: 'apify' },
+      select: { id: true, title: true, itemText: true, meetingDate: true },
+      orderBy: { meetingDate: 'desc' }, take: 200,
+    });
+    return res.json(rows.filter((row) => /^https?:\/\//i.test(row.itemText ?? '')).map((row) => ({
+      id: row.id, title: row.title, pdfUrl: row.itemText, meetingDate: row.meetingDate,
+    })));
+  } catch {
+    return res.status(500).json({ error: 'Failed to load agenda documents.' });
   }
 });
 

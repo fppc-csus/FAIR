@@ -3,6 +3,7 @@ import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { AdminGuard, AdminNav } from "../adminComponents";
 import { adminFetch } from "../adminAuth";
+import CityAgendaDiscovery from "../components/CityAgendaDiscovery";
 
 type Source = {
   id: string;
@@ -312,6 +313,8 @@ export default function AdminSourcesPage() {
               </div>
             </form>
           )}
+
+          <CityAgendaDiscovery />
 
           {loadError && (
             <div className="mb-6 rounded-xl bg-red-100 px-4 py-3 text-sm font-medium text-red-800">
