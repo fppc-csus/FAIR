@@ -36,6 +36,7 @@ const testState = vi.hoisted(() => {
         return [];
       }),
       findUnique: vi.fn(async ({ where }) => {
+        if (where.legistarItemId) return state.agendaItems.find((row) => row.legistarItemId === where.legistarItemId) ?? null;
         const key = where.cityId_meetingDate_itemNumber;
         return state.agendaItems.find((row) => (
           row.cityId === key.cityId
@@ -52,6 +53,13 @@ const testState = vi.hoisted(() => {
         return { count: data.length };
       }),
       upsert: vi.fn(async ({ where, create, update }) => {
+        if (where.legistarItemId) {
+          const existing = state.agendaItems.find((row) => row.legistarItemId === where.legistarItemId);
+          if (existing) return Object.assign(existing, update);
+          const row = { id: `agenda-${++agendaId}`, ...create };
+          state.agendaItems.push(row);
+          return row;
+        }
         const key = where.cityId_meetingDate_itemNumber;
         const existing = state.agendaItems.find((row) => (
           row.cityId === key.cityId
@@ -228,7 +236,7 @@ describe('agenda ingestion creates visible conflict candidates from matching dis
 
     const result = await runLegistarSyncForCity(
       createSql([id]),
-      { id: 'source-1', city_name: 'Test City', legistar_base_url: 'https://example.test' },
+      { id: 'source-1', city_name: 'Test City', legistar_base_url: 'https://webapi.legistar.com/v1/test' },
       new Set(['legistar_item_id', 'source_type']),
       { detectionDependencies: { prisma: testState.prisma } },
     );

@@ -59,29 +59,21 @@ async function apiRequest(url, options = {}) {
   }
 }
 
-/**
- * Get upcoming meetings from a Legistar jurisdiction
- * @param {string} baseUrl - the base URL for the jurisdiction (e.g., 'https://webapi.legistar.com/v1/sacramento')
- * @param {number} limit - maximum number of meetings to return
- * @returns {Promise<Array<object>>} - array of meeting objects
- */
-async function getMeetings(baseUrl, limit = 50) {
-  const url = new URL(`${baseUrl}/Events`);
-  url.searchParams.set('$top', limit.toString());
-  url.searchParams.set('$orderby', 'EventDate desc');
+function dateOnly(value, label) {
+  if (value == null || value === '') return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.valueOf())) throw new Error(`${label} must be a valid date`);
+  return parsed.toISOString().slice(0, 10);
+}
 
-  // Filter for upcoming meetings (EventDate >= today)
-  const today = new Date().toISOString().split('T')[0];
-  url.searchParams.set('$filter', `EventDate ge datetime'${today}'`);
+function addUtcDays(date, days) {
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  parsed.setUTCDate(parsed.getUTCDate() + days);
+  return parsed.toISOString().slice(0, 10);
+}
 
-  const data = await apiRequest(url.toString());
-
-  // Normalize to array of objects
-  if (!Array.isArray(data)) {
-    throw new Error('Unexpected response format: expected array of meetings');
-  }
-
-  return data.map(meeting => ({
+function normalizeMeeting(meeting) {
+  return {
     id: meeting.EventId,
     date: meeting.EventDate,
     time: meeting.EventTime,
@@ -91,7 +83,57 @@ async function getMeetings(baseUrl, limit = 50) {
     minutesFile: meeting.EventMinutesFile,
     comment: meeting.EventComment,
     ...meeting // include all other fields
-  }));
+  };
+}
+
+/**
+ * Get meetings from a Legistar jurisdiction. Date ranges are inclusive and
+ * results are paginated because many jurisdictions cap a single Events query.
+ * Passing a number retains the older "upcoming N meetings" API.
+ * @param {string} baseUrl
+ * @param {number|object} limitOrOptions
+ * @returns {Promise<Array<object>>}
+ */
+async function getMeetings(baseUrl, limitOrOptions = 50) {
+  const legacyLimit = typeof limitOrOptions === 'number' ? limitOrOptions : null;
+  const options = legacyLimit == null ? limitOrOptions : {
+    startDate: new Date(),
+    maxResults: legacyLimit,
+    pageSize: legacyLimit,
+    order: 'desc',
+  };
+  const startDate = dateOnly(options.startDate, 'startDate');
+  const endDate = dateOnly(options.endDate, 'endDate');
+  if (startDate && endDate && startDate > endDate) {
+    throw new Error('startDate must be on or before endDate');
+  }
+
+  const maxResults = options.maxResults ?? 5000;
+  const pageSize = Math.max(1, Math.min(options.pageSize ?? 100, 1000, maxResults));
+  const order = options.order === 'desc' ? 'desc' : 'asc';
+  const meetings = [];
+
+  for (let skip = 0; meetings.length < maxResults; skip += pageSize) {
+    const url = new URL(`${baseUrl}/Events`);
+    url.searchParams.set('$top', Math.min(pageSize, maxResults - meetings.length).toString());
+    url.searchParams.set('$skip', skip.toString());
+    url.searchParams.set('$orderby', `EventDate ${order}, EventId ${order}`);
+    const filters = [];
+    if (startDate) filters.push(`EventDate ge datetime'${startDate}'`);
+    // Legistar timestamps are midnight-based. Using the following day makes the
+    // caller-facing end date inclusive without relying on time components.
+    if (endDate) filters.push(`EventDate lt datetime'${addUtcDays(endDate, 1)}'`);
+    if (filters.length) url.searchParams.set('$filter', filters.join(' and '));
+
+    const page = await apiRequest(url.toString(), { timeoutMs: options.timeoutMs });
+    if (!Array.isArray(page)) {
+      throw new Error('Unexpected response format: expected array of meetings');
+    }
+    meetings.push(...page.map(normalizeMeeting));
+    if (page.length < pageSize) break;
+  }
+
+  return meetings;
 }
 
 /**
@@ -112,13 +154,13 @@ async function getAgendaItems(baseUrl, meetingId) {
 
   return data.map(item => ({
     id: item.EventItemId,
-    eventId: item.EventId,
-    matterId: item.MatterId,
-    matterName: item.MatterName,
-    matterType: item.MatterTypeName,
-    agendaNumber: item.AgendaNumber,
-    agendaNote: item.AgendaNote,
-    minutesNote: item.MinutesNote,
+    eventId: item.EventItemEventId ?? item.EventId,
+    matterId: item.EventItemMatterId ?? item.MatterId,
+    matterName: item.EventItemMatterName ?? item.MatterName,
+    matterType: item.EventItemMatterType ?? item.MatterTypeName,
+    agendaNumber: item.EventItemAgendaNumber ?? item.AgendaNumber,
+    agendaNote: item.EventItemAgendaNote ?? item.AgendaNote,
+    minutesNote: item.EventItemMinutesNote ?? item.MinutesNote,
     ...item // include all other fields
   }));
 }

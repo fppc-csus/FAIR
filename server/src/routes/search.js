@@ -42,7 +42,7 @@ router.get('/', async (req, res, next) => {
             websearch_to_tsquery('english', ${query})
           ) AS rank
         FROM politicians p
-        WHERE to_tsvector(
+        WHERE p.is_demo = false AND to_tsvector(
           'english',
           coalesce(p.full_name, '')
   || ' ' || coalesce(p.office_title, '')
@@ -73,7 +73,7 @@ router.get('/', async (req, res, next) => {
             websearch_to_tsquery('english', ${query})
           ) AS rank
         FROM agenda_items a
-        WHERE to_tsvector(
+        WHERE a.is_demo = false AND to_tsvector(
           'english',
           coalesce(a.title, '')
   || ' ' || coalesce(a.description, '')
@@ -116,8 +116,7 @@ router.get('/', async (req, res, next) => {
         FROM conflicts c
         JOIN politicians p ON p.id = c.politician_id
         JOIN agenda_items a ON a.id = c.agenda_item_id
-        WHERE (c.eligibility_status IS NULL OR c.eligibility_status = 'active')
-        AND to_tsvector(
+        WHERE p.is_demo = false AND a.is_demo = false AND to_tsvector(
           'english',
           coalesce(c.conflict_type, '')
   || ' ' || coalesce(c.severity, '')

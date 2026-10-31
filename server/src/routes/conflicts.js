@@ -22,7 +22,7 @@ router.get("/", async (req, res, next) => {
       ? Math.max(1, Math.min(requestedLimit, 100))
       : undefined;
     const conflicts = await prisma.conflict.findMany({
-      where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
+      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
       include: conflictInclude,
       orderBy: [
         { detectedAt: "desc" },
@@ -37,6 +37,25 @@ router.get('/filters', async (_req, res, next) => {
     const cities = await prisma.$queryRaw(Prisma.sql`SELECT DISTINCT COALESCE(a.city_name, j.name, 'Unknown') AS city FROM conflicts c JOIN agenda_items a ON a.id = c.agenda_item_id JOIN politicians p ON p.id = c.politician_id LEFT JOIN jurisdictions j ON j.id = p.jurisdiction_id ORDER BY city`);
     res.json({ data: cities.map(row => row.city) });
   } catch (error) { next(error); }
+});
+
+// Backwards-compatible endpoint for clients that load filter options separately.
+// Keep this before `/:id`, otherwise Express treats "filters" as a conflict ID.
+router.get('/filters', async (_req, res, next) => {
+  try {
+    const conflicts = await prisma.conflict.findMany({
+      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
+      include: conflictInclude,
+      orderBy: [{ detectedAt: 'desc' }, { id: 'asc' }],
+    });
+    const rows = conflicts.map(dashboardRow);
+    const unique = values => [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+    return res.status(200).json({ data: {
+      cities: unique(rows.map(row => row.city)),
+      conflictTypes: unique(rows.map(row => row.conflictType)),
+      severities: unique(rows.map(row => row.severity)),
+    } });
+  } catch (error) { return next(error); }
 });
 
 const STREET_ABBREVIATIONS = [
@@ -169,7 +188,7 @@ router.get("/export", async (req, res, next) => {
     let cursor;
 
     const getBatch = () => prisma.conflict.findMany({
-      where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
+      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
       include: conflictInclude,
       orderBy: { id: "asc" },
       take: batchSize,
@@ -230,7 +249,7 @@ router.get("/:id", async (req, res, next) => {
 
   try {
     const conflict = await prisma.conflict.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, politician: { isDemo: false }, agendaItem: { isDemo: false } },
       include: {
         politician: true,
         agendaItem: { include: { meeting: { include: { jurisdiction: true } } } },

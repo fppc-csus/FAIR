@@ -58,26 +58,11 @@ function asScheduleA2(row) {
   };
 }
 
-function evidence(row) {
-  return {
-    disclosureId: row.id,
-    filingId: row.filingId ?? row.filing?.id,
-    filingYear: row.filing?.filingYear ?? row.filingYear,
-    politicianJurisdictionId: row.filing?.politician?.jurisdictionId ?? row.politicianJurisdictionId,
-    supportingSource: row.filing?.archivedPath ?? row.filing?.storagePath ?? row.filing?.originalFilename ?? null,
-    filing: row.filing,
-    schedulePoliticianId: row.politicianId ?? row.politician_id,
-  };
-}
-
-async function loadRows(delegate, jurisdictionIds) {
+async function loadRows(delegate, isDemo) {
   if (!delegate?.findMany) return [];
   return delegate.findMany({
-    // Include unresolved filers for explicit review, never for automatic matching.
-    where: { filing: { politician: { OR: [
-      { jurisdictionId: { in: jurisdictionIds } }, { jurisdictionId: null },
-    ] } } },
-    include: { filing: { include: { politician: { select: { jurisdictionId: true, needsReview: true } } } } },
+    where: { filing: { politician: { isDemo } } },
+    include: { filing: { select: { politicianId: true } } },
   });
 }
 
@@ -121,21 +106,16 @@ async function detectLockedAgendaItems(client, ids, deps) {
     throw new Error("Unknown filing-period policy");
   }
 
-  const [investments, properties, sources, positions] = jurisdictionIds.length
-    ? await Promise.all([
-      loadRows(client.scheduleAInvestment, jurisdictionIds),
-      loadRows(client.scheduleBRealEstate, jurisdictionIds),
-      loadRows(client.scheduleCdeIncome, jurisdictionIds),
-      loadRows(client.scheduleA2BusinessPosition, jurisdictionIds),
-    ]) : [[], [], [], []];
+  const groups = new Map();
+  for (const isDemo of new Set(items.map((item) => Boolean(item.isDemo)))) {
+    groups.set(isDemo, await Promise.all([
+      loadRows(client.scheduleAInvestment, isDemo),
+      loadRows(client.scheduleBRealEstate, isDemo),
+      loadRows(client.scheduleCdeIncome, isDemo),
+      loadRows(client.scheduleA2BusinessPosition, isDemo),
+    ]));
+  }
 
-  const inScope = (row) =>
-    !politicianIds ||
-    politicianIds.includes(politicianIdFrom(row));
-  const scheduleA = (investments || []).filter(inScope).map(asScheduleA);
-  const scheduleB = (properties || []).filter(inScope).map(asScheduleB);
-  const scheduleCde = (sources || []).filter(inScope).map(asScheduleCde);
-  const scheduleA2 = (positions || []).filter(inScope).map(asScheduleA2);
 
   const matchDeps = deps.matchNamedEntity
     ? { matchNamedEntity: deps.matchNamedEntity }
@@ -153,49 +133,24 @@ async function detectLockedAgendaItems(client, ids, deps) {
   };
   const pendingItemIds = new Set();
   for (const item of items) {
-    const scope = scopes.get(item.id);
-    if (!scope.jurisdictionId || !scope.meetingDate) {
-      requireReview({ agendaItemId: item.id, reason: scope.reason ?? "MISSING_MEETING_DATE" });
-      // Unknown agenda scope cannot safely supersede any existing candidate.
-      pendingItemIds.add(item.id);
-      continue;
-    }
-    if (policy.period === "PENDING") {
-      requireReview({ agendaItemId: item.id, reason: "POLICY_PENDING" });
-      pendingItemIds.add(item.id);
-      // Still inspect scoped filings to surface unresolved politician jurisdiction.
-    }
-    const eligible = (rows) => rows.filter((row) => {
-      const result = disclosureEligibility(scope, row, policy);
-      if (result.status === "REVIEW_REQUIRED") {
-        requireReview({ agendaItemId: item.id, filingId: row.filingId, reason: result.reason });
-      }
-      if (result.status === "POLICY_PENDING" || result.status === "REVIEW_REQUIRED") pendingItemIds.add(item.id);
-      return result.status === "ELIGIBLE";
-    });
-    const a = eligible(scheduleA);
-    const b = eligible(scheduleB);
-    const cde = eligible(scheduleCde);
-    const a2 = eligible(scheduleA2);
-    for (const [rows, detector] of [
-      [a, (row) => detectInvestments([row], item, matchDeps)],
-      [b, (row) => detectRealEstate([row], item)],
-      [cde, (row) => detectIncomeGiftsTravel([row], item, matchDeps)],
-      [a2, (row) => detectBusinessPositions([row], item, matchDeps)],
-    ]) {
-      for (const row of rows) {
-        for (const flag of await detector(row)) {
-          candidates.push({ ...flag,
-            // Persist exact disclosure identity; the historical source key alone
-            // cannot distinguish filings with the same entity across years.
-            source_key: row.disclosureId && row.filingId
-              ? `${flag.source_key}:disclosure:${row.disclosureId}` : flag.source_key,
-            filingId: row.filingId, disclosureId: row.disclosureId,
-            filingYear: row.filingYear, jurisdictionId: scope.jurisdictionId,
-            meetingDate: scope.meetingDate, supportingSource: row.supportingSource });
-        }
-      }
-    }
+    const [investments, properties, sources, positions] = groups.get(Boolean(item.isDemo));
+    const scheduleA = (investments || []).map(asScheduleA);
+    const scheduleB = (properties || []).map(asScheduleB);
+    const scheduleCde = (sources || []).map(asScheduleCde);
+    const scheduleA2 = (positions || []).map(asScheduleA2);
+    candidates.push(
+      ...(await detectInvestments(scheduleA, item, matchDeps)),
+    );
+
+    candidates.push(...(await detectRealEstate(scheduleB, item)));
+    
+    candidates.push(
+      ...(await detectIncomeGiftsTravel(scheduleCde, item, matchDeps)),
+    );
+    
+    candidates.push(
+      ...(await detectBusinessPositions(scheduleA2, item, matchDeps)),
+    );
   }
 
   // A review-required disclosure must not invalidate earlier matches, but it

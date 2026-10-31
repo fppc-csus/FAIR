@@ -64,6 +64,7 @@ function resolveTarget(root, documentPath, rawTarget, source) {
   if (!target || isExternal(target) || WILDCARD.test(target)) return null;
 
   if (source === 'backtick') {
+    if (target.split('/').some((segment) => SKIPPED_DIRECTORIES.has(segment))) return null;
     return path.resolve(root, target.replace(/\/$/, ''));
   }
   return path.resolve(path.dirname(documentPath), decodeURIComponent(target));

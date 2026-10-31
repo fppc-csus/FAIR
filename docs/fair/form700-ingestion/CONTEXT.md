@@ -50,6 +50,38 @@ Headers are matched case-insensitively after collapsing whitespace/line breaks, 
 
 ## Boundaries
 
+## Multi-filer NetFile exports
+
+`server/src/parsers/form700Bulk.js` isolates filer/agency/year and submission
+timestamp/type before calling schedule parsers. `server/src/ingestion/form700Bulk.js`
+provides write-free previews, exact jurisdiction-scoped identity matching, and
+per-filer transactional imports. The admin portal offers authenticated
+`POST /api/admin/upload/form700/bulk/preview` and `/bulk/import` (multipart `file`;
+import also requires the preview `digest`). The single-filing endpoint rejects
+exports containing multiple filers or submission versions.
+
+One latest-submission snapshot per filer/year is active. All submission summaries
+are stored in `Form700Filing.importMetadata`; the full original workbook is
+archived privately for each imported filing. Older submissions are not separately
+active schedule records. Missing amendment schedules are not carried forward;
+the preview warns about incomplete amendment coverage and requires admin review.
+Existing filer/year rows are skipped, not replaced. Import failures are reported
+per filer; successful filings remain committed, and retries skip them. Detection
+failures do not undo successful disclosure imports and are shown in results.
+
+Confirmed bulk attempts are written to `Form700ImportRun`, including warnings and
+per-filer imported/skipped/failed results. `/api/admin/history` combines these
+durable runs with older `Form700Filing.importMetadata`, grouped by workbook digest,
+so pre-history imports remain visible without duplicating workbook-wide warnings.
+The authenticated `/admin/history` page provides search, warning-only filtering,
+pagination, profile links, and schedule counts.
+
+Trusted operators can use `server/scripts/import-form700.mjs` with a workbook path
+(preview only), then the printed digest to confirm. Run Prisma migrations and
+regenerate the client first. The XLSX limit remains 10 MB; PDF parsing is not part
+of this flow. Tests: `server/tests/unit/form700Bulk.test.js`, upload route tests,
+and `client/app/components/Form700BulkUpload.test.tsx`.
+
 - Parsing and validation rules belong with **server** code; storage policy with **Supabase Storage** (see `supabase/CONTEXT.md`).
 - Do not expose bulk upload or admin endpoints without **Supabase Auth**.
 

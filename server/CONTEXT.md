@@ -13,9 +13,9 @@
 
 ## Active route groups
 
-Public: `/health`, `/api/conflicts`, `/api/politicians`, `/api/agenda`, `/api/search`.
+Public: `/health`, `/api/conflicts` (including `/filters`), `/api/politicians`, `/api/agenda`, `/api/search`.
 
-Admin (Supabase JWT required): `/api/admin/sources`, `/api/admin/reports`, `/api/admin/politicians`, `/api/admin/sync`, `/api/admin/upload`.
+Admin (Supabase JWT required): `/api/admin/session`, `/api/admin/sources`, `/api/admin/reports`, `/api/admin/politicians`, `/api/admin/history`, `/api/admin/sync`, `/api/admin/upload`.
 
 `src/routes/adminRoutes.js`, `src/queues/syncQueue.js`, and `src/workers/syncWorker.js` are not mounted by `app.js`; verify before modifying them.
 

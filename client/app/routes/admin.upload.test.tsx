@@ -18,7 +18,7 @@ it.each(["validation", "timeout"])("shows a specific %s failure and retry upload
   }
   vi.stubGlobal("XMLHttpRequest", MockRequest);
   const { container } = render(<Upload />);
-  fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [new File(["workbook"], "filing.xlsx")] } });
+  fireEvent.change(container.querySelector('input[type="file"].sr-only')!, { target: { files: [new File(["workbook"], "filing.xlsx")] } });
   fireEvent.click(screen.getByRole("button", { name: "Upload Form 700" }));
   await waitFor(() => expect(xhr).toBeDefined());
   expect(xhr.timeout).toBe(UPLOAD_TIMEOUT_MS);

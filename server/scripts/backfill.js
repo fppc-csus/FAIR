@@ -1,32 +1,61 @@
 import '../src/lib/env.js';
 import { runNightlyLegistarSync } from '../src/jobs/nightlySync.js';
 
-const BACKFILL_LOOKBACK_DAYS = 365 * 2;
-export function readCityArgument(argv = []) {
-  const index = argv.indexOf('--city');
+const DEFAULT_BACKFILL_LOOKBACK_DAYS = 365 * 2;
+
+function readOption(argv, name) {
+  const index = argv.indexOf(name);
 
   if (index === -1) {
     return null;
   }
 
-  const city = argv[index + 1]?.trim();
+  const value = argv[index + 1]?.trim();
 
-  if (!city || city.startsWith('--')) {
-    throw new Error('The --city option requires a city name');
+  if (!value || value.startsWith('--')) {
+    throw new Error(`The ${name} option requires a value`);
   }
 
-  return city;
+  return value;
+}
+
+function validDate(value, name) {
+  if (value == null) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(value)
+    || Number.isNaN(parsed.valueOf())
+    || parsed.toISOString().slice(0, 10) !== value
+  ) {
+    throw new Error(`${name} must use YYYY-MM-DD`);
+  }
+  return value;
+}
+
+export function readBackfillArguments(argv = []) {
+  const city = readOption(argv, '--city');
+  const startDate = validDate(readOption(argv, '--start'), '--start');
+  const endDate = validDate(readOption(argv, '--end'), '--end');
+  if (startDate && endDate && startDate > endDate) {
+    throw new Error('--start must be on or before --end');
+  }
+  return { city, startDate, endDate };
 }
 
 export async function runBackfill({
   city = null,
+  startDate = null,
+  endDate = null,
+  now = new Date(),
   run = runNightlyLegistarSync,
   log = console.log,
 } = {}) {
   const startedAt = Date.now();
 
   const result = await run({
-    lookbackDays: BACKFILL_LOOKBACK_DAYS,
+    lookbackDays: startDate ? undefined : DEFAULT_BACKFILL_LOOKBACK_DAYS,
+    startDate,
+    endDate: endDate ?? now.toISOString().slice(0, 10),
     city,
   });
 
@@ -41,9 +70,9 @@ export async function runBackfill({
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const city = readCityArgument(process.argv.slice(2));
+  const options = readBackfillArguments(process.argv.slice(2));
 
-  runBackfill({ city }).catch((error) => {
+  runBackfill(options).catch((error) => {
     console.error('[backfill] command failed:', error);
     process.exitCode = 1;
   });

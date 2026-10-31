@@ -1,0 +1,1 @@
+ALTER TABLE "form700_filings" ADD COLUMN "import_metadata" JSONB;

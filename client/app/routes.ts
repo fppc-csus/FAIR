@@ -10,6 +10,7 @@ export default [
   route("admin/politicians", "routes/admin.politicians.tsx"),
   route("admin/sources", "routes/admin.sources.tsx"),
   route("admin/reports", "routes/admin.reports.tsx"),
+  route("admin/history", "routes/admin.history.tsx"),
   route("politicians", "routes/politicians.tsx"),
   route("politicians/:id", "routes/politician-detail.tsx"),
   route("agenda/:id", "routes/agenda-detail.tsx"),

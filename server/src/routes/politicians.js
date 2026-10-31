@@ -11,6 +11,7 @@ router.get('/', async (_req, res, next) => {
       ? Math.max(1, Math.min(requestedLimit, 500))
       : undefined;
     const politicians = await prisma.politician.findMany({
+      where: { isDemo: false },
       select: {
         id: true,
         slug: true,
@@ -50,6 +51,7 @@ router.get('/id/:id', async (req, res, next) => {
     const politician = await prisma.politician.findUnique({
       where: {
         id: req.params.id,
+        isDemo: false,
       },
       select: {
         id: true,
@@ -111,6 +113,7 @@ router.get('/:slug', async (req, res, next) => {
     const politician = await prisma.politician.findUnique({
       where: {
         slug: req.params.slug,
+        isDemo: false,
       },
       select: {
         id: true,

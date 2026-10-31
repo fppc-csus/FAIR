@@ -41,6 +41,7 @@ model Jurisdiction {
 }
 
 model Politician {
+  isDemo         Boolean       @default(false) @map("is_demo")
   id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug           String        @unique
   fullName       String        @map("full_name")
@@ -110,6 +111,7 @@ model Meeting {
 /// Raw ingestion inserts rows without a Meeting, so `meetingId` and `title` are
 /// nullable and the denormalised Legistar/PDF columns live directly on the row.
 model AgendaItem {
+  isDemo      Boolean   @default(false) @map("is_demo")
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   meetingId   String?   @map("meeting_id") @db.Uuid
   meeting     Meeting?  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
@@ -183,6 +185,7 @@ model Form700Filing {
   /// Legacy v1 column kept for backwards compatibility; prefer archivedPath.
   storagePath      String?    @map("storage_path")
   filedAt          DateTime?  @map("filed_at")
+  importMetadata   Json?      @map("import_metadata")
   createdAt        DateTime   @default(now()) @map("created_at")
 
   scheduleAInvestments ScheduleAInvestment[]
@@ -193,6 +196,26 @@ model Form700Filing {
 
   @@unique([politicianId, filingYear])
   @@map("form700_filings")
+}
+
+/// Durable audit record for a confirmed bulk Form 700 import attempt. Results
+/// remain available even when individual filer rows fail or are skipped.
+model Form700ImportRun {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  originalFilename String   @map("original_filename")
+  sourceDigest     String   @map("source_digest")
+  adminUserId      String?  @map("admin_user_id")
+  status           String
+  importedCount    Int      @default(0) @map("imported_count")
+  skippedCount     Int      @default(0) @map("skipped_count")
+  failedCount      Int      @default(0) @map("failed_count")
+  warnings         Json?
+  results          Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)], map: "form700_import_runs_created_at_idx")
+  @@index([sourceDigest], map: "form700_import_runs_source_digest_idx")
+  @@map("form700_import_runs")
 }
 
 model ConflictFlag {

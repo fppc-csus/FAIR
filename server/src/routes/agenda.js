@@ -12,6 +12,7 @@ router.get("/", async (_req, res, next) => {
       ? Math.max(1, Math.min(requestedLimit, 100))
       : undefined;
     const agendaItems = await prisma.agendaItem.findMany({
+      where: { isDemo: false },
       select: {
         id: true,
         title: true,
@@ -52,6 +53,7 @@ router.get("/:id", async (req, res) => {
     const agendaItem = await prisma.agendaItem.findUnique({
       where: {
         id: req.params.id,
+        isDemo: false,
       },
       select: {
         id: true,

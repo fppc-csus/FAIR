@@ -44,7 +44,7 @@ describe("runLegistarSyncForCity", () => {
 
     const result = await runLegistarSyncForCity(
       createSql(["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]),
-      { id: "source-1", city_name: "Test City", legistar_base_url: "https://example.test" },
+      { id: "source-1", city_name: "Test City", legistar_base_url: "https://webapi.legistar.com/v1/test" },
       new Set([
         "id",
         "legistar_item_id",
@@ -91,7 +91,7 @@ describe("runLegistarSyncForCity", () => {
 
     const result = await runLegistarSyncForCity(
       createSql(["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]),
-      { id: "source-1", city_name: "Test City", legistar_base_url: "https://example.test" },
+      { id: "source-1", city_name: "Test City", legistar_base_url: "https://webapi.legistar.com/v1/test" },
       new Set(["legistar_item_id", "source_type"]),
       { detectConflictsForAgendaItems },
     );
@@ -123,7 +123,7 @@ describe("runLegistarSyncForCity", () => {
 
     const result = await runLegistarSyncForCity(
       createSql([]),
-      { id: "source-1", city_name: "Test City", legistar_base_url: "https://example.test" },
+      { id: "source-1", city_name: "Test City", legistar_base_url: "https://webapi.legistar.com/v1/test" },
       new Set(["legistar_item_id", "source_type"]),
       { detectConflictsForAgendaItems },
     );

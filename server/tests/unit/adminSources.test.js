@@ -265,6 +265,21 @@ describe('source edit and delete', () => {
 });
 
 describe('on-demand source sync', () => {
+  it('rejects invalid backfill dates before creating a job', async () => {
+    const response = await request(app).post('/api/admin/sources/source-1/sync')
+      .send({ startDate: '2025-02-31' });
+    expect(response.status).toBe(400);
+    expect(prisma.syncLog.create).not.toHaveBeenCalled();
+  });
+
+  it('passes an explicit historical range to the shared fetcher', async () => {
+    await request(app).post('/api/admin/sources/source-1/sync')
+      .send({ startDate: '2025-11-01', endDate: '2025-11-30' });
+    await vi.waitFor(() => expect(getMeetings).toHaveBeenCalledWith(
+      validSource.legistarBaseUrl,
+      expect.objectContaining({ startDate: '2025-11-01', endDate: '2025-11-30' }),
+    ));
+  });
   it('creates a URL-backed discovery source and starts a run', async () => {
     vi.stubEnv('APIFY_TOKEN', 'token');
     vi.stubEnv('APIFY_ACTOR_ID', 'fair/finder');
@@ -328,17 +343,19 @@ describe('on-demand source sync', () => {
     });
     await vi.waitFor(() => expect(getMeetings).toHaveBeenCalledWith(
       'https://webapi.legistar.com/v1/sacramento',
-      50,
+      expect.objectContaining({ startDate: expect.any(Date) }),
     ));
     expect(getAgendaItems).toHaveBeenCalledWith('https://webapi.legistar.com/v1/sacramento', 42);
-    await vi.waitFor(() => expect(prisma.agendaItem.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({
+    await vi.waitFor(() => expect(prisma.agendaItem.upsert).toHaveBeenCalledWith({
+      where: { legistarItemId: 'sacramento:9001' },
+      create: expect.objectContaining({
         sourceType: 'legistar',
-        legistarItemId: '9001',
+        legistarItemId: 'sacramento:9001',
         cityName: 'Sacramento',
         title: 'Approve public works contract',
-      })],
-      skipDuplicates: true,
+        itemText: 'Approve public works contract',
+      }),
+      update: expect.objectContaining({ legistarItemId: 'sacramento:9001' }),
     }));
     await vi.waitFor(() => expect(detectConflictsForAgendaItems).toHaveBeenCalledWith(
       ['agenda-1'],

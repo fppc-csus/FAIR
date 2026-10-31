@@ -33,6 +33,8 @@ import { parseScheduleCDE } from "../../parsers/scheduleCDE.js";
 import { findOrCreatePolitician } from "../../utils/findOrCreatePolitician.js";
 import { queueDetectionRun } from "../../detection/detectionRuns.js";
 import { redetectDisclosureAgendaItems } from "../../detection/redetectDisclosure.js";
+import { parseForm700Bulk } from "../../parsers/form700Bulk.js";
+import { previewForm700Bulk, importForm700Bulk } from "../../ingestion/form700Bulk.js";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -136,6 +138,46 @@ function toScheduleA2(rows, ids) {
   }));
 }
 
+router.post('/form700/bulk/:action', receiveFile, async (req, res, next) => {
+  try {
+    if (!['preview', 'import'].includes(req.params.action)) return res.status(404).json({ error: 'Unknown upload action.' });
+    if (!req.file || !/\.xlsx$/i.test(req.file.originalname) || req.file.mimetype !== XLSX_MIME) return res.status(400).json({ error: 'Choose a valid .xlsx workbook.' });
+    let preview;
+    try { preview = await previewForm700Bulk(req.file.buffer, prisma); }
+    catch (error) {
+      // Parser errors are actionable; database failures are handled by the global handler.
+      if (error.code || error.name?.startsWith('Prisma')) throw error;
+      return res.status(400).json({ error: error.message });
+    }
+    if (req.params.action === 'preview') {
+      return res.json({ ...preview, filings: preview.filings.map(({ schedules, ...filing }) => filing) });
+    }
+    if (req.body.digest !== preview.digest) return res.status(409).json({ error: 'Preview this workbook before importing. The preview must match the selected file.' });
+    // Record the attempt before any filing writes, so an interrupted process
+    // remains visible as running rather than disappearing from the audit trail.
+    const run = await prisma.form700ImportRun.create({ data: {
+      originalFilename: req.file.originalname,
+      sourceDigest: preview.digest,
+      adminUserId: req.user?.id ?? null,
+      status: 'running',
+      warnings: preview.warnings,
+    } });
+    const result = await importForm700Bulk(req.file.buffer, req.file.originalname, preview, {
+      prisma, archiveWorkbook, deleteWorkbook, redetect: redetectDisclosureAgendaItems,
+    });
+    const status = result.failed > 0 ? (result.imported > 0 || result.skipped > 0 ? 'partial' : 'failed') : 'completed';
+    await prisma.form700ImportRun.update({ where: { id: run.id }, data: {
+      status,
+      importedCount: result.imported,
+      skippedCount: result.skipped,
+      failedCount: result.failed,
+      warnings: result.warnings,
+      results: result.results,
+    } });
+    return res.json(result);
+  } catch (error) { return next(error); }
+});
+
 router.post("/form700", receiveFile, async (req, res, next) => {
   try {
     // 1. File present + MIME ----------------------------------------------
@@ -167,6 +209,23 @@ router.post("/form700", receiveFile, async (req, res, next) => {
         error:
           "Workbook does not contain any recognizable Form 700 sheets (Cover Page, Schedule A/A-2/B/C/D/E).",
       });
+    }
+
+    // Never allow a county-wide export to be attached to its first filer.
+    let bulk;
+    const hasFilerColumns = workbook.SheetNames.some(name => {
+      if (!/^schedule/i.test(name)) return false;
+      return XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1 }).slice(0, 15)
+        .some(row => row.some(cell => String(cell ?? '').trim().toLowerCase() === 'last name'));
+    });
+    if (hasFilerColumns) {
+      try { bulk = parseForm700Bulk(workbook); }
+      catch {
+        return res.status(400).json({ error: 'Filer-tagged export could not be safely isolated. Use the bulk Form 700 preview to review validation errors.' });
+      }
+    }
+    if (bulk && (bulk.filings.length > 1 || bulk.filings.some(filing => filing.versions.length > 1))) {
+      return res.status(400).json({ error: 'This workbook contains multiple filers or submissions. Use the bulk Form 700 preview and import.' });
     }
 
     // 3. Filer metadata ------------------------------------------------------
