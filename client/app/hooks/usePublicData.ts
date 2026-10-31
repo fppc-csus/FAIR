@@ -10,10 +10,10 @@ export function usePublicData<T>(url: string, missingMessage = "This record was 
     const controller = new AbortController();
     setLoading(true); setError(null); setData(null);
     void request(url, { signal: controller.signal }).then(async response => {
-      if (!response.ok) throw new Error(response.status === 404 ? missingMessage : "These records are temporarily unavailable. Please try again.");
+      if (!response.ok) throw new Error(response.status === 404 ? missingMessage : `These records are temporarily unavailable (HTTP ${response.status}). Please try again.`);
       let payload;
       try { payload = await response.json(); } catch { throw new Error("The server returned an unreadable response. Please try again."); }
-      if (!payload || typeof payload !== "object" || !("data" in payload)) throw new Error("The server returned an incomplete response. Please try again.");
+      if (!payload || typeof payload !== "object" || !("data" in payload)) throw new Error(`The server returned an incomplete response for ${new URL(url, window.location.origin).pathname}. Please try again.`);
       if (payload.data == null) throw new Error(missingMessage);
       if (!controller.signal.aborted) setData(payload.data);
     }).catch(reason => {

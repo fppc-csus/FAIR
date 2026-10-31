@@ -26,7 +26,8 @@ export async function previewForm700Bulk(buffer, prisma) {
 export async function importForm700Bulk(buffer, filename, preview, { prisma, archiveWorkbook, deleteWorkbook, redetect }) {
   const results = [];
   for (const filing of preview.filings) {
-    if (filing.status === 'skipped') { results.push({ filer_name: filing.filer_name, status: 'skipped', filing_id: filing.existing_filing_id }); continue; }
+    const details = { filer_name: filing.filer_name, filing_year: filing.filing_year, jurisdiction: filing.agency, filing_type: filing.filing_type, filed_at: filing.filed_at, versions: filing.versions, selection: 'latest_submission_only' };
+    if (filing.status === 'skipped') { results.push({ ...details, status: 'skipped', filing_id: filing.existing_filing_id }); continue; }
     const filingId = randomUUID();
     const politicianId = filing.politician_id ?? randomUUID();
     let path;
@@ -50,13 +51,13 @@ export async function importForm700Bulk(buffer, filename, preview, { prisma, arc
       let detection;
       try { detection = await redetect({ politicianId, filingYear: filing.filing_year, prisma }); }
       catch { detection = { skippedReason: 'detection_failed_retry_required' }; }
-      results.push({ filer_name: filing.filer_name, status: 'imported', filing_id: filingId, politician_id: politicianId, slug: politician.slug, schedules_parsed: filing.schedules_parsed, detection });
+      results.push({ ...details, status: 'imported', filing_id: filingId, politician_id: politicianId, slug: politician.slug, schedules_parsed: filing.schedules_parsed, detection });
     } catch (error) {
       if (path && !committed) {
         try { await deleteWorkbook(path); } catch { console.error('[form700] archive cleanup failed', path); }
       }
       console.error('[form700] import failed', filing.filer_name, error.message);
-      results.push({ filer_name: filing.filer_name, status: error.code === 'P2002' ? 'skipped' : 'failed', error: error.code === 'P2002' ? 'Duplicate filing or identity; refresh preview.' : 'Import failed; check server logs and storage before retrying.' });
+      results.push({ ...details, status: error.code === 'P2002' ? 'skipped' : 'failed', error: error.code === 'P2002' ? 'Duplicate filing or identity; refresh preview.' : 'Import failed; check server logs and storage before retrying.' });
     }
   }
   return { results, warnings: preview.warnings, imported: results.filter(r => r.status === 'imported').length, skipped: results.filter(r => r.status === 'skipped').length, failed: results.filter(r => r.status === 'failed').length };

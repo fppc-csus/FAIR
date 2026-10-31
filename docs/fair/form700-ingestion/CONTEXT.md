@@ -53,6 +53,13 @@ Existing filer/year rows are skipped, not replaced. Import failures are reported
 per filer; successful filings remain committed, and retries skip them. Detection
 failures do not undo successful disclosure imports and are shown in results.
 
+Confirmed bulk attempts are written to `Form700ImportRun`, including warnings and
+per-filer imported/skipped/failed results. `/api/admin/history` combines these
+durable runs with older `Form700Filing.importMetadata`, grouped by workbook digest,
+so pre-history imports remain visible without duplicating workbook-wide warnings.
+The authenticated `/admin/history` page provides search, warning-only filtering,
+pagination, profile links, and schedule counts.
+
 Trusted operators can use `server/scripts/import-form700.mjs` with a workbook path
 (preview only), then the printed digest to confirm. Run Prisma migrations and
 regenerate the client first. The XLSX limit remains 10 MB; PDF parsing is not part

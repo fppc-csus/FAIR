@@ -71,6 +71,13 @@ submissions. This is not a reconstruction of amendment history. Review incomplet
 amendments before importing. Existing filer/year filings are skipped, never
 overwritten, so retries do not duplicate successful imports.
 
+Open `/admin/history` to review confirmed import attempts, warnings, filer-level
+outcomes, and legacy imports reconstructed from filing metadata.
+
+Admin sign-in validates the Supabase session against the protected server before
+entering the admin area. Ensure the browser and server use the same Supabase
+project and set `FAIR_ADMIN_EMAIL` on the server to the authorized account.
+
 Apply Prisma migrations and regenerate the client before using bulk imports:
 `cd server && npx prisma migrate deploy && npx prisma generate`.
 For a trusted server-side import, run `node scripts/import-form700.mjs /absolute/path/workbook.xlsx`

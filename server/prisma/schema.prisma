@@ -193,6 +193,26 @@ model Form700Filing {
   @@map("form700_filings")
 }
 
+/// Durable audit record for a confirmed bulk Form 700 import attempt. Results
+/// remain available even when individual filer rows fail or are skipped.
+model Form700ImportRun {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  originalFilename String   @map("original_filename")
+  sourceDigest     String   @map("source_digest")
+  adminUserId      String?  @map("admin_user_id")
+  status           String
+  importedCount    Int      @default(0) @map("imported_count")
+  skippedCount     Int      @default(0) @map("skipped_count")
+  failedCount      Int      @default(0) @map("failed_count")
+  warnings         Json?
+  results          Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)], map: "form700_import_runs_created_at_idx")
+  @@index([sourceDigest], map: "form700_import_runs_source_digest_idx")
+  @@map("form700_import_runs")
+}
+
 model ConflictFlag {
   id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   politicianId String      @map("politician_id") @db.Uuid

@@ -18,6 +18,7 @@ import adminSourcesRouter from './routes/admin/sources.js';
 import adminUploadRouter from './routes/admin/upload.js';
 import adminPoliticiansRouter from './routes/admin/politicians.js';
 import adminConflictsRouter from './routes/admin/conflicts.js';
+import adminHistoryRouter from './routes/admin/history.js';
 
 // AC4: manual nightly sync route
 import adminSyncRouter from './routes/adminSync.js';
@@ -56,10 +57,14 @@ app.use('/api/agenda', agendaRouter);
 app.use('/api/search', searchRouter);
 
 // --- admin API (Supabase JWT required) --------------------------------------
+app.get('/api/admin/session', requireAdmin, (req, res) => {
+  res.status(200).json({ data: { userId: req.user.id, email: req.user.email } });
+});
 app.use('/api/admin/sources', requireAdmin, adminSourcesRouter);
 app.use('/api/admin/reports', requireAdmin, adminReportsRouter);
 app.use('/api/admin/politicians', requireAdmin, adminPoliticiansRouter);
 app.use('/api/admin/conflicts', requireAdmin, adminConflictsRouter);
+app.use('/api/admin/history', requireAdmin, adminHistoryRouter);
 
 // AC4: manual nightly sync trigger
 app.use('/api/admin/sync', requireAdmin, adminSyncRouter);

@@ -38,6 +38,25 @@ router.get("/", async (_req, res, next) => {
   }
 });
 
+// Backwards-compatible endpoint for clients that load filter options separately.
+// Keep this before `/:id`, otherwise Express treats "filters" as a conflict ID.
+router.get('/filters', async (_req, res, next) => {
+  try {
+    const conflicts = await prisma.conflict.findMany({
+      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
+      include: conflictInclude,
+      orderBy: [{ detectedAt: 'desc' }, { id: 'asc' }],
+    });
+    const rows = conflicts.map(dashboardRow);
+    const unique = values => [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+    return res.status(200).json({ data: {
+      cities: unique(rows.map(row => row.city)),
+      conflictTypes: unique(rows.map(row => row.conflictType)),
+      severities: unique(rows.map(row => row.severity)),
+    } });
+  } catch (error) { return next(error); }
+});
+
 const STREET_ABBREVIATIONS = [
   [/\b(street|str)\b/g, "st"],
   [/\bavenue\b/g, "ave"],

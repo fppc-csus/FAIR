@@ -53,7 +53,7 @@ describe('requireAdmin', () => {
 
     expect(supabase.auth.getUser).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'unauthorized' });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'authentication_required' }));
     expect(next).not.toHaveBeenCalled();
     expect(req.user).toBeUndefined();
   });
@@ -67,7 +67,7 @@ describe('requireAdmin', () => {
 
     expect(supabase.auth.getUser).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'unauthorized' });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'authentication_required' }));
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -85,12 +85,12 @@ describe('requireAdmin', () => {
 
     expect(supabase.auth.getUser).toHaveBeenCalledWith('expired-jwt');
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'unauthorized' });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'authentication_required' }));
     expect(next).not.toHaveBeenCalled();
     expect(req.user).toBeUndefined();
   });
 
-  it('returns 401 for a valid user that is not the configured admin', async () => {
+  it('returns 403 for a valid user that is not the configured admin', async () => {
     supabase.auth.getUser.mockResolvedValue({
       data: { user: { id: 'user-456', email: 'other@fppc.ca.gov' } },
       error: null,
@@ -100,11 +100,12 @@ describe('requireAdmin', () => {
 
     await requireAdmin(mockReq({ authorization: 'Bearer valid-jwt' }), res, next);
 
-    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'admin_forbidden' }));
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns 401 (never throws) when getUser rejects', async () => {
+  it('returns 503 (never throws) when getUser rejects', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     supabase.auth.getUser.mockRejectedValue(new Error('network down'));
 
@@ -114,10 +115,26 @@ describe('requireAdmin', () => {
 
     await expect(requireAdmin(req, res, next)).resolves.not.toThrow();
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'unauthorized' });
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'auth_unavailable' }));
     expect(next).not.toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  it('returns 503 for a Supabase rate-limit or service error', async () => {
+    supabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: { status: 503 } });
+    const res = mockRes(); const next = vi.fn();
+    await requireAdmin(mockReq({ authorization: 'Bearer token' }), res, next);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without treating missing server configuration as a bad session', async () => {
+    delete process.env.FAIR_ADMIN_EMAIL;
+    const res = mockRes();
+    await requireAdmin(mockReq({ authorization: 'Bearer token' }), res, vi.fn());
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(supabase.auth.getUser).not.toHaveBeenCalled();
   });
 });
 

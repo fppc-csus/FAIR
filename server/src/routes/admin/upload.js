@@ -151,9 +151,27 @@ router.post('/form700/bulk/:action', receiveFile, async (req, res, next) => {
       return res.json({ ...preview, filings: preview.filings.map(({ schedules, ...filing }) => filing) });
     }
     if (req.body.digest !== preview.digest) return res.status(409).json({ error: 'Preview this workbook before importing. The preview must match the selected file.' });
+    // Record the attempt before any filing writes, so an interrupted process
+    // remains visible as running rather than disappearing from the audit trail.
+    const run = await prisma.form700ImportRun.create({ data: {
+      originalFilename: req.file.originalname,
+      sourceDigest: preview.digest,
+      adminUserId: req.user?.id ?? null,
+      status: 'running',
+      warnings: preview.warnings,
+    } });
     const result = await importForm700Bulk(req.file.buffer, req.file.originalname, preview, {
       prisma, archiveWorkbook, deleteWorkbook, redetect: redetectDisclosureAgendaItems,
     });
+    const status = result.failed > 0 ? (result.imported > 0 || result.skipped > 0 ? 'partial' : 'failed') : 'completed';
+    await prisma.form700ImportRun.update({ where: { id: run.id }, data: {
+      status,
+      importedCount: result.imported,
+      skippedCount: result.skipped,
+      failedCount: result.failed,
+      warnings: result.warnings,
+      results: result.results,
+    } });
     return res.json(result);
   } catch (error) { return next(error); }
 });

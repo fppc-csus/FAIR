@@ -29,6 +29,7 @@ vi.mock("../../src/lib/prisma.js", () => {
     },
     politician: { findUnique: vi.fn() },
     jurisdiction: { findMany: vi.fn() },
+    form700ImportRun: { create: vi.fn(), update: vi.fn() },
   };
   return { prisma, default: prisma };
 });
@@ -100,6 +101,8 @@ beforeEach(() => {
   prisma.form700Filing.delete.mockResolvedValue({ id: FILING_ID });
   prisma.politician.findUnique.mockResolvedValue({ fullName: "James M Gore", slug: "james-m-gore" });
   prisma.jurisdiction.findMany.mockResolvedValue([]);
+  prisma.form700ImportRun.create.mockResolvedValue({ id: 'run-id' });
+  prisma.form700ImportRun.update.mockResolvedValue({ id: 'run-id' });
   prisma.$transaction.mockImplementation(async (fn) => fn(prisma.__tx));
   prisma.__tx.form700Filing.create.mockResolvedValue({ id: FILING_ID });
   for (const model of [
@@ -149,6 +152,19 @@ describe("POST /api/admin/upload/form700", () => {
       .field('digest', 'wrong').attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
     expect(unconfirmed.status).toBe(409);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('records a confirmed bulk import attempt for durable history', async () => {
+    const buffer = fs.readFileSync(path.resolve('../docs/County of Sonoma -- Form 700 (2019).xlsx'));
+    prisma.form700Filing.findUnique.mockResolvedValue({ id: 'existing' });
+    prisma.politician.findMany = vi.fn().mockResolvedValue([{ id: POLITICIAN_ID, fullName: 'James M Gore' }]);
+    prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'jurisdiction' }]);
+    const preview = await request(app).post('/api/admin/upload/form700/bulk/preview').attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
+    const response = await request(app).post('/api/admin/upload/form700/bulk/import').field('digest', preview.body.digest).attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
+    expect(response.status).toBe(200);
+    expect(prisma.form700ImportRun.create).toHaveBeenCalledWith({ data: expect.objectContaining({ originalFilename: 'county.xlsx', sourceDigest: preview.body.digest }) });
+    expect(prisma.form700ImportRun.create.mock.calls[0][0].data.status).toBe('running');
+    expect(prisma.form700ImportRun.update).toHaveBeenCalledWith({ where: { id: 'run-id' }, data: expect.objectContaining({ skippedCount: 1, failedCount: 12, status: 'partial' }) });
   });
 
   it('rejects missing bulk files and unknown actions', async () => {
