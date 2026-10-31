@@ -81,6 +81,10 @@ function conflictWhere(filters) {
   return {};
 }
 
+function activeConflictWhere(filters) {
+  return { AND: [conflictWhere(filters), { OR: [{ eligibilityStatus: null }, { eligibilityStatus: 'active' }] }] };
+}
+
 function reportConflict(conflict) {
   const agendaItem = conflict.agendaItem ?? {};
   return {
@@ -93,6 +97,7 @@ function reportConflict(conflict) {
     meetingDate: agendaItem.meetingDate,
     detectedAt: conflict.detectedAt,
     reviewStatus: conflict.reviewStatus,
+    eligibilityStatus: conflict.eligibilityStatus ?? 'unknown',
     ruleReference: conflict.ruleReference,
   };
 }
@@ -117,7 +122,7 @@ router.post('/pdf', async (req, res, next) => {
     }
 
     const conflicts = await prisma.conflict.findMany({
-      where: conflictWhere(filters),
+      where: activeConflictWhere(filters),
       include: CONFLICT_INCLUDE,
       orderBy: [{ detectedAt: 'desc' }, { id: 'asc' }],
     });

@@ -97,6 +97,16 @@ Senior-Project/
 
 ## Developer instructions
 
+### Provisional SH-324 eligibility
+
+**PROVISIONAL — CLIENT APPROVAL PENDING.** Automatic conflict detection requires
+an unambiguous canonical jurisdiction and meeting date. Filing-period eligibility
+defaults to pending (no new automatic candidates); to opt into the provisional
+calendar-year-offset policy, set `FAIR_FILING_PERIOD_OFFSETS` to comma-separated
+nonnegative meeting-year minus filing-year offsets, for example `0,1`.
+Existing candidates are retained while policy is pending. Admin review is still
+required; see `docs/conflict_rules.md` for lifecycle and missing-data behavior.
+
 > **CSC 191 — placeholder.** Expand this section with full local-setup steps, env var matrix, and troubleshooting as the team finalizes the dev environment in class.
 
 ### Prerequisites (target stack)

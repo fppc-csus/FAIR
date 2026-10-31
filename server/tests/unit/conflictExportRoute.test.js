@@ -48,11 +48,12 @@ function record(index, overrides = {}) {
 
 function mockRecords(records) {
   db.conflict.findMany.mockImplementation(async (query) => {
+    const active = records.filter((row) => row.eligibilityStatus !== "inactive");
     const start = query.cursor
-      ? records.findIndex((row) => row.id === query.cursor.id)
+      ? active.findIndex((row) => row.id === query.cursor.id)
         + query.skip
       : 0;
-    return records.slice(start, start + query.take);
+    return active.slice(start, start + query.take);
   });
 }
 
@@ -120,6 +121,7 @@ describe("public CSV export", () => {
       for (const [query] of db.conflict.findMany.mock.calls) {
         expect(query.take).toBe(250);
         expect(query.orderBy).toEqual({ id: "asc" });
+        expect(query.where).toEqual({ OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] });
       }
     },
   );
@@ -143,6 +145,12 @@ describe("public CSV export", () => {
       'First line,\nSecond "quoted" line',
       "Gov. Code 87103",
     ]);
+  });
+
+  it("excludes inactive automated candidates but retains legacy records", async () => {
+    mockRecords([record(1, { eligibilityStatus: "inactive" }), record(2, { eligibilityStatus: null })]);
+    const response = await request(app).get("/api/conflicts/export");
+    expect(parseCsv(response.text).slice(1).map((row) => row[0])).toEqual(["Official 2"]);
   });
 
   it.each([

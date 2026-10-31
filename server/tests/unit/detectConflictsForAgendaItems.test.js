@@ -50,7 +50,7 @@ describe("detectConflictsForAgendaItems", () => {
     });
 
     const result = await detectConflictsForAgendaItems([100], {
-      prisma: mockPrisma,
+      prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
     });
 
     expect(result.totalCandidates).toBe(1);
@@ -58,6 +58,7 @@ describe("detectConflictsForAgendaItems", () => {
     expect(mockPrisma.__insertedConflicts).toHaveLength(1);
 
     expect(mockPrisma.__insertedConflicts[0]).toMatchObject({
+      disclosureId: "disclosure-b", filingId: "filing-1",
       politicianId: 1,
       agendaItemId: 100,
       conflictType: "REAL_ESTATE",
@@ -69,6 +70,7 @@ describe("detectConflictsForAgendaItems", () => {
     agendaItems: [
       {
         id: 100,
+        cityName: "Sacramento", meetingDate: "2026-03-01",
         item_text:
           "Approve zoning changes for property located at 123 Main Street.",
       },
@@ -76,7 +78,9 @@ describe("detectConflictsForAgendaItems", () => {
 
     scheduleB: [
       {
+        id: "disclosure-b", filingId: "filing-1",
         politicianId: 1,
+        filingYear: 2025, politicianJurisdictionId: "sac",
         propertyDescription: "123 Main Street",
         city: "Sacramento",
         county: "Sacramento",
@@ -88,11 +92,11 @@ describe("detectConflictsForAgendaItems", () => {
   });
 
   const firstRun = await detectConflictsForAgendaItems([100], {
-    prisma: mockPrisma,
+    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
   });
 
   const secondRun = await detectConflictsForAgendaItems([100], {
-    prisma: mockPrisma,
+    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
   });
 
   expect(firstRun.inserted).toBe(1);
@@ -147,7 +151,7 @@ it("does not persist conflicts when agenda items have no matching entities", asy
   });
 
   const result = await detectConflictsForAgendaItems([300], {
-    prisma: mockPrisma,
+    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
   });
 
   expect(result.totalCandidates).toBe(0);
@@ -178,6 +182,7 @@ it("detects conflicts across all supported schedule types", async () => {
     [100, 200, 201, 202, 203],
     {
       prisma: mockPrisma,
+      eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
       matchNamedEntity,
     },
   );

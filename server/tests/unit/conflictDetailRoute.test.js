@@ -63,4 +63,18 @@ describe('public conflict detail', () => {
     expect(response.status).toBe(200);
     expect(response.body.data.scheduleEntry.entityName).toBe('123 Main Street');
   });
+
+  it('loads the exact supporting disclosure when provenance is available', async () => {
+    db.conflict.findUnique.mockResolvedValue({
+      id, politicianId, conflictType: 'INVESTMENT', sourceKey: 'INVESTMENT:acme',
+      filingId: id, disclosureId: politicianId, filingYear: 2025, supportingSource: 'private/file.xlsx', eligibilityStatus: 'inactive',
+      politician: { fullName: 'Alex Rivera' }, agendaItem: { title: 'Contract', meeting: null },
+    });
+    db.scheduleAInvestment.findFirst = vi.fn().mockResolvedValue({ entityName: 'Acme', fairMarketValue: '$10,000' });
+    const response = await request(app).get(`/api/conflicts/${id}`);
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({ eligibilityStatus: 'inactive', filingId: id, disclosureId: politicianId, supportingSource: 'private/file.xlsx' });
+    expect(db.scheduleAInvestment.findFirst).toHaveBeenCalledWith({ where: { id: politicianId, filingId: id, filing: { politicianId } } });
+    expect(db.scheduleAInvestment.findMany).not.toHaveBeenCalled();
+  });
 });

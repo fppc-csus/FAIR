@@ -224,6 +224,15 @@ model Conflict {
   ruleReference String       @map("rule_reference")
   entityName    String?      @map("entity_name")
   sourceKey     String       @map("source_key")
+  /// Null denotes unknown ownership (legacy or manually created); never reconcile those rows.
+  detectionOwner    String?   @map("detection_owner")
+  eligibilityStatus String?   @map("eligibility_status")
+  filingId          String?   @map("filing_id") @db.Uuid
+  disclosureId      String?   @map("disclosure_id") @db.Uuid
+  filingYear        Int?      @map("filing_year")
+  jurisdictionId    String?   @map("jurisdiction_id") @db.Uuid
+  meetingDate       DateTime? @map("meeting_date")
+  supportingSource  String?   @map("supporting_source")
   detectedAt    DateTime     @default(now()) @map("detected_at") @db.Timestamptz(3)
   reviewStatus  String       @default("pending") @map("review_status")
   reviewNote    String?      @map("review_note")
@@ -233,6 +242,7 @@ model Conflict {
   @@unique([politicianId, agendaItemId, conflictType, sourceKey], map: "conflicts_identity_key")
   @@index([politicianId], map: "conflicts_politician_id_idx")
   @@index([agendaItemId], map: "conflicts_agenda_item_id_idx")
+  @@index([detectionOwner, agendaItemId], map: "conflicts_detection_owner_agenda_item_id_idx")
   @@index([detectedAt], map: "conflicts_detected_at_idx")
   @@index([politicianId, detectedAt], map: "conflicts_politician_detected_at_idx")
   @@index([agendaItemId, detectedAt], map: "conflicts_agenda_item_detected_at_idx")

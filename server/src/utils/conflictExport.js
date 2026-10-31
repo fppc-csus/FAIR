@@ -36,6 +36,7 @@ export function dashboardRow(conflict) {
       conflict.agendaItem.itemText ??
       "Agenda item unavailable",
     detectedAt: new Date(conflict.detectedAt).toISOString(),
+    eligibilityStatus: conflict.eligibilityStatus ?? "unknown",
   };
 }
 

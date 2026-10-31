@@ -21,7 +21,7 @@ router.get("/", async (_req, res, next) => {
         sourceType: true,
         _count: {
           select: {
-            conflicts: true,
+            conflicts: { where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] } },
           },
         },
       },
@@ -64,6 +64,7 @@ router.get("/:id", async (req, res) => {
         sourceType: true,
         bodyName: true,
         conflicts: {
+          where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
           select: {
             id: true,
             conflictType: true,

@@ -60,10 +60,10 @@ describe('admin PDF reports', () => {
     expect(response.headers['content-disposition']).toMatch(/^attachment; filename="fair-conflict-report-\d{4}-\d{2}-\d{2}\.pdf"$/);
     expect(response.body.toString()).toBe('%PDF-test');
     expect(mocks.conflictFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { OR: [
+      where: { AND: [{ OR: [
         { agendaItem: { is: { cityName: 'Oakland' } } },
         { politician: { is: { jurisdiction: { is: { name: 'Oakland' } } } } },
-      ] },
+      ] }, { OR: [{ eligibilityStatus: null }, { eligibilityStatus: 'active' }] }] },
     }));
     expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ headless: true }));
     expect(mocks.setContent.mock.calls[0][0]).toContain('Contract review');

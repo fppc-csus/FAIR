@@ -17,18 +17,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 router.get("/", async (req, res, next) => {
   try {
-    const filters = parseConflictQuery(req.query);
-    const { from, order } = conflictSql(filters);
-    const result = await prisma.$transaction(async tx => {
-      const totals = await tx.$queryRaw(Prisma.sql`SELECT COUNT(*)::int AS total ${from}`);
-      const ids = await tx.$queryRaw(Prisma.sql`SELECT c.id ${from} ORDER BY ${order} LIMIT ${filters.pageSize} OFFSET ${(filters.page - 1) * filters.pageSize}`);
-      const rows = ids.length ? await tx.conflict.findMany({ where: { id: { in: ids.map(row => row.id) } }, include: conflictInclude }) : [];
-      const byId = new Map(rows.map(row => [row.id, row]));
-      return { data: ids.map(row => dashboardRow(byId.get(row.id))), total: totals[0].total };
-    }, { isolationLevel: 'RepeatableRead' });
-    res.json({ ...result, page: filters.page, pageSize: filters.pageSize });
-  } catch (error) { next(error); }
-});
+    const requestedLimit = Number.parseInt(String(_req.query.limit ?? ""), 10);
+    const take = Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(requestedLimit, 100))
+      : undefined;
+    const conflicts = await prisma.conflict.findMany({
+      where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
+      include: conflictInclude,
+      orderBy: [
+        { detectedAt: "desc" },
+        { id: "asc" },
+      ],
+      ...(take ? { take } : {}),
+    });
 
 // Global city choices must not be derived from just one results page.
 router.get('/filters', async (_req, res, next) => {
@@ -94,6 +95,23 @@ function formatScheduleEntry(row, scheduleType) {
 }
 
 async function findScheduleEntry(conflict) {
+  const delegates = {
+    INVESTMENT: [prisma.scheduleAInvestment, "A"],
+    REAL_ESTATE: [prisma.scheduleBRealEstate, "B"],
+    BUSINESS_POSITION: [prisma.scheduleA2BusinessPosition, "A-2"],
+    INCOME: [prisma.scheduleCdeIncome, "C"],
+    GIFT: [prisma.scheduleCdeIncome, "D"],
+    TRAVEL: [prisma.scheduleCdeIncome, "E"],
+  };
+  if (conflict.disclosureId && delegates[conflict.conflictType]) {
+    const [delegate, type] = delegates[conflict.conflictType];
+    const row = await delegate.findFirst({ where: {
+      id: conflict.disclosureId,
+      filingId: conflict.filingId,
+      filing: { politicianId: conflict.politicianId },
+    } });
+    return formatScheduleEntry(row, type);
+  }
   const politicianWhere = {
     OR: [
       { politicianId: conflict.politicianId },
@@ -151,6 +169,7 @@ router.get("/export", async (req, res, next) => {
     let cursor;
 
     const getBatch = () => prisma.conflict.findMany({
+      where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
       include: conflictInclude,
       orderBy: { id: "asc" },
       take: batchSize,
@@ -237,6 +256,11 @@ router.get("/:id", async (req, res, next) => {
         severity: conflict.severity,
         ruleReference: conflict.ruleReference,
         entityName: conflict.entityName,
+        eligibilityStatus: conflict.eligibilityStatus ?? "unknown",
+        filingId: conflict.filingId ?? null,
+        disclosureId: conflict.disclosureId ?? null,
+        filingYear: conflict.filingYear ?? null,
+        supportingSource: conflict.supportingSource ?? null,
         scheduleEntry,
         agendaItem: {
           id: conflict.agendaItemId,
