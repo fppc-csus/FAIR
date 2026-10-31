@@ -19,7 +19,7 @@ router.get('/', async (_req, res, next) => {
         district: true,
         _count: {
           select: {
-            conflicts: true,
+            conflicts: { where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: 'active' }] } },
           },
         },
       },
@@ -69,6 +69,7 @@ router.get('/id/:id', async (req, res, next) => {
           },
         },
         conflicts: {
+          where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: 'active' }] },
           select: {
             id: true,
             conflictType: true,

@@ -56,7 +56,7 @@ Use this index to load the **smallest useful context set**. Paths are relative t
 
 - Read: the nearest context guide, relevant source, direct imports, and matching tests.
 - Search before reading broad folders: filenames → exported symbol/route → callers.
-- Do not load: `node_modules/`, package lock bodies, build output, `client/.react-router/`, binary XLSX/ICO files, `.DS_Store`, or Jira CSV bodies unless specifically needed.
+- Do not load: node_modules/, package lock bodies, build output, `client/.react-router/`, binary XLSX/ICO files, `.DS_Store`, or Jira CSV bodies unless specifically needed.
 - Empty placeholders (`docs/architecture.md`, `docs/client_operations_manual.md`, `docs/credentials.md`, `server/src/queues/syncQueue.js`, and `server/test_scheduleCDE.js`) are not implementation evidence.
 - Potentially stale/unwired files include `server/src/routes/adminRoutes.js`, `server/src/workers/syncWorker.js`, and old root-level `server/test_*.js`; verify imports before relying on them.
 

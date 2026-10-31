@@ -43,7 +43,9 @@ export function useCityDiscovery() {
           if (!result.ok) throw new Error("Scrape completed, but documents could not be loaded.");
           setDocuments(await result.json());
           pendingRun.current = null;
-          setMessage(status.itemsFound ? `Found ${status.itemsFound} agenda files; saved ${status.itemsInserted} new files.` : "No dated agenda PDFs found in the last 14 days or upcoming meetings. Try the official agenda archive URL.");
+          setMessage(status.documentsFound
+            ? `Found ${status.documentsFound} document(s), fetched ${status.pdfsFetched} PDF(s), and inserted ${status.itemsInserted} agenda item(s); skipped ${status.documentsSkipped} document(s) and ${status.itemsSkipped} existing/invalid item(s).`
+            : "No dated agenda PDFs found in the last 14 days or upcoming meetings. Try the official agenda archive URL.");
           return;
         }
       }

@@ -35,6 +35,7 @@ model Jurisdiction {
   politicians Politician[]
   meetings    Meeting[]
   dataSources DataSource[]
+  detectionRuns DetectionRun[]
 
   @@map("jurisdictions")
 }
@@ -65,6 +66,8 @@ model Politician {
   scheduleBRealEstate  ScheduleBRealEstate[]
   scheduleCdeIncome    ScheduleCdeIncome[]
   scheduleA2Positions  ScheduleA2BusinessPosition[]
+  detectionRuns       DetectionRun[]
+  detectionRunItems   DetectionRunItem[]
 
   @@index([jurisdictionId], map: "politicians_jurisdiction_id_idx")
   @@map("politicians")
@@ -141,6 +144,7 @@ model AgendaItem {
   votes         VoteRecord[]
   conflictFlags ConflictFlag[]
   conflicts     Conflict[]
+  detectionRunItems DetectionRunItem[]
 
   @@index([meetingId], map: "agenda_items_meeting_id_idx")
   @@index([meetingDate], map: "agenda_items_meeting_date_idx")
@@ -188,6 +192,7 @@ model Form700Filing {
   scheduleBRealEstate  ScheduleBRealEstate[]
   scheduleCdeIncome    ScheduleCdeIncome[]
   scheduleA2Positions  ScheduleA2BusinessPosition[]
+  detectionRuns       DetectionRun[]
 
   @@unique([politicianId, filingYear])
   @@map("form700_filings")
@@ -242,6 +247,15 @@ model Conflict {
   ruleReference String       @map("rule_reference")
   entityName    String?      @map("entity_name")
   sourceKey     String       @map("source_key")
+  /// Null denotes unknown ownership (legacy or manually created); never reconcile those rows.
+  detectionOwner    String?   @map("detection_owner")
+  eligibilityStatus String?   @map("eligibility_status")
+  filingId          String?   @map("filing_id") @db.Uuid
+  disclosureId      String?   @map("disclosure_id") @db.Uuid
+  filingYear        Int?      @map("filing_year")
+  jurisdictionId    String?   @map("jurisdiction_id") @db.Uuid
+  meetingDate       DateTime? @map("meeting_date")
+  supportingSource  String?   @map("supporting_source")
   detectedAt    DateTime     @default(now()) @map("detected_at") @db.Timestamptz(3)
   reviewStatus  String       @default("pending") @map("review_status")
   reviewNote    String?      @map("review_note")
@@ -251,11 +265,15 @@ model Conflict {
   @@unique([politicianId, agendaItemId, conflictType, sourceKey], map: "conflicts_identity_key")
   @@index([politicianId], map: "conflicts_politician_id_idx")
   @@index([agendaItemId], map: "conflicts_agenda_item_id_idx")
+  @@index([detectionOwner, agendaItemId], map: "conflicts_detection_owner_agenda_item_id_idx")
   @@index([detectedAt], map: "conflicts_detected_at_idx")
   @@index([politicianId, detectedAt], map: "conflicts_politician_detected_at_idx")
   @@index([agendaItemId, detectedAt], map: "conflicts_agenda_item_detected_at_idx")
   @@index([politicianId, agendaItemId], map: "conflicts_politician_agenda_item_idx")
   @@index([conflictType], map: "conflicts_conflict_type_idx")
+  @@index([detectedAt(sort: Desc), id], map: "conflicts_detected_id_idx")
+  @@index([reviewStatus, detectedAt(sort: Desc), id], map: "conflicts_review_detected_id_idx")
+  @@index([conflictType, detectedAt(sort: Desc), id], map: "conflicts_type_detected_id_idx")
   @@map("conflicts")
 }
 
@@ -271,6 +289,63 @@ model ConflictReview {
 
   @@index([conflictId, reviewedAt(sort: Desc)], map: "conflict_reviews_conflict_id_reviewed_at_idx")
   @@map("conflict_reviews")
+}
+
+model DetectionRun {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  filingId        String?      @map("filing_id") @db.Uuid
+  filing          Form700Filing? @relation(fields: [filingId], references: [id], onDelete: Cascade)
+  politicianId    String?      @map("politician_id") @db.Uuid
+  politician      Politician?  @relation(fields: [politicianId], references: [id], onDelete: SetNull)
+  jurisdictionId  String?      @map("jurisdiction_id") @db.Uuid
+  jurisdiction    Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
+  filingYear      Int           @map("filing_year")
+  trigger         String
+  triggeredBy     String?       @map("triggered_by")
+  status          String        @default("queued")
+  totalItems      Int           @default(0) @map("total_items")
+  processedItems  Int           @default(0) @map("processed_items")
+  candidateCount  Int           @default(0) @map("candidate_count")
+  insertedCount   Int           @default(0) @map("inserted_count")
+  duplicateCount  Int           @default(0) @map("duplicate_count")
+  failureCount    Int           @default(0) @map("failure_count")
+  error           String?
+  startedAt       DateTime?     @map("started_at") @db.Timestamptz(3)
+  completedAt     DateTime?     @map("completed_at") @db.Timestamptz(3)
+  lockAt          DateTime?     @map("lock_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  items           DetectionRunItem[]
+
+  @@index([status, createdAt], map: "detection_runs_status_created_at_idx")
+  @@index([filingId], map: "detection_runs_filing_id_idx")
+  @@index([jurisdictionId, filingYear], map: "detection_runs_jurisdiction_year_idx")
+  @@map("detection_runs")
+}
+
+model DetectionRunItem {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  detectionRunId  String       @map("detection_run_id") @db.Uuid
+  detectionRun    DetectionRun @relation(fields: [detectionRunId], references: [id], onDelete: Cascade)
+  agendaItemId    String       @map("agenda_item_id") @db.Uuid
+  agendaItem      AgendaItem   @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
+  politicianId    String       @map("politician_id") @db.Uuid
+  politician      Politician   @relation(fields: [politicianId], references: [id], onDelete: Cascade)
+  status          String       @default("pending")
+  attempts        Int          @default(0)
+  candidateCount  Int          @default(0) @map("candidate_count")
+  insertedCount   Int          @default(0) @map("inserted_count")
+  duplicateCount  Int          @default(0) @map("duplicate_count")
+  error           String?
+  startedAt       DateTime?    @map("started_at") @db.Timestamptz(3)
+  completedAt     DateTime?    @map("completed_at") @db.Timestamptz(3)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([detectionRunId, agendaItemId, politicianId], map: "detection_run_items_identity_key")
+  @@index([detectionRunId, status], map: "detection_run_items_run_status_idx")
+  @@index([agendaItemId], map: "detection_run_items_agenda_item_id_idx")
+  @@map("detection_run_items")
 }
 
 model ScheduleAInvestment {
@@ -353,6 +428,11 @@ model DataSource {
   enabled         Boolean       @default(true)
   lastSyncedAt    DateTime?     @map("last_synced_at")
   lastError       String?       @map("last_error")
+  lastDocumentsFound Int        @default(0) @map("last_documents_found")
+  lastPdfsFetched    Int        @default(0) @map("last_pdfs_fetched")
+  lastItemsInserted  Int        @default(0) @map("last_items_inserted")
+  lastItemsSkipped   Int        @default(0) @map("last_items_skipped")
+  lastSyncErrors     Json?      @map("last_sync_errors")
   jurisdictionId  String?       @map("jurisdiction_id") @db.Uuid
   jurisdiction    Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
   createdAt       DateTime      @default(now()) @map("created_at")
@@ -372,6 +452,9 @@ model SyncLog {
   startedAt       DateTime    @default(now()) @map("started_at")
   completedAt     DateTime?   @map("completed_at")
   itemsFound      Int         @default(0) @map("items_found")
+  documentsFound  Int         @default(0) @map("documents_found")
+  pdfsFetched     Int         @default(0) @map("pdfs_fetched")
+  documentsSkipped Int        @default(0) @map("documents_skipped")
   itemsInserted   Int         @default(0) @map("items_inserted")
   itemsSkipped    Int         @default(0) @map("items_skipped")
   conflictCandidates Int      @default(0) @map("conflict_candidates")

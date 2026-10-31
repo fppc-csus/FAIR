@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { downloadPdf, runApifyAgendaScrape } from '../../src/jobs/runApifyAgendaScrape.js';
+import { downloadPdf, runApifyAgendaCli, runApifyAgendaScrape } from '../../src/jobs/runApifyAgendaScrape.js';
 
 function createPrismaDouble() {
   const sources = [];
@@ -56,19 +56,22 @@ function createPrismaDouble() {
         return row;
       }),
     },
-    $transaction: vi.fn(async (operations) => Promise.all(operations)),
+    $transaction: vi.fn(async (operations) => (
+      typeof operations === 'function' ? operations(prisma) : Promise.all(operations)
+    )),
   };
 
   return { prisma, sources, agendaItems, syncLogs };
 }
 
 function pdfResponse(body = 'pdf') {
-  return new Response(body, { headers: { 'content-length': String(Buffer.byteLength(body)) } });
+  const pdf = body.startsWith('%PDF-') ? body : `%PDF-1.7\n${body}`;
+  return new Response(pdf, { headers: { 'content-length': String(Buffer.byteLength(pdf)) } });
 }
 
 describe('downloadPdf', () => {
   it('rejects a PDF whose declared content length exceeds the limit', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(new Response('small', {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('%PDF-small', {
       headers: { 'content-length': '21' },
     }));
 
@@ -81,7 +84,15 @@ describe('downloadPdf', () => {
       fetchImpl: vi.fn().mockResolvedValue(pdfResponse('agenda')),
     });
 
-    expect(buffer.toString()).toBe('agenda');
+    expect(buffer.toString()).toContain('agenda');
+  });
+
+  it('enforces the byte limit when the response omits content-length', async () => {
+    const oversizedPdf = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(32)]);
+    await expect(downloadPdf('https://city.test/agenda.pdf', {
+      fetchImpl: vi.fn().mockResolvedValue(new Response(oversizedPdf)),
+      maxBytes: 16,
+    })).rejects.toThrow('PDF exceeds 0 MB limit');
   });
 });
 
@@ -115,9 +126,31 @@ describe('runApifyAgendaScrape', () => {
     expect(scrapeAgendaPDFs).toHaveBeenCalledWith({ lookbackDays: 14 });
     expect(result).toMatchObject({ citiesProcessed: 1, pdfsFetched: 1, inserted: 1, skipped: 0, errors: 0 });
     expect(state.sources).toHaveLength(1);
-    expect(state.sources[0]).toMatchObject({ cityName: 'Test City', sourceType: 'apify', lastError: null });
+    expect(state.sources[0]).toMatchObject({
+      cityName: 'Test City',
+      sourceType: 'apify',
+      lastError: null,
+      lastDocumentsFound: 1,
+      lastPdfsFetched: 1,
+      lastItemsInserted: 1,
+      lastItemsSkipped: 0,
+    });
     expect(state.agendaItems.size).toBe(1);
-    expect(state.syncLogs[0]).toMatchObject({ status: 'success', itemsFound: 1, itemsInserted: 1, itemsSkipped: 0, errors: null });
+    expect(state.syncLogs[0]).toMatchObject({
+      status: 'success',
+      itemsFound: 1,
+      documentsFound: 1,
+      pdfsFetched: 1,
+      documentsSkipped: 0,
+      itemsInserted: 1,
+      itemsSkipped: 0,
+      errors: null,
+    });
+    expect([...state.agendaItems.values()][0]).toMatchObject({
+      itemText: 'Approve a public works contract.',
+      sourceUrl: 'https://city.test/agenda.pdf',
+      sourceType: 'apify',
+    });
   });
 
   it('detects conflicts for newly inserted agenda items and records the count', async () => {
@@ -262,9 +295,9 @@ describe('runApifyAgendaScrape', () => {
       log: vi.fn(),
     });
 
-    expect(result).toMatchObject({ inserted: 1, skipped: 1, errors: 1 });
+    expect(result).toMatchObject({ inserted: 1, skipped: 1, documentsSkipped: 1, errors: 1 });
     expect(state.agendaItems.size).toBe(1);
-    expect(state.syncLogs[0]).toMatchObject({ status: 'success', itemsInserted: 1, itemsSkipped: 1 });
+    expect(state.syncLogs[0]).toMatchObject({ status: 'success', itemsInserted: 1, itemsSkipped: 0 });
     expect(state.syncLogs[0].errors).toEqual([expect.objectContaining({ pdfUrl: 'https://city.test/missing.pdf' })]);
     expect(state.sources[0].lastError).toContain('PDF download failed (404 Not Found)');
   });
@@ -286,5 +319,52 @@ describe('runApifyAgendaScrape', () => {
     expect(result).toMatchObject({ citiesProcessed: 1, pdfsFetched: 1, inserted: 1 });
     expect(state.sources).toHaveLength(1);
     expect(state.sources[0].cityName).toBe('Second City');
+  });
+
+  it('skips URL-only parsed text, malformed URLs, and unavailable PDFs without storing URLs', async () => {
+    const state = createPrismaDouble();
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(pdfResponse())
+      .mockResolvedValueOnce(new Response('missing', { status: 404, statusText: 'Not Found' }));
+    const parseWithUrlOnlyText = vi.fn(async (_buffer, cityId, meetingDate) => [{
+      cityId, meetingDate, itemNumber: '1', itemText: 'https://city.test/agenda.pdf',
+    }]);
+    const result = await runApifyAgendaScrape({
+      prismaClient: state.prisma,
+      scrapeAgendaPDFs: vi.fn().mockResolvedValue([
+        { pdf_url: 'https://city.test/url-only.pdf', meeting_date: '2026-10-01', city_name: 'Test City' },
+        { pdf_url: 'not a url', meeting_date: '2026-10-01', city_name: 'Test City' },
+        { pdf_url: 'https://city.test/missing.pdf', meeting_date: '2026-10-01', city_name: 'Test City' },
+      ]),
+      parsePdf: parseWithUrlOnlyText,
+      fetchImpl,
+      log: vi.fn(),
+    });
+
+    expect(result).toMatchObject({
+      documentsFound: 3,
+      pdfsFetched: 1,
+      documentsSkipped: 3,
+      itemsInserted: 0,
+      errors: 3,
+    });
+    expect(state.agendaItems.size).toBe(0);
+    expect(state.syncLogs[0]).toMatchObject({
+      status: 'failed',
+      documentsFound: 3,
+      pdfsFetched: 1,
+      documentsSkipped: 3,
+    });
+  });
+
+  it('routes CLI execution through the same Apify agenda job', async () => {
+    const run = vi.fn().mockResolvedValue({ errors: 0, documentsFound: 0 });
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runApifyAgendaCli({ argv: ['--city', 'Test City'], run });
+
+    expect(run).toHaveBeenCalledWith({ city: 'Test City' });
+    expect(log).toHaveBeenCalledWith(JSON.stringify({ errors: 0, documentsFound: 0 }, null, 2));
+    log.mockRestore();
   });
 });

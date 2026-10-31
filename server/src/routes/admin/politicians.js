@@ -1,6 +1,7 @@
 import express from "express";
 
 import { prisma } from "../../lib/prisma.js";
+import { eligibilityPolicy } from "../../config/eligibilityPolicy.js";
 
 const router = express.Router();
 
@@ -101,6 +102,31 @@ router.get("/", async (_req, res, next) => {
       select: { ...politicianSelect, _count: { select: { filings: true } } },
     });
     return res.json({ data: politicians.map(publicPolitician) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Read-only review queue derived from current records; no destructive backfill.
+router.get("/eligibility-review", async (_req, res, next) => {
+  try {
+    const [politicians, agendaItems] = await Promise.all([
+      prisma.politician.findMany({
+        where: { filings: { some: {} }, OR: [{ jurisdictionId: null }, { needsReview: true }] },
+        select: { id: true, fullName: true, needsReview: true },
+      }),
+      prisma.agendaItem.findMany({
+        where: { meetingId: null, OR: [{ meetingDate: null }, { cityName: null }] },
+        select: { id: true, cityId: true, cityName: true, meetingDate: true },
+      }),
+    ]);
+    return res.json({
+      data: {
+        policyPending: eligibilityPolicy().period === "PENDING",
+        politicians: politicians.map((row) => ({ ...row, reason: row.needsReview ? "POLITICIAN_IDENTITY_REVIEW" : "UNRESOLVED_POLITICIAN_JURISDICTION" })),
+        agendaItems: agendaItems.map((row) => ({ ...row, reason: row.meetingDate ? "UNRESOLVED_JURISDICTION" : "MISSING_MEETING_DATE" })),
+      },
+    });
   } catch (error) {
     return next(error);
   }

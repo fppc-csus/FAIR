@@ -5,27 +5,37 @@ export function createMockPrisma({
   scheduleB = [],
   scheduleCde = [],
   scheduleA2 = [],
+  initialConflicts = [],
 } = {}) {
-  const insertedConflicts = [];
+  const insertedConflicts = [...initialConflicts];
 
-  return {
+  const filterRows = (rows, { where }) => rows.filter((row) =>
+    where.filing.politician.OR[0].jurisdictionId.in.includes(row.filing?.politician?.jurisdictionId ?? row.politicianJurisdictionId)
+    || (row.filing?.politician?.jurisdictionId ?? row.politicianJurisdictionId) == null,
+  );
+
+  const client = {
+    jurisdiction: { findMany: vi.fn().mockResolvedValue([{ id: "sac", name: "Sacramento" }]) },
+    $transaction: async (fn) => fn(client),
     agendaItem: {
       findMany: vi.fn().mockResolvedValue(agendaItems),
     },
 
     scheduleBRealEstate: {
-      findMany: vi.fn().mockResolvedValue(scheduleB),
+      findMany: vi.fn((query) => filterRows(scheduleB, query)),
     },
 
     scheduleCdeIncome: {
-      findMany: vi.fn().mockResolvedValue(scheduleCde),
+      findMany: vi.fn((query) => filterRows(scheduleCde, query)),
     },
 
     scheduleA2BusinessPosition: {
-      findMany: vi.fn().mockResolvedValue(scheduleA2),
+      findMany: vi.fn((query) => filterRows(scheduleA2, query)),
     },
 
     conflict: {
+      findMany: vi.fn(async () => insertedConflicts),
+      update: vi.fn(async ({ where, data }) => Object.assign(insertedConflicts.find((row) => row.id === where.id), data)),
       createMany: vi.fn(async ({ data, skipDuplicates }) => {
         let inserted = 0;
 
@@ -42,7 +52,7 @@ export function createMockPrisma({
             continue;
           }
 
-          insertedConflicts.push(row);
+          insertedConflicts.push({ ...row, id: `conflict-${insertedConflicts.length}` });
           inserted += 1;
         }
 
@@ -52,4 +62,5 @@ export function createMockPrisma({
 
     __insertedConflicts: insertedConflicts,
   };
+  return client;
 }

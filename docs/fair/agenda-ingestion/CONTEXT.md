@@ -14,9 +14,10 @@ Ingest **city council agendas** for cross-reference with Form 700 data.
 
 - City-specific quirks (URLs, selectors, Legistar endpoints) should be documented next to the code that uses them.
 - Normalize to a **common internal shape** before entity matching (see `../entity-resolution/CONTEXT.md`).
-- `server/src/jobs/runApifyAgendaScrape.js` owns Apify → PDF download → parse → Prisma upsert → conflict detection. Downloads time out after 30 seconds, are limited to 20 MB, and retry safely using `(city_id, meeting_date, item_number)`.
-- Apify rows retain the original document in `agenda_items.source_url`; `item_text` contains parsed agenda text used for matching. Manual source sync follows the same parse/detect contract.
-- Detection failures are recorded separately from ingestion errors in `sync_logs`, including the affected agenda item IDs. An admin can retry detection without rerunning ingestion with `POST /api/admin/sources/:id/sync/:syncLogId/retry-detection`; unresolved IDs remain available for another retry.
+- `server/src/ingestion/apifyAgenda.js` is the shared Apify → PDF download → `parsePdfAgenda` → Prisma upsert service used by admin sync and the scheduled/CLI scrape job. Downloads time out after 30 seconds, are streamed with a 20 MB limit, and upsert using `(city_id, meeting_date, item_number)`.
+- Apify results are document references, not agenda items: the PDF must yield extractable agenda text before any `agenda_items` row is written. A failed, unreadable, password-protected, image-only, or oversized PDF is recorded as a skipped document and does not stop the remaining documents.
+- The original PDF link is retained in `agenda_items.source_url` for admin document links; `item_text` contains only parsed agenda content.
+- Apify sync-log and data-source metrics distinguish documents found, PDFs fetched, documents skipped, agenda items inserted/skipped, and per-document errors. Admin polling reads the same persisted run results used by scheduled and CLI execution.
 
 ## Related docs
 

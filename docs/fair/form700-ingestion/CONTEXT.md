@@ -19,6 +19,22 @@
 
 All parsers are pure and share one signature — `parseScheduleX(buffer, filingId)` (a Buffer or an already-read SheetJS workbook) → array of **snake_case** rows, no DB writes, `[]` on unreadable input or a missing sheet. `parseCoverPage(buffer)` → `{ filer_name, agency, district, office_title, filing_year }` (nulls when absent; a sheet whose name contains "cover" is used first, then the filer columns repeated on schedule sheets in NetFile-style exports). Sheets are located by name (`schedule a`, `schedule a-2`, `schedule b`, …) and the header row is detected by scanning for known column names, because FPPC exports put section titles above the headers. `server/src/routes/admin/upload.js` inserts all rows in one `prisma.$transaction`.
 
+After a filing and its archived workbook are committed, the upload creates a
+durable conflict-detection run against existing agenda items. Detection is
+scoped to the filer's assigned jurisdiction and agenda dates within the filing
+year (January 1 inclusive through the following January 1 exclusive). Items
+linked to that jurisdiction's meetings and standalone items whose `city_name`
+matches the jurisdiction name are eligible. The admin API at
+`/api/admin/detection-runs` starts a jurisdiction/year backfill, lists recent
+runs, exposes per-run status and item failures, and retries incomplete runs.
+Per-agenda progress and unique conflict keys make retries safe; redetection
+inserts missing conflicts without modifying review status or notes.
+
+To replace an existing politician/year filing with a corrected workbook,
+admins submit `replace_existing=true` with the upload. The archived replacement
+is uploaded before the filing and schedule rows are atomically replaced; an
+archive or database failure leaves the original filing data intact.
+
 ### A-2 column mapping (`schedule_a2_business_positions`)
 
 | Row field (`parseScheduleA2`) | XLSX column (Schedule A-2 sheet) | Notes |

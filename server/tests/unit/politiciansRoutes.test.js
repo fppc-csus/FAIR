@@ -77,6 +77,9 @@ describe("GET /api/politicians", () => {
     const res = await request(app).get("/api/politicians?limit=5000");
 
     expect(res.status).toBe(200);
+    expect(prisma.politician.findMany.mock.calls[0][0].select._count.select.conflicts).toEqual({
+      where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
+    });
     expect(prisma.politician.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 500 }));
   });
 });
@@ -122,6 +125,9 @@ describe("GET /api/politicians/id/:id", () => {
     expect(res.body.data.filings).toHaveLength(1);
     expect(res.body.data.conflicts).toHaveLength(1);
     expect(res.body.data.conflicts[0].agendaItem.id).toBe("agenda-1");
+    expect(prisma.politician.findUnique.mock.calls[0][0].select.conflicts.where).toEqual({
+      OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }],
+    });
   });
   it("returns 404 when the politician does not exist", async () => {
   prisma.politician.findUnique.mockResolvedValue(null);

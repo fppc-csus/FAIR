@@ -3,6 +3,8 @@ import { detectIncomeGiftsTravel } from "./detectIncomeGiftsTravel.js";
 import { detectInvestments } from "./investments.js";
 import { detectRealEstate } from "./detectRealEstate.js";
 import { persistConflicts } from "./persistConflicts.js";
+import { eligibilityPolicy } from "../config/eligibilityPolicy.js";
+import { disclosureEligibility, resolveAgendaScope } from "./eligibility.js";
 
 async function getPrisma(override) {
   if (override) return override;
@@ -11,11 +13,12 @@ async function getPrisma(override) {
 }
 
 function politicianIdFrom(row) {
-  return row?.politicianId ?? row?.politician_id ?? row?.filing?.politicianId ?? null;
+  return row?.filing?.politicianId ?? row?.politicianId ?? row?.politician_id ?? null;
 }
 
 function asScheduleA(row) {
   return {
+    ...evidence(row),
     politician_id: politicianIdFrom(row),
     entity_name: row.entityName ?? row.entity_name ?? null,
     fair_market_value:
@@ -27,6 +30,7 @@ function asScheduleA(row) {
 
 function asScheduleB(row) {
   return {
+    ...evidence(row),
     politician_id: politicianIdFrom(row),
     property_description: row.propertyDescription ?? row.property_description ?? null,
     city: row.city ?? null,
@@ -37,6 +41,7 @@ function asScheduleB(row) {
 
 function asScheduleCde(row) {
   return {
+    ...evidence(row),
     politician_id: politicianIdFrom(row),
     source_name: row.sourceName ?? row.source_name ?? null,
     amount: row.amount ?? null,
@@ -46,6 +51,7 @@ function asScheduleCde(row) {
 
 function asScheduleA2(row) {
   return {
+    ...evidence(row),
     politician_id: politicianIdFrom(row),
     entity_name: row.entityName ?? row.entity_name ?? null,
     business_position: row.businessPosition ?? row.business_position ?? null,
@@ -66,9 +72,39 @@ export async function detectConflictsForAgendaItems(ids, deps = {}) {
   }
 
   const client = await getPrisma(deps.prisma);
+  if (!client.$transaction) throw new Error("Scoped conflict detection requires a transaction");
+  return client.$transaction(async (tx) => {
+    // Lock before discovering agenda/disclosure metadata; locking only at the
+    // persistence stage allows a waiting run to reconcile stale candidates.
+    if (!tx.$queryRaw && !deps.prisma) throw new Error("Scoped detection requires agenda row locks");
+    if (tx.$queryRaw) {
+      for (const id of [...new Set(ids)].sort()) {
+        await tx.$queryRaw`SELECT id FROM agenda_items WHERE id = ${id}::uuid FOR UPDATE`;
+      }
+    }
+    return detectLockedAgendaItems(tx, ids, deps);
+  }, { timeout: 120000 });
+}
+
+async function detectLockedAgendaItems(client, ids, deps) {
   const items = await client.agendaItem.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: [...new Set(ids)] } },
+    include: { meeting: { select: { jurisdictionId: true, meetingDate: true } } },
   });
+  const names = [...new Set(items.flatMap((item) => [item.cityName, item.cityId].filter(Boolean)))];
+  const uuidNames = names.filter((name) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name));
+  const jurisdictions = names.length ? await client.jurisdiction.findMany({
+    where: { OR: [{ id: { in: uuidNames } },
+      ...names.map((name) => ({ name: { equals: name, mode: "insensitive" } }))] },
+    select: { id: true, name: true },
+  }) : [];
+  const scopes = new Map(items.map((item) => [item.id, resolveAgendaScope(item, jurisdictions)]));
+  const jurisdictionIds = [...new Set([...scopes.values()].map((scope) => scope.jurisdictionId).filter(Boolean))];
+  const policy = deps.eligibilityPolicy ?? eligibilityPolicy();
+  if (policy.period !== "PENDING" && (policy.period !== "YEAR_OFFSETS"
+    || !Array.isArray(policy.offsets) || !policy.offsets.every((offset) => Number.isInteger(offset) && offset >= 0))) {
+    throw new Error("Unknown filing-period policy");
+  }
 
   const groups = new Map();
   for (const isDemo of new Set(items.map((item) => Boolean(item.isDemo)))) {
@@ -86,6 +122,16 @@ export async function detectConflictsForAgendaItems(ids, deps = {}) {
     : {};
 
   const candidates = [];
+  const reviewRequired = [];
+  const reviewKeys = new Set();
+  const requireReview = (entry) => {
+    const key = `${entry.agendaItemId}|${entry.filingId ?? ""}|${entry.reason}`;
+    if (!reviewKeys.has(key)) {
+      reviewKeys.add(key);
+      reviewRequired.push(entry);
+    }
+  };
+  const pendingItemIds = new Set();
   for (const item of items) {
     const [investments, properties, sources, positions] = groups.get(Boolean(item.isDemo));
     const scheduleA = (investments || []).map(asScheduleA);
@@ -107,6 +153,13 @@ export async function detectConflictsForAgendaItems(ids, deps = {}) {
     );
   }
 
-  const persisted = await persistConflicts(candidates, { prisma: client });
-  return { ...persisted, totalCandidates: candidates.length };
+  // A review-required disclosure must not invalidate earlier matches, but it
+  // must not prevent independently eligible disclosures from being recorded.
+  const persisted = await persistConflicts(candidates, {
+    prisma: client,
+    agendaItemIds: items.map((item) => item.id),
+    preserveAgendaItemIds: [...pendingItemIds],
+    lockedAgendaItems: true,
+  });
+  return { ...persisted, totalCandidates: candidates.length, reviewRequired };
 }

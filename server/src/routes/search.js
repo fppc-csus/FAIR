@@ -6,7 +6,8 @@ const router = express.Router();
 const RESULT_LIMIT = 8;
 
 router.get('/', async (req, res, next) => {
-  const query = String(req.query.q ?? '').trim();
+  if (req.query.q !== undefined && (typeof req.query.q !== 'string' || req.query.q.length > 500)) return res.status(400).json({ error: 'Invalid search query' });
+  const query = (req.query.q ?? '').trim();
 
   if (!query) {
     return res.status(200).json({

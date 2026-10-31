@@ -37,7 +37,7 @@ export function scheduleCronJobs() {
           : 14,
       });
       console.log(
-        `[cron] Apify agenda ingestion finished: ${result.pdfsFetched} PDF(s), ${result.inserted} item(s) inserted, ${result.skipped} skipped, ${result.conflictCandidates} conflict candidate(s), ${result.conflictsDetected} inserted, ${result.conflictsSkipped} duplicate(s) skipped, ${result.detectionFailures} detection failure(s), ${result.errors} ingestion error(s)`,
+        `[cron] Apify agenda ingestion finished: ${result.documentsFound} document(s), ${result.pdfsFetched} PDF(s) fetched, ${result.itemsInserted} agenda item(s) inserted, ${result.itemsSkipped} skipped, ${result.errors} error(s)`,
       );
     } catch (err) {
       console.error('[cron] Apify agenda scrape failed:', err);

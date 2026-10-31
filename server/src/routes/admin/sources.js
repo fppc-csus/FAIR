@@ -165,75 +165,25 @@ async function runLegistarSource(source, options = {}) {
   };
 }
 
-async function runApifySource(source) {
+async function runApifySource(source, syncLogId) {
   if (!process.env.APIFY_TOKEN) throw new Error('Apify is not configured on the server (APIFY_TOKEN is missing).');
+  const actorId = source.apifyActorId ?? process.env.APIFY_ACTOR_ID;
+  if (!actorId) throw new Error('Apify is not configured on the server (APIFY_ACTOR_ID is missing).');
 
   const client = new ApifyClient({ token: process.env.APIFY_TOKEN });
-  const input = buildApifyActorInput(source);
-  console.info('[admin/sources] invoking Apify actor', apifySourceDiagnostic(source));
-  const run = await client.actor(source.apifyActorId).call(input, { timeout: 600 });
+  const run = await client.actor(actorId).call({
+    cityName: source.cityName,
+    ...(source.startUrl ? { startUrl: source.startUrl } : {}),
+  }, { timeout: 600 });
   if (run.status && run.status !== 'SUCCEEDED') throw new Error(`Actor ${run.status}: ${run.statusMessage || 'Check the Apify run log.'}`);
+  if (!run.defaultDatasetId) throw new Error('Apify actor run did not return a dataset ID.');
   const items = [];
   for (let offset = 0; ; offset += 1000) {
     const page = await client.dataset(run.defaultDatasetId).listItems({ limit: 1000, offset });
     items.push(...(page.items ?? []));
     if ((page.items?.length ?? 0) < 1000) break;
   }
-  let itemsInserted = 0;
-  let itemsSkipped = 0;
-  let conflictCandidates = 0;
-  let conflictsDetected = 0;
-  let conflictsSkipped = 0;
-  const detectionErrors = [];
-  for (const item of items) {
-    const url = item.pdf_url ?? item.pdfUrl ?? item.agenda_url ?? item.url ?? null;
-    const date = item.meeting_date ?? item.meetingDate ?? null;
-    const meetingDate = date && !Number.isNaN(Date.parse(date)) ? new Date(date) : null;
-    if (!url || !meetingDate) {
-      itemsSkipped += 1;
-      continue;
-    }
-    const parsedRows = (await parsePdfAgenda(await downloadPdf(url), source.id, meetingDate)).map((row) => ({
-      ...row,
-      sourceUrl: url,
-      cityName: source.cityName,
-      title: item.document_title ?? item.title ?? item.agenda_title ?? item.agendaTitle ?? item.name ?? 'Agenda item',
-    }));
-    const result = await upsertAgendaItems(
-      prisma,
-      parsedRows,
-      (row) => ({
-        cityId_meetingDate_itemNumber: {
-          cityId: row.cityId,
-          meetingDate: row.meetingDate,
-          itemNumber: row.itemNumber,
-        },
-      }),
-    );
-    itemsInserted += result.inserted;
-    itemsSkipped += result.skipped;
-    if (result.changedIds.length > 0) {
-      const detection = await detectAgendaConflictsSafely(
-        result.changedIds,
-        detectConflictsForAgendaItems,
-        { prisma },
-      );
-      conflictCandidates += detection.conflictCandidates;
-      conflictsDetected += detection.conflictsDetected;
-      conflictsSkipped += detection.conflictsSkipped;
-      detectionErrors.push(...detection.detectionErrors);
-    }
-  }
-  return {
-    itemsFound: items.length,
-    itemsInserted,
-    itemsSkipped,
-    conflictCandidates,
-    conflictsDetected,
-    conflictsSkipped,
-    detectionErrors,
-    detectionFailures: detectionErrors.length,
-  };
+  return ingestApifyAgendaItems({ items, source: { ...source, apifyActorId: actorId }, syncLogId, log: console.log });
 }
 
 async function executeSourceSync(source, syncLogId, options = {}) {
@@ -268,11 +218,22 @@ async function executeSourceSync(source, syncLogId, options = {}) {
     await prisma.$transaction([
       prisma.syncLog.update({
         where: { id: syncLogId },
-        data: { status: 'failed', completedAt, errors: { message: error.message } },
+        data: {
+          status: 'failed',
+          completedAt,
+          errors: [{ message: error.message }],
+        },
       }),
       prisma.dataSource.update({
         where: { id: source.id },
-        data: { lastError: error.message },
+        data: {
+          lastError: error.message,
+          lastDocumentsFound: 0,
+          lastPdfsFetched: 0,
+          lastItemsInserted: 0,
+          lastItemsSkipped: 0,
+          lastSyncErrors: [{ message: error.message }],
+        },
       }),
     ]);
   }
@@ -312,6 +273,11 @@ router.get('/', async (req, res) => {
         startUrl: source.startUrl,
         enabled: source.enabled,
         lastSyncTime: source.lastSyncedAt,
+        documentsFound: source.lastDocumentsFound,
+        pdfsFetched: source.lastPdfsFetched,
+        itemsInserted: source.lastItemsInserted,
+        itemsSkipped: source.lastItemsSkipped,
+        syncErrors: source.lastSyncErrors,
         totalAgendaItems,
         lastSyncItemsFound: latestSync?.itemsFound ?? 0,
         lastSyncItemsInserted: latestSync?.itemsInserted ?? 0,
@@ -383,12 +349,18 @@ router.get('/:id/documents', async (req, res) => {
   try {
     const rows = await prisma.agendaItem.findMany({
       where: { cityId: req.params.id, sourceType: 'apify' },
-      select: { id: true, title: true, sourceUrl: true, meetingDate: true },
+      select: { id: true, title: true, itemText: true, sourceUrl: true, meetingDate: true },
       orderBy: { meetingDate: 'desc' }, take: 200,
     });
-    return res.json(rows.filter((row) => /^https?:\/\//i.test(row.sourceUrl ?? '')).map((row) => ({
-      id: row.id, title: row.title, pdfUrl: row.sourceUrl, meetingDate: row.meetingDate,
-    })));
+    return res.json(rows.flatMap((row) => {
+      const pdfUrl = row.sourceUrl ?? (/^https?:\/\//i.test(row.itemText ?? '') ? row.itemText : null);
+      return pdfUrl ? [{
+        id: row.id,
+        title: row.title,
+        pdfUrl,
+        meetingDate: row.meetingDate,
+      }] : [];
+    }));
   } catch {
     return res.status(500).json({ error: 'Failed to load agenda documents.' });
   }
@@ -514,6 +486,9 @@ router.get('/:id/sync/:syncLogId', async (req, res) => {
       startedAt: syncLog.startedAt,
       completedAt: syncLog.completedAt,
       itemsFound: syncLog.itemsFound,
+      documentsFound: syncLog.documentsFound,
+      pdfsFetched: syncLog.pdfsFetched,
+      documentsSkipped: syncLog.documentsSkipped,
       itemsInserted: syncLog.itemsInserted,
       itemsSkipped: syncLog.itemsSkipped,
       conflictCandidates: syncLog.conflictCandidates,

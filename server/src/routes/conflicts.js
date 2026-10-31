@@ -1,10 +1,11 @@
+import { Prisma } from '@prisma/client';
+import { parseConflictQuery, conflictSql } from '../utils/conflictQuery.js';
 import express from "express";
 import { prisma } from "../lib/prisma.js";
 import { normalizeEntityName } from "../utils/entityNorm.js";
 import {
   conflictInclude,
   dashboardRow,
-  parseExportFilters,
   matchesFilters,
   csvHeaders,
   csvLine,
@@ -14,7 +15,7 @@ import {
 const router = express.Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-router.get("/", async (_req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     const requestedLimit = Number.parseInt(String(_req.query.limit ?? ""), 10);
     const take = Number.isFinite(requestedLimit)
@@ -30,12 +31,12 @@ router.get("/", async (_req, res, next) => {
       ...(take ? { take } : {}),
     });
 
-    res.status(200).json({
-      data: conflicts.map(dashboardRow),
-    });
-  } catch (error) {
-    next(error);
-  }
+// Global city choices must not be derived from just one results page.
+router.get('/filters', async (_req, res, next) => {
+  try {
+    const cities = await prisma.$queryRaw(Prisma.sql`SELECT DISTINCT COALESCE(a.city_name, j.name, 'Unknown') AS city FROM conflicts c JOIN agenda_items a ON a.id = c.agenda_item_id JOIN politicians p ON p.id = c.politician_id LEFT JOIN jurisdictions j ON j.id = p.jurisdiction_id ORDER BY city`);
+    res.json({ data: cities.map(row => row.city) });
+  } catch (error) { next(error); }
 });
 
 // Backwards-compatible endpoint for clients that load filter options separately.
@@ -104,6 +105,7 @@ function formatScheduleEntry(row, scheduleType) {
   if (!row) return null;
 
   return {
+    id: row.id,
     scheduleType,
     entityName: row.entityName ?? row.sourceName ?? row.propertyDescription ?? null,
     dollarValue: row.fairMarketValue ?? row.amount ?? row.grossIncomeRange ?? null,
@@ -112,6 +114,23 @@ function formatScheduleEntry(row, scheduleType) {
 }
 
 async function findScheduleEntry(conflict) {
+  const delegates = {
+    INVESTMENT: [prisma.scheduleAInvestment, "A"],
+    REAL_ESTATE: [prisma.scheduleBRealEstate, "B"],
+    BUSINESS_POSITION: [prisma.scheduleA2BusinessPosition, "A-2"],
+    INCOME: [prisma.scheduleCdeIncome, "C"],
+    GIFT: [prisma.scheduleCdeIncome, "D"],
+    TRAVEL: [prisma.scheduleCdeIncome, "E"],
+  };
+  if (conflict.disclosureId && delegates[conflict.conflictType]) {
+    const [delegate, type] = delegates[conflict.conflictType];
+    const row = await delegate.findFirst({ where: {
+      id: conflict.disclosureId,
+      filingId: conflict.filingId,
+      filing: { politicianId: conflict.politicianId },
+    } });
+    return formatScheduleEntry(row, type);
+  }
   const politicianWhere = {
     OR: [
       { politicianId: conflict.politicianId },
@@ -159,7 +178,7 @@ router.get("/export", async (req, res, next) => {
   let filters;
 
   try {
-    filters = parseExportFilters(req.query);
+    filters = parseConflictQuery(req.query);
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -225,7 +244,7 @@ router.get("/export", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   if (!UUID.test(req.params.id)) {
-    return res.status(404).json({ error: "Conflict not found" });
+    return res.status(400).json({ error: "Invalid conflict ID" });
   }
 
   try {
@@ -248,6 +267,7 @@ router.get("/:id", async (req, res, next) => {
       data: {
         id: conflict.id,
         politician: {
+          id: conflict.politicianId,
           name: conflict.politician.fullName,
           district: conflict.politician.district,
         },
@@ -255,8 +275,14 @@ router.get("/:id", async (req, res, next) => {
         severity: conflict.severity,
         ruleReference: conflict.ruleReference,
         entityName: conflict.entityName,
+        eligibilityStatus: conflict.eligibilityStatus ?? "unknown",
+        filingId: conflict.filingId ?? null,
+        disclosureId: conflict.disclosureId ?? null,
+        filingYear: conflict.filingYear ?? null,
+        supportingSource: conflict.supportingSource ?? null,
         scheduleEntry,
         agendaItem: {
+          id: conflict.agendaItemId,
           title: agendaItem.title,
           text: agendaItem.itemText ?? agendaItem.description ?? agendaItem.title,
           meetingDate: agendaItem.meetingDate ?? agendaItem.meeting?.meetingDate ?? null,

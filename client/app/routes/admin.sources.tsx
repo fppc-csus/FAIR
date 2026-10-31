@@ -16,6 +16,10 @@ type Source = {
   apifyActorId?: string | null;
   startUrl?: string | null;
   lastSyncTime: string | null;
+  documentsFound?: number;
+  pdfsFetched?: number;
+  itemsInserted?: number;
+  itemsSkipped?: number;
   totalAgendaItems: number;
   lastError: string | null;
   status: "ready" | "running" | "success" | "failed" | "disabled";
@@ -128,7 +132,7 @@ export default function AdminSourcesPage() {
         setSources((current) => current.map((source) => source.id === id ? { ...source, status: sync.status } : source));
         if (sync.status === "failed") throw new Error(sync.error ?? "The source sync failed.");
         if (sync.status === "success") {
-          toast.success(`Sync complete: ${sync.itemsInserted} new agenda items`);
+          toast.success(`Sync complete: ${sync.documentsFound ?? sync.itemsFound} documents, ${sync.pdfsFetched ?? 0} PDFs, ${sync.documentsSkipped ?? 0} documents skipped, ${sync.itemsInserted} agenda items inserted, ${sync.itemsSkipped} items skipped`);
           await loadSources();
           return;
         }

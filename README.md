@@ -127,6 +127,16 @@ Senior-Project/
 
 ## Developer instructions
 
+### Provisional SH-324 eligibility
+
+**PROVISIONAL — CLIENT APPROVAL PENDING.** Automatic conflict detection requires
+an unambiguous canonical jurisdiction and meeting date. Filing-period eligibility
+defaults to pending (no new automatic candidates); to opt into the provisional
+calendar-year-offset policy, set `FAIR_FILING_PERIOD_OFFSETS` to comma-separated
+nonnegative meeting-year minus filing-year offsets, for example `0,1`.
+Existing candidates are retained while policy is pending. Admin review is still
+required; see `docs/conflict_rules.md` for lifecycle and missing-data behavior.
+
 > **CSC 191 — placeholder.** Expand this section with full local-setup steps, env var matrix, and troubleshooting as the team finalizes the dev environment in class.
 
 ### Prerequisites (target stack)
@@ -319,6 +329,19 @@ The checked-in scheduled workflow files contain only `# disabled`. If re-enabled
 - [ ] Scheduled workflow notifications and failure alerts configured
 - [ ] Post-deploy smoke checklist (health route, sample ingestion, admin login)
 
+### Backend CORS configuration
+
+Set `CLIENT_ORIGIN` in `server/.env` to the frontend's exact origin,
+including its scheme and port when applicable, without a trailing slash.
+
+Local example: `CLIENT_ORIGIN=http://localhost:5173`
+
+Production example: `CLIENT_ORIGIN=https://your-app.vercel.app`
+
+Development defaults to `http://localhost:5173` when unset.
+Production disables CORS when `CLIENT_ORIGIN` is unset.
+CORS controls browser access; admin routes also require authentication.
+
 ---
 
 ## CSC 191 timeline (JIRA backlog)
@@ -442,3 +465,12 @@ _License and contribution guidelines — to be added in CSC 191_
 <p align="center">
   <sub>Built with accountability in mind — because public trust deserves more than manual spreadsheet cross-checks.</sub>
 </p>
+
+### Public conflict browsing API
+
+The conflict dashboard uses server-side filtering and pagination.
+`GET /api/conflicts` returns data, total, page, and pageSize (default 20, max 100).
+Filters and pagination are preserved in the dashboard URL. Date filters use
+inclusive UTC detection dates. Review-state filtering is public.
+See [SH-326 validation and API contract](SH326-VALIDATION.md) for parameters,
+index deployment, local checks, and pending representative database validation.

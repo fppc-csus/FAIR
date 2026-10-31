@@ -1,4 +1,7 @@
 import '../lib/env.js';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+import { ingestApifyAgendaItems, downloadPdf } from '../ingestion/apifyAgenda.js';
 import { parsePdfAgenda } from '../ingestion/pdfParser.js';
 import { upsertAgendaItems } from '../ingestion/upsertAgendaItems.js';
 import { prisma } from '../lib/prisma.js';
@@ -6,14 +9,12 @@ import { detectConflictsForAgendaItems } from '../detection/detectConflicts.js';
 import { detectAgendaConflictsSafely } from '../detection/detectAgendaConflictsSafely.js';
 
 const DEFAULT_LOOKBACK_DAYS = 14;
-const PDF_DOWNLOAD_TIMEOUT_MS = 30_000;
-const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 function assertEnv(name) {
   if (!process.env[name]) throw new Error(`Missing ${name} in server/.env`);
 }
 
-function normalizeString(value) {
+function normalizeCityName(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
@@ -192,27 +193,44 @@ export async function runApifyAgendaScrape({
   }
 
   const actorItems = await scrapeAgendaPDFs({ lookbackDays });
-  const requestedCity = normalizeString(city).toLowerCase();
-  const normalized = actorItems.map(normalizeActorItem).filter((item) => (
-    !requestedCity || item.cityName.toLowerCase() === requestedCity
-  ));
-  const missingCity = normalized.filter((item) => !item.cityName);
-  const byCity = new Map();
+  if (!Array.isArray(actorItems)) throw new Error('Apify dataset results must be an array');
 
-  for (const item of normalized.filter((entry) => entry.cityName)) {
-    const items = byCity.get(item.cityName) ?? [];
-    items.push(item);
-    byCity.set(item.cityName, items);
+  const requestedCity = normalizeCityName(city).toLowerCase();
+  const byCity = new Map();
+  let missingCity = 0;
+
+  for (const item of actorItems) {
+    const cityName = normalizeCityName(item?.city_name ?? item?.cityName);
+    if (requestedCity && cityName.toLowerCase() !== requestedCity) continue;
+    if (!cityName) {
+      missingCity += 1;
+      log('[apify] skipped actor result with no city_name');
+      continue;
+    }
+    const cityItems = byCity.get(cityName) ?? [];
+    cityItems.push(item);
+    byCity.set(cityName, cityItems);
   }
 
   const cities = [];
   for (const [cityName, items] of byCity) {
-    cities.push(await processCityItems({ cityName, items, prismaClient, parsePdf, fetchImpl, detect, log }));
+    cities.push(await ingestApifyAgendaItems({
+      items,
+      source: { cityName, apifyActorId: process.env.APIFY_ACTOR_ID ?? null },
+      prismaClient,
+      ...(parsePdf ? { parsePdf } : {}),
+      fetchImpl,
+      log,
+    }));
   }
 
   const totals = cities.reduce((result, summary) => ({
     citiesProcessed: result.citiesProcessed + 1,
+    documentsFound: result.documentsFound + summary.documentsFound,
     pdfsFetched: result.pdfsFetched + summary.pdfsFetched,
+    documentsSkipped: result.documentsSkipped + summary.documentsSkipped,
+    itemsInserted: result.itemsInserted + summary.itemsInserted,
+    itemsSkipped: result.itemsSkipped + summary.itemsSkipped,
     inserted: result.inserted + summary.inserted,
     skipped: result.skipped + summary.skipped,
     conflictCandidates: result.conflictCandidates + summary.conflictCandidates,
@@ -223,6 +241,7 @@ export async function runApifyAgendaScrape({
     errors: result.errors + summary.errors.length,
   }), {
     citiesProcessed: 0,
+    documentsFound: 0,
     pdfsFetched: 0,
     inserted: 0,
     skipped: missingCity.length,
@@ -234,7 +253,9 @@ export async function runApifyAgendaScrape({
     errors: missingCity.length,
   });
 
-  log(`[cron][apify] complete ${JSON.stringify(totals)}`);
+  totals.inserted = totals.itemsInserted;
+  totals.skipped = totals.documentsSkipped + totals.itemsSkipped;
+  log(`[apify] complete ${JSON.stringify(totals)}`);
   return { ...totals, cities };
 }
 
@@ -243,15 +264,16 @@ function readCityArgument(argv) {
   return index >= 0 ? argv[index + 1] ?? null : null;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runApifyAgendaScrape({ city: readCityArgument(process.argv.slice(2)) }).then(
-    (result) => {
-      console.log(JSON.stringify(result, null, 2));
-      if (result.errors > 0) process.exitCode = 1;
-    },
-    (error) => {
-      console.error('[cron][apify] command failed:', error);
-      process.exitCode = 1;
-    },
-  );
+export async function runApifyAgendaCli({ argv = process.argv.slice(2), run = runApifyAgendaScrape } = {}) {
+  const result = await run({ city: readCityArgument(argv) });
+  console.log(JSON.stringify(result, null, 2));
+  if (result.errors > 0) process.exitCode = 1;
+  return result;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  runApifyAgendaCli().catch((error) => {
+    console.error('[apify] command failed:', error);
+    process.exitCode = 1;
+  });
 }

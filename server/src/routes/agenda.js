@@ -5,7 +5,7 @@ import { prisma } from "../lib/prisma.js";
 
 const router = express.Router();
 
-router.get("/", async (_req, res) => {
+router.get("/", async (_req, res, next) => {
   try {
     const requestedLimit = Number.parseInt(String(_req.query.limit ?? ""), 10);
     const take = Number.isFinite(requestedLimit)
@@ -22,7 +22,7 @@ router.get("/", async (_req, res) => {
         sourceType: true,
         _count: {
           select: {
-            conflicts: true,
+            conflicts: { where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] } },
           },
         },
       },
@@ -44,11 +44,7 @@ router.get("/", async (_req, res) => {
 
     res.status(200).json({ data });
   } catch (error) {
-    console.error("Failed to fetch agenda items:", error);
-
-    res.status(500).json({
-      error: "Failed to fetch agenda items",
-    });
+    next(error);
   }
 });
 
@@ -70,6 +66,7 @@ router.get("/:id", async (req, res) => {
         sourceType: true,
         bodyName: true,
         conflicts: {
+          where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
           select: {
             id: true,
             conflictType: true,

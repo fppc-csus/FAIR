@@ -4,17 +4,18 @@
  * Mounted in app.js behind `requireAdmin`; this router does NOT re-apply auth.
  *
  * Flow: multer (memory, 10 MB) → MIME check → XLSX.read → sheet-name sanity
- * check → parseCoverPage → resolve politician (body.politician_id override or
- * findOrCreatePolitician) → duplicate-year pre-check → single $transaction that
- * creates the filing + createMany for Schedules A / B / C-D-E / A-2 → archive the
- * raw workbook in Supabase Storage and record its path (filing deleted if the
- * archive step fails, so no orphan row or object is left behind).
+ * check → parseCoverPage → resolve politician → duplicate-year pre-check →
+ * transactional filing/schedule write and durable detection-run creation.
+ * Corrections archive first, then replace schedules transactionally; new
+ * filings archive after commit and are removed if archiving fails. Detection is
+ * queued only after both database and archive writes succeed.
  *
  * Responses
  *   200 { filing_id, politician_id, schedules_parsed: { A, B, CDE, A2 }, archived_path, detection }
  *   400 bad/missing file, wrong MIME, unreadable XLSX, unrecognised sheets,
  *       filer/filing year could not be determined
- *   409 filing already exists for this politician + filing year
+ *   409 filing already exists for this politician + filing year unless
+ *       `replace_existing=true` explicitly requests a correction
  *   413 file larger than 10 MB
  *   500 archive failure / unexpected error (via next(err))
  */
@@ -30,6 +31,7 @@ import { parseScheduleA2 } from "../../parsers/scheduleA2.js";
 import { parseScheduleB } from "../../parsers/scheduleB.js";
 import { parseScheduleCDE } from "../../parsers/scheduleCDE.js";
 import { findOrCreatePolitician } from "../../utils/findOrCreatePolitician.js";
+import { queueDetectionRun } from "../../detection/detectionRuns.js";
 import { redetectDisclosureAgendaItems } from "../../detection/redetectDisclosure.js";
 import { parseForm700Bulk } from "../../parsers/form700Bulk.js";
 import { previewForm700Bulk, importForm700Bulk } from "../../ingestion/form700Bulk.js";
@@ -260,27 +262,63 @@ router.post("/form700", receiveFile, async (req, res, next) => {
       where: { politicianId_filingYear: { politicianId, filingYear } },
       select: { id: true },
     });
-    if (existing) {
+    const replaceExisting = String(req.body?.replace_existing ?? "").toLowerCase() === "true";
+    if (existing && !replaceExisting) {
       return res.status(409).json({
         error: `A Form 700 filing for this politician and filing year (${filingYear}) already exists.`,
         filing_id: existing.id,
       });
     }
 
+    let replacementArchivePath = null;
+    if (existing) {
+      try {
+        replacementArchivePath = await archiveWorkbook(req.file.buffer, req.file.originalname, {
+          filingId: existing.id,
+          politicianId,
+        });
+      } catch (error) {
+        const err = new Error(`Failed to archive corrected workbook: ${error?.message ?? error}`);
+        err.statusCode = 500;
+        return next(err);
+      }
+    }
+
     // 6. Filing + schedule rows in one transaction ----------------------------
     let filingId;
+    let detectionRunId;
     let schedulesParsed;
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const filing = await tx.form700Filing.create({
-          data: {
-            politicianId,
-            filingYear,
-            filerName: filerName ?? null,
-            originalFilename: req.file.originalname ?? null,
-          },
-          select: { id: true },
-        });
+        const filing = existing
+          ? await tx.form700Filing.update({
+              where: { id: existing.id },
+              data: {
+                filerName: filerName ?? null,
+                originalFilename: req.file.originalname ?? null,
+                archivedPath: replacementArchivePath,
+                storagePath: replacementArchivePath,
+              },
+              select: { id: true },
+            })
+          : await tx.form700Filing.create({
+              data: {
+                politicianId,
+                filingYear,
+                filerName: filerName ?? null,
+                originalFilename: req.file.originalname ?? null,
+              },
+              select: { id: true },
+            });
+
+        if (existing) {
+          await Promise.all([
+            tx.scheduleAInvestment.deleteMany({ where: { filingId: filing.id } }),
+            tx.scheduleBRealEstate.deleteMany({ where: { filingId: filing.id } }),
+            tx.scheduleCdeIncome.deleteMany({ where: { filingId: filing.id } }),
+            tx.scheduleA2BusinessPosition.deleteMany({ where: { filingId: filing.id } }),
+          ]);
+        }
 
         const ids = { filingId: filing.id, politicianId };
 
@@ -302,8 +340,20 @@ router.post("/form700", receiveFile, async (req, res, next) => {
           await tx.scheduleA2BusinessPosition.createMany({ data: toScheduleA2(rowsA2, ids) });
         }
 
+        const detectionRun = await tx.detectionRun.create({
+          data: {
+            filingId: filing.id,
+            politicianId,
+            filingYear,
+            trigger: "form700_upload",
+            status: "queued",
+          },
+          select: { id: true },
+        });
+
         return {
           filingId: filing.id,
+          detectionRunId: detectionRun.id,
           schedulesParsed: {
             A: rowsA.length,
             B: rowsB.length,
@@ -314,8 +364,16 @@ router.post("/form700", receiveFile, async (req, res, next) => {
       });
 
       filingId = result.filingId;
+      detectionRunId = result.detectionRunId;
       schedulesParsed = result.schedulesParsed;
     } catch (error) {
+      if (replacementArchivePath) {
+        try {
+          await deleteWorkbook(replacementArchivePath);
+        } catch (cleanupError) {
+          console.error("[upload] failed to delete corrected workbook after transaction error:", cleanupError);
+        }
+      }
       if (isDuplicateError(error)) {
         return res.status(409).json({
           error: `A Form 700 filing for this politician and filing year (${filingYear}) already exists.`,
@@ -365,6 +423,8 @@ router.post("/form700", receiveFile, async (req, res, next) => {
       return next(err);
     }
 
+    queueDetectionRun(detectionRunId);
+
     const politician = await prisma.politician.findUnique({
       where: { id: politicianId },
       select: { fullName: true, slug: true },
@@ -377,6 +437,9 @@ router.post("/form700", receiveFile, async (req, res, next) => {
 
     return res.status(200).json({
       filing_id: filingId,
+      corrected: Boolean(existing),
+      detection_run_id: detectionRunId,
+      detection_run_status: "queued",
       politician_id: politicianId,
       politician: politician
         ? { name: politician.fullName, slug: politician.slug }
