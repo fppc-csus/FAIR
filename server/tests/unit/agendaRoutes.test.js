@@ -57,6 +57,9 @@ describe("GET /api/agenda/:id", () => {
     const res = await request(app).get("/api/agenda/agenda-1");
 
     expect(res.status).toBe(200);
+    expect(prisma.agendaItem.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'agenda-1', isDemo: false },
+    }));
     expect(res.body.data.title).toBe("Development Project");
     expect(res.body.data.itemText).toBe("Full agenda item text");
     expect(res.body.data.meetingDate).toBe(

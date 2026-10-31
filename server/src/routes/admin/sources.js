@@ -3,7 +3,9 @@ import express from 'express';
 import { syncErrorMessage } from '../../utils/syncErrorMessage.js';
 import { ApifyClient } from 'apify-client';
 import { prisma } from '../../lib/prisma.js';
-import { getAgendaItems, getMeetings } from '../../ingestion/legistarApi.js';
+import { fetchLegistarAgendaItemsForDataSource } from '../../ingestion/legistar.js';
+import { legistarItemKey } from '../../ingestion/legistarIdentity.js';
+import { getSyntheticConflictStatus, runSyntheticConflictCheck, removeSyntheticConflictCheck } from '../../detection/syntheticConflictCheck.js';
 import { parsePdfAgenda } from '../../ingestion/pdfParser.js';
 import { upsertAgendaItems } from '../../ingestion/upsertAgendaItems.js';
 import { apifySourceDiagnostic, buildApifyActorInput } from '../../ingestion/apifyActorInput.js';
@@ -71,10 +73,12 @@ async function validateSourceInput(body) {
   if (!sourceType) throw new Error('Choose Legistar or Apify as the source type.');
 
   if (sourceType === 'Legistar') {
+    const legistarBaseUrl = await validateLegistarBaseUrl(body.legistarBaseUrl);
     return {
       cityName,
       sourceType: 'legistar',
-      legistarBaseUrl: await validateLegistarBaseUrl(body.legistarBaseUrl),
+      legistarBaseUrl,
+      legistarClientId: legistarBaseUrl.split('/').pop().toLowerCase(),
       apifyActorId: null,
       startUrl: null,
     };
@@ -86,6 +90,7 @@ async function validateSourceInput(body) {
     sourceType: 'apify',
     legistarBaseUrl: null,
     apifyActorId: await validateApifyActorId(body.apifyActorId || process.env.APIFY_ACTOR_ID),
+    legistarClientId: null,
     startUrl,
   };
 }
@@ -107,66 +112,55 @@ function sendValidationError(res, error) {
   return res.status(400).json({ error: error.message ?? 'Invalid source configuration.' });
 }
 
-async function runLegistarSource(source) {
-  const meetings = await getMeetings(source.legistarBaseUrl, 50);
-  const rows = [];
+async function runLegistarSource(source, options = {}) {
+  const { allItems } = await fetchLegistarAgendaItemsForDataSource(source, { lookbackDays: 30, ...options });
+  const rows = allItems.flatMap(({ item, meeting, meetingId }) => {
+    const itemId = item.EventItemId ?? item.id;
+    if (itemId == null) return [];
+    const rawMeetingDate = meeting.EventDate ?? meeting.date ?? null;
+    const meetingDate = rawMeetingDate && !Number.isNaN(Date.parse(rawMeetingDate))
+      ? new Date(rawMeetingDate)
+      : null;
+    const title = item.EventItemTitle ?? item.EventItemMatterName ?? item.MatterName ?? item.Title ?? item.title ?? 'Untitled agenda item';
+    const description = item.EventItemAgendaNote ?? item.AgendaNote ?? null;
+    const itemText = [title, description, item.EventItemMinutesNote ?? item.MinutesNote, item.EventItemActionText]
+      .filter((value) => value != null && String(value).trim() !== '')
+      .join('\n');
 
-  for (const meeting of meetings) {
-    const meetingId = meeting.EventId ?? meeting.id;
-    if (meetingId == null) continue;
-
-    const items = await getAgendaItems(source.legistarBaseUrl, meetingId);
-    for (const item of items) {
-      const itemId = item.EventItemId ?? item.id;
-      if (itemId == null) continue;
-      const rawMeetingDate = meeting.EventDate ?? meeting.date ?? null;
-      const meetingDate = rawMeetingDate && !Number.isNaN(Date.parse(rawMeetingDate))
-        ? new Date(rawMeetingDate)
-        : null;
-
-      rows.push({
-        sourceType: 'legistar',
-        legistarItemId: String(itemId),
-        legistarEventId: String(meetingId),
-        legistarMatterId: item.MatterId == null ? null : String(item.MatterId),
-        cityName: source.cityName,
-        title: item.EventItemTitle ?? item.MatterName ?? item.Title ?? item.title ?? 'Untitled agenda item',
-        agendaNumber: item.EventItemAgendaNumber ?? item.AgendaNumber ?? null,
-        bodyName: meeting.EventBodyName ?? meeting.bodyName ?? null,
-        meetingDate,
-        eventItemPassedFlag: item.EventItemPassedFlag == null ? null : Boolean(item.EventItemPassedFlag),
-        legistarItemPayload: item,
-      });
-    }
-  }
-
-  const legistarItemIds = rows.map((row) => row.legistarItemId);
-  const existing = rows.length
-    ? await prisma.agendaItem.findMany({
-        where: { legistarItemId: { in: legistarItemIds } },
-        select: { legistarItemId: true },
-      })
-    : [];
-  const existingIds = new Set(existing.map((row) => row.legistarItemId));
-  const newRows = rows.filter((row) => !existingIds.has(row.legistarItemId));
-  const result = newRows.length
-    ? await prisma.agendaItem.createMany({ data: newRows, skipDuplicates: true })
-    : { count: 0 };
-  const insertedRows = result.count > 0
-    ? await prisma.agendaItem.findMany({
-        where: { legistarItemId: { in: newRows.map((row) => row.legistarItemId) } },
-        select: { id: true },
-      })
-    : [];
+    return [{
+      sourceType: 'legistar',
+      legistarItemId: legistarItemKey(source.legistarBaseUrl, itemId),
+      legistarEventId: String(meetingId),
+      legistarMatterId: item.EventItemMatterId != null
+        ? String(item.EventItemMatterId)
+        : item.MatterId != null ? String(item.MatterId) : null,
+      cityName: source.cityName,
+      cityId: source.id,
+      title,
+      description,
+      itemText: itemText || null,
+      sourceUrl: meeting.EventInSiteURL ?? meeting.EventAgendaFile ?? null,
+      agendaNumber: item.EventItemAgendaNumber ?? item.AgendaNumber ?? null,
+      bodyName: meeting.EventBodyName ?? meeting.bodyName ?? null,
+      meetingDate,
+      eventItemPassedFlag: item.EventItemPassedFlag == null ? null : Boolean(item.EventItemPassedFlag),
+      legistarItemPayload: item,
+    }];
+  });
+  const result = await upsertAgendaItems(
+    prisma,
+    rows,
+    (row) => ({ legistarItemId: row.legistarItemId }),
+  );
   const detection = await detectAgendaConflictsSafely(
-    insertedRows.map((row) => row.id),
+    result.changedIds,
     detectConflictsForAgendaItems,
     { prisma },
   );
   return {
     itemsFound: rows.length,
-    itemsInserted: result.count,
-    itemsSkipped: rows.length - result.count,
+    itemsInserted: result.inserted,
+    itemsSkipped: result.skipped,
     ...detection,
   };
 }
@@ -242,10 +236,10 @@ async function runApifySource(source) {
   };
 }
 
-async function executeSourceSync(source, syncLogId) {
+async function executeSourceSync(source, syncLogId, options = {}) {
   try {
     const result = source.sourceType.toLowerCase() === 'legistar'
-      ? await runLegistarSource(source)
+      ? await runLegistarSource(source, options)
       : await runApifySource(source);
     const completedAt = new Date();
 
@@ -262,7 +256,6 @@ async function executeSourceSync(source, syncLogId) {
           conflictsDetected: result.conflictsDetected ?? 0,
           conflictsSkipped: result.conflictsSkipped ?? 0,
           detectionErrors: result.detectionErrors ?? [],
-          detectionFailures: result.detectionErrors?.length ?? 0,
         },
       }),
       prisma.dataSource.update({
@@ -296,9 +289,11 @@ router.get('/', async (req, res) => {
       const [totalAgendaItems, latestSync] = await Promise.all([
         prisma.agendaItem.count({
           where: {
+            isDemo: false,
+            sourceType: source.sourceType.toLowerCase() === 'legistar' ? 'legistar' : { in: ['apify', 'pdf'] },
             OR: [
               { cityId: source.id },
-              { cityName: { equals: source.cityName, mode: 'insensitive' } },
+              { cityId: null, cityName: { equals: source.cityName, mode: 'insensitive' } },
             ],
           },
         }),
@@ -318,6 +313,8 @@ router.get('/', async (req, res) => {
         enabled: source.enabled,
         lastSyncTime: source.lastSyncedAt,
         totalAgendaItems,
+        lastSyncItemsFound: latestSync?.itemsFound ?? 0,
+        lastSyncItemsInserted: latestSync?.itemsInserted ?? 0,
         lastError: syncErrorMessage(latestSync?.errors) ?? syncErrorMessage(source.lastError),
         status: latestSync?.status ?? (source.enabled ? 'ready' : 'disabled'),
       };
@@ -328,6 +325,35 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('[admin/sources] failed to load sources', err);
     return res.status(500).json({ error: 'Failed to load sources.' });
+  }
+});
+
+// This fixture is deliberately separate from production sources and public APIs.
+router.get('/demo-conflict', async (_req, res) => {
+  try {
+    return res.json(await getSyntheticConflictStatus(prisma));
+  } catch (error) {
+    console.error('[demo-conflict] status failed', error);
+    return res.status(500).json({ error: 'Could not load the synthetic test status.' });
+  }
+});
+
+router.post('/demo-conflict', async (_req, res) => {
+  try {
+    return res.json(await runSyntheticConflictCheck(prisma));
+  } catch (error) {
+    console.error('[demo-conflict] check failed', error);
+    return res.status(500).json({ error: 'Synthetic conflict check failed. No successful test is recorded.' });
+  }
+});
+
+router.delete('/demo-conflict', async (_req, res) => {
+  try {
+    await removeSyntheticConflictCheck(prisma);
+    return res.json({ removed: true });
+  } catch (error) {
+    console.error('[demo-conflict] cleanup failed', error);
+    return res.status(500).json({ error: 'Could not remove the synthetic test records.' });
   }
 });
 
@@ -445,10 +471,28 @@ router.post('/:id/sync', async (req, res) => {
     if (!source) return res.status(404).json({ error: 'Source not found.' });
     if (source.enabled === false) return res.status(409).json({ error: 'Enable this source before starting a sync.' });
 
+    const options = {};
+    for (const field of ['startDate', 'endDate']) {
+      const value = req.body?.[field];
+      if (value == null || value === '') continue;
+      const parsed = new Date(`${value}T00:00:00.000Z`);
+      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)
+        || Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== value) {
+        return res.status(400).json({ error: `${field} must be a calendar date in YYYY-MM-DD format.` });
+      }
+      options[field] = value;
+    }
+    if (Object.keys(options).length && source.sourceType.toLowerCase() !== 'legistar') {
+      return res.status(400).json({ error: 'Historical date ranges are supported only for Legistar sources.' });
+    }
+    if (options.startDate && options.endDate && options.startDate > options.endDate) {
+      return res.status(400).json({ error: 'Start date must be on or before end date.' });
+    }
+
     const syncLog = await prisma.syncLog.create({
       data: { dataSourceId: source.id, sourceType: source.sourceType.toLowerCase(), status: 'running' },
     });
-    void executeSourceSync(source, syncLog.id).catch((error) => {
+    void executeSourceSync(source, syncLog.id, options).catch((error) => {
       console.error('[admin/sources] failed to persist sync result', error);
     });
     return res.status(202).json({ syncLogId: syncLog.id, status: 'running' });

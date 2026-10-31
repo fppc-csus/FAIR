@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import request from "supertest";
+import * as XLSX from 'xlsx';
 
 // --- mocks (hoisted by vitest) ---------------------------------------------
 
@@ -27,6 +28,7 @@ vi.mock("../../src/lib/prisma.js", () => {
       delete: vi.fn(),
     },
     politician: { findUnique: vi.fn() },
+    jurisdiction: { findMany: vi.fn() },
   };
   return { prisma, default: prisma };
 });
@@ -57,7 +59,22 @@ import { findOrCreatePolitician } from "../../src/utils/findOrCreatePolitician.j
 import { redetectDisclosureAgendaItems } from "../../src/detection/redetectDisclosure.js";
 
 const ENDPOINT = "/api/admin/upload/form700";
-const validBuffer = fs.readFileSync(path.resolve("tests/fixtures/form700-valid.xlsx"));
+// The old fixture is a county-wide export. Give its schedule rows one synthetic
+// owner/version for legacy single-filing transaction tests; bulk tests use the
+// untouched workbook and verify that cross-filer assignments are rejected.
+const singleWorkbook = XLSX.read(fs.readFileSync(path.resolve('tests/fixtures/form700-valid.xlsx')));
+for (const name of singleWorkbook.SheetNames) {
+  const sheet = singleWorkbook.Sheets[name];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  const header = rows.findIndex(row => row.includes('Last Name'));
+  if (header < 0) continue;
+  for (const row of rows.slice(header + 1)) {
+    if (!row[0] || !row[1]) continue;
+    row[0] = 'Gore'; row[1] = 'James'; row[2] = 'M'; row[7] = 'Annual'; row[10] = 43922;
+  }
+  singleWorkbook.Sheets[name] = XLSX.utils.aoa_to_sheet(rows);
+}
+const validBuffer = XLSX.write(singleWorkbook, { type: 'buffer', bookType: 'xlsx' });
 const malformedBuffer = fs.readFileSync(path.resolve("tests/fixtures/form700-malformed.xlsx"));
 
 const POLITICIAN_ID = "11111111-2222-4333-8444-555555555555";
@@ -82,6 +99,7 @@ beforeEach(() => {
   prisma.form700Filing.update.mockResolvedValue({ id: FILING_ID });
   prisma.form700Filing.delete.mockResolvedValue({ id: FILING_ID });
   prisma.politician.findUnique.mockResolvedValue({ fullName: "James M Gore", slug: "james-m-gore" });
+  prisma.jurisdiction.findMany.mockResolvedValue([]);
   prisma.$transaction.mockImplementation(async (fn) => fn(prisma.__tx));
   prisma.__tx.form700Filing.create.mockResolvedValue({ id: FILING_ID });
   for (const model of [
@@ -105,6 +123,38 @@ beforeEach(() => {
 });
 
 describe("POST /api/admin/upload/form700", () => {
+  it('rejects a multi-filer workbook on the single-filing route', async () => {
+    const buffer = fs.readFileSync(path.resolve('../docs/County of Sonoma -- Form 700 (2019).xlsx'));
+    const res = await postFile(buffer);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('bulk Form 700');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication for bulk previews', async () => {
+    requireAdmin.mockImplementation((_req, res) => res.status(401).json({ error: 'unauthorized' }));
+    const res = await request(app).post('/api/admin/upload/form700/bulk/preview');
+    expect(res.status).toBe(401);
+  });
+
+  it('previews a bulk export without writes and rejects unconfirmed imports', async () => {
+    const buffer = fs.readFileSync(path.resolve('../docs/County of Sonoma -- Form 700 (2019).xlsx'));
+    const preview = await request(app).post('/api/admin/upload/form700/bulk/preview')
+      .attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
+    expect(preview.status).toBe(200);
+    expect(preview.body.filings).toHaveLength(13);
+    expect(preview.body.filings[0]).not.toHaveProperty('schedules');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    const unconfirmed = await request(app).post('/api/admin/upload/form700/bulk/import')
+      .field('digest', 'wrong').attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
+    expect(unconfirmed.status).toBe(409);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing bulk files and unknown actions', async () => {
+    expect((await request(app).post('/api/admin/upload/form700/bulk/preview')).status).toBe(400);
+    expect((await request(app).post('/api/admin/upload/form700/bulk/unknown')).status).toBe(404);
+  });
   it("ingests a valid XLSX: 200 with filing id, politician id, schedule counts and archive path", async () => {
     const res = await postFile(validBuffer);
 

@@ -44,6 +44,17 @@ test('reports missing required docs, links, and indexed paths', async (context) 
   assert.ok(errors.some((error) => error.includes('missing backtick target server/src/missing.js')));
 });
 
+test('does not require skipped directories referenced by indexed docs', async (context) => {
+  const root = await createRepository();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, 'DIRECTORY.md'),
+    '# Directory\n\nDo not load `node_modules/` or `client/.react-router/`.\n',
+  );
+
+  assert.deepEqual(await validateDocs(root), []);
+});
+
 test('enforces the always-read document budgets', async (context) => {
   const root = await createRepository();
   context.after(() => rm(root, { recursive: true, force: true }));

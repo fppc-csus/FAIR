@@ -40,6 +40,7 @@ model Jurisdiction {
 }
 
 model Politician {
+  isDemo         Boolean       @default(false) @map("is_demo")
   id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug           String        @unique
   fullName       String        @map("full_name")
@@ -107,6 +108,7 @@ model Meeting {
 /// Raw ingestion inserts rows without a Meeting, so `meetingId` and `title` are
 /// nullable and the denormalised Legistar/PDF columns live directly on the row.
 model AgendaItem {
+  isDemo      Boolean   @default(false) @map("is_demo")
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   meetingId   String?   @map("meeting_id") @db.Uuid
   meeting     Meeting?  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
@@ -179,6 +181,7 @@ model Form700Filing {
   /// Legacy v1 column kept for backwards compatibility; prefer archivedPath.
   storagePath      String?    @map("storage_path")
   filedAt          DateTime?  @map("filed_at")
+  importMetadata   Json?      @map("import_metadata")
   createdAt        DateTime   @default(now()) @map("created_at")
 
   scheduleAInvestments ScheduleAInvestment[]

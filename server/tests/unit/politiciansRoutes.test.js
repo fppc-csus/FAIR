@@ -49,6 +49,9 @@ describe("GET /api/politicians", () => {
     const res = await request(app).get("/api/politicians");
 
     expect(res.status).toBe(200);
+    expect(prisma.politician.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { isDemo: false },
+    }));
 
     expect(res.body).toEqual({
       data: [

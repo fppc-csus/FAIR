@@ -5,6 +5,7 @@ import Sources from "./admin.sources";
 
 vi.mock("../adminComponents", () => ({ AdminGuard: ({ children }: { children: React.ReactNode }) => children, AdminNav: () => null }));
 vi.mock("../components/CityAgendaDiscovery", () => ({ default: () => null }));
+vi.mock("../components/SyntheticConflictCheck", () => ({ default: () => null }));
 const mocks = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock("../adminAuth", () => ({ adminFetch: mocks.fetch }));
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
@@ -36,6 +37,7 @@ it("loads and submits the agenda archive URL when editing an Apify source", asyn
   const user = userEvent.setup();
 
   render(<Sources />);
+  await user.click(screen.getByRole("tab", { name: /Scraped cities\/counties/ }));
   expect(await screen.findByText("City of Calexico")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Edit City of Calexico source" }));
   expect(screen.getByLabelText("Agenda archive URL")).toHaveValue("https://www.calexico.ca.gov/councilagendas");
@@ -55,4 +57,21 @@ it("disables an enabled source", async () => {
   await user.click(await screen.findByRole("button", { name: "Disable Sacramento source" }));
   const request = mocks.fetch.mock.calls.find(([, init]) => init?.method === "PATCH");
   expect(JSON.parse(String(request?.[1]?.body))).toEqual({ enabled: false });
+});
+
+it('separates Legistar and scraped jurisdictions and opens the correct add form', async () => {
+  mocks.fetch.mockResolvedValue(Response.json([
+    { id: 'a', cityName: 'Sonoma County', sourceType: 'legistar', enabled: true, status: 'ready', totalAgendaItems: 124 },
+    { id: 'b', cityName: 'City of Calexico', sourceType: 'apify', enabled: true, status: 'ready', totalAgendaItems: 0 },
+  ]));
+  const user = userEvent.setup();
+  render(<Sources />);
+  expect(await screen.findByText('Sonoma County')).toBeInTheDocument();
+  expect(screen.queryByText('City of Calexico')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('tab', { name: /Scraped cities\/counties/ }));
+  expect(screen.getByText('City of Calexico')).toBeInTheDocument();
+  expect(screen.queryByText('Sonoma County')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Add scraped city/county' }));
+  expect(screen.getByLabelText('Source type')).toHaveValue('Apify');
+  expect(screen.getByLabelText('City or county name')).toBeInTheDocument();
 });

@@ -55,6 +55,29 @@ The authoritative relational model is defined in [`server/prisma/schema.prisma`]
 
 **Form 700 schedules** parsed from XLSX: **A** (investments), **B** (real estate), **C** (income), **D** (gifts), **E** (travel), **A-2** (business positions). See [`docs/fair/form700-ingestion/CONTEXT.md`](docs/fair/form700-ingestion/CONTEXT.md).
 
+### Admin Form 700 imports
+
+Sign in and open `/admin/upload`. Use **Bulk Form 700 import** for county/agency
+NetFile exports containing multiple filers (XLSX, maximum 10 MB). Preview the
+filer/year groups, selected submissions, schedule counts and warnings, acknowledge
+the completeness warnings, then confirm the import. The single-filing uploader
+remains available for cover-page workbooks. PDF/scanned forms are not supported.
+
+Bulk imports match exact names within the source agency's jurisdiction; new
+profiles are flagged for admin review. Only the latest submission per filer/year
+is active. Earlier submissions remain in the archived original workbook and
+version metadata; missing schedules are **not** carried forward from older
+submissions. This is not a reconstruction of amendment history. Review incomplete
+amendments before importing. Existing filer/year filings are skipped, never
+overwritten, so retries do not duplicate successful imports.
+
+Apply Prisma migrations and regenerate the client before using bulk imports:
+`cd server && npx prisma migrate deploy && npx prisma generate`.
+For a trusted server-side import, run `node scripts/import-form700.mjs /absolute/path/workbook.xlsx`
+from `server/` to preview, then repeat with the printed digest as the second
+argument to confirm. Uses the same database/storage configuration as the API;
+never expose this script or privileged credentials to public visitors.
+
 ---
 
 ## Screenshots & prototypes
@@ -204,6 +227,50 @@ npm --prefix client run typecheck
 npm --prefix client run build
 npm --prefix apify run build
 ```
+
+### Legistar automation and historical backfills
+
+Enabled Legistar sources are synchronized automatically by the server's nightly
+cron job. Each source can point at any public Legistar client URL in the form
+`https://webapi.legistar.com/v1/<client-id>`. The importer paginates meeting
+results, ignores hidden/test meetings, and stores normalized agenda text and
+source links for conflict review.
+
+Run a bounded historical import for one jurisdiction with:
+
+```bash
+npm --prefix server run backfill:legistar -- --city "Sonoma County" --start 2024-01-01 --end 2025-12-31
+```
+
+Omit `--city` to backfill every enabled Legistar source. If `--start` is omitted,
+the command imports the previous two years. Re-running the command is safe:
+Legistar item IDs prevent duplicate agenda rows.
+
+### Admin source management and fictional engine check
+
+Open `/admin/sources` while signed in as an administrator. The **Legistar
+cities/counties** and **Scraped cities/counties** tabs list configured sources,
+their URLs, enabled state, last successful collection, stored agenda counts,
+and errors. Each tab has an add-city/county form; scraped sources can use the
+server's default `APIFY_ACTOR_ID`. Select **Sync immediately after saving** to
+start collection, or use **Sync now** later. Legistar syncs accept an optional
+historical date range. Source configuration, collection results, and sync logs
+are persisted in the configured Supabase PostgreSQL database.
+
+The **Fictional conflict-engine check** panel creates explicitly synthetic
+database records: a fictional official, a Form 700 Schedule C income disclosure,
+a matching agenda, and a negative-control agenda. It invokes the real matcher
+twice and verifies one stored INCOME flag, no control flag, and no duplicate.
+This tests database-to-detection behavior, not XLSX parsing or Storage uploads.
+Use **Remove fictional test data** to remove only this fixture. Demo officials
+and agendas have `is_demo = true`; they are excluded from public search, lists,
+detail endpoints, and exports and cannot match ordinary disclosure records.
+
+Before deploying this version, run `npx prisma migrate deploy` from `server/`
+and regenerate the Prisma client. The migration adds demo markers and namespaces
+legacy numeric Legistar item keys by client without changing agenda UUIDs. It
+refuses ambiguous legacy source ownership rather than guessing. New keys use
+`<client-id>:<numeric-item-id>`; original numeric IDs remain in the raw payload.
 
 Coverage reports are written to each package's ignored `coverage/` directory. Coverage is measured across application source files, but no percentage gate is enforced yet; establish thresholds from the recorded baseline instead of selecting an arbitrary target.
 

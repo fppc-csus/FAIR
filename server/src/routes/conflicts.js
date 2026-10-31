@@ -21,6 +21,7 @@ router.get("/", async (_req, res, next) => {
       ? Math.max(1, Math.min(requestedLimit, 100))
       : undefined;
     const conflicts = await prisma.conflict.findMany({
+      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
       include: conflictInclude,
       orderBy: [
         { detectedAt: "desc" },
@@ -149,6 +150,7 @@ router.get("/export", async (req, res, next) => {
     let cursor;
 
     const getBatch = () => prisma.conflict.findMany({
+      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
       include: conflictInclude,
       orderBy: { id: "asc" },
       take: batchSize,
@@ -209,7 +211,7 @@ router.get("/:id", async (req, res, next) => {
 
   try {
     const conflict = await prisma.conflict.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, politician: { isDemo: false }, agendaItem: { isDemo: false } },
       include: {
         politician: true,
         agendaItem: { include: { meeting: { include: { jurisdiction: true } } } },

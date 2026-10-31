@@ -1,4 +1,5 @@
 import RequestError from "../components/RequestError";
+import Form700BulkUpload from "../components/Form700BulkUpload";
 import { safeMessage, TIMEOUT_MESSAGE, UPLOAD_TIMEOUT_MS } from "../lib/request";
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { FileUp, Upload } from "lucide-react";
@@ -131,6 +132,7 @@ export default function AdminUploadPage() {
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <AdminNav title="Form 700 upload" />
         <main className="mx-auto max-w-5xl space-y-6 px-5 py-8">
+          <Form700BulkUpload />
           <section className="surface p-5 sm:p-7">
             <div className="mb-5 flex items-start gap-3">
               <div className="bg-emerald-100 p-2 text-emerald-900"><FileUp size={20} /></div>

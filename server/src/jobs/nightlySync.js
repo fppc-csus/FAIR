@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import { legistarItemKey } from '../ingestion/legistarIdentity.js';
 import { fetchLegistarAgendaItemsForDataSource } from '../ingestion/legistar.js';
 import { detectConflictsForAgendaItems } from '../detection/detectConflicts.js';
 import { detectAgendaConflictsSafely } from '../detection/detectAgendaConflictsSafely.js';
@@ -24,13 +25,30 @@ function parseDate(value) {
 }
 
 function toItemInsertRow({ source, meeting, meetingId, item }) {
+  const title = item.EventItemTitle ?? item.EventItemMatterName ?? item.MatterName ?? item.Title ?? 'Untitled Agenda Item';
+  const description = item.EventItemAgendaNote ?? item.AgendaNote ?? null;
+  const itemText = [
+    title,
+    description,
+    item.EventItemMinutesNote ?? item.MinutesNote,
+    item.EventItemActionText,
+  ].filter((value) => value != null && String(value).trim() !== '').join('\n');
   return {
-    legistar_item_id: String(item.EventItemId ?? item.event_item_id ?? ''),
+    legistar_item_id: legistarItemKey(
+      source.legistar_base_url ?? source.legistarBaseUrl ?? source.baseUrl,
+      item.EventItemId ?? item.event_item_id,
+    ),
+    city_id: source.id ?? null,
     source_type: 'legistar',
     legistar_event_id: String(meetingId),
-    legistar_matter_id: item.MatterId != null ? String(item.MatterId) : null,
+    legistar_matter_id: item.EventItemMatterId != null
+      ? String(item.EventItemMatterId)
+      : item.MatterId != null ? String(item.MatterId) : null,
     city_name: getCityName(source),
-    title: item.EventItemTitle ?? item.MatterName ?? item.Title ?? 'Untitled Agenda Item',
+    title,
+    description,
+    item_text: itemText || null,
+    source_url: meeting.EventInSiteURL ?? meeting.EventAgendaFile ?? null,
     agenda_number: item.EventItemAgendaNumber ?? item.EventItemAgendaSequence ?? null,
     body_name: meeting.EventBodyName ?? meeting.EventBodyId ?? null,
     meeting_date: parseDate(meeting.EventDate ?? meeting.event_date),
@@ -140,7 +158,11 @@ async function insertAgendaItemRows(sql, rows, agendaItemColumns) {
     'legistar_event_id',
     'legistar_matter_id',
     'city_name',
+    'city_id',
     'title',
+    'description',
+    'item_text',
+    'source_url',
     'agenda_number',
     'body_name',
     'meeting_date',
@@ -166,10 +188,12 @@ async function insertAgendaItemRows(sql, rows, agendaItemColumns) {
 }
 
 async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns, options = {}) {
-  const lookbackDays = options.lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
   const cityName = getCityName(dataSource);
 
-  const { meetings, allItems } = await fetchLegistarAgendaItemsForDataSource(dataSource, lookbackDays);
+  const { meetings, allItems } = await fetchLegistarAgendaItemsForDataSource(dataSource, {
+    ...options,
+    lookbackDays: options.lookbackDays ?? DEFAULT_LOOKBACK_DAYS,
+  });
   const rows = buildInsertRows(dataSource, allItems);
   const insertedAgendaItemIds = await insertAgendaItemRows(sql, rows, agendaItemColumns);
   const inserted = insertedAgendaItemIds.length;

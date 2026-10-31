@@ -52,9 +52,10 @@ function asScheduleA2(row) {
   };
 }
 
-async function loadRows(delegate) {
+async function loadRows(delegate, isDemo) {
   if (!delegate?.findMany) return [];
   return delegate.findMany({
+    where: { filing: { politician: { isDemo } } },
     include: { filing: { select: { politicianId: true } } },
   });
 }
@@ -69,17 +70,16 @@ export async function detectConflictsForAgendaItems(ids, deps = {}) {
     where: { id: { in: ids } },
   });
 
-  const [investments, properties, sources, positions] = await Promise.all([
-    loadRows(client.scheduleAInvestment),
-    loadRows(client.scheduleBRealEstate),
-    loadRows(client.scheduleCdeIncome),
-    loadRows(client.scheduleA2BusinessPosition),
-  ]);
+  const groups = new Map();
+  for (const isDemo of new Set(items.map((item) => Boolean(item.isDemo)))) {
+    groups.set(isDemo, await Promise.all([
+      loadRows(client.scheduleAInvestment, isDemo),
+      loadRows(client.scheduleBRealEstate, isDemo),
+      loadRows(client.scheduleCdeIncome, isDemo),
+      loadRows(client.scheduleA2BusinessPosition, isDemo),
+    ]));
+  }
 
-  const scheduleA = (investments || []).map(asScheduleA);
-  const scheduleB = (properties || []).map(asScheduleB);
-  const scheduleCde = (sources || []).map(asScheduleCde);
-  const scheduleA2 = (positions || []).map(asScheduleA2);
 
   const matchDeps = deps.matchNamedEntity
     ? { matchNamedEntity: deps.matchNamedEntity }
@@ -87,6 +87,11 @@ export async function detectConflictsForAgendaItems(ids, deps = {}) {
 
   const candidates = [];
   for (const item of items) {
+    const [investments, properties, sources, positions] = groups.get(Boolean(item.isDemo));
+    const scheduleA = (investments || []).map(asScheduleA);
+    const scheduleB = (properties || []).map(asScheduleB);
+    const scheduleCde = (sources || []).map(asScheduleCde);
+    const scheduleA2 = (positions || []).map(asScheduleA2);
     candidates.push(
       ...(await detectInvestments(scheduleA, item, matchDeps)),
     );

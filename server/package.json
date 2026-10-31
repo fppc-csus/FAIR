@@ -8,6 +8,7 @@
     "start": "prisma generate && node src/index.js",
     "dev": "node --watch src/index.js",
     "sync:legistar": "node src/jobs/runNightlyLegistarSync.js",
+    "backfill:legistar": "node scripts/backfill.js",
     "run:apify-agendas": "node src/jobs/runApifyAgendaScrape.js",
     "test": "vitest run tests/unit",
     "test:watch": "vitest tests/unit",
