@@ -1,0 +1,205 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for app/routes/conflicts.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">app/routes</a> conflicts.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">78.57% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>44/56</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">65.9% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>29/44</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">64% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>16/25</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">91.66% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>22/24</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line medium'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { usePublicData } from "../hooks/usePublicData";
+import RequestError from "../components/RequestError";
+import { useMemo, useState } from "react";
+import { Link } from "react-router";
+import { ChevronLeft, ChevronRight, Filter, RotateCcw } from "lucide-react";
+&nbsp;
+const API_URL = import.meta.env.VITE_API_URL ?? <span class="branch-1 cbranch-no" title="branch not covered" >"http://localhost:3001";</span>
+const PAGE_SIZE = 20;
+const severityOrder: Record&lt;string, number&gt; = { LOW: 1, MEDIUM: 2, HIGH: 3 };
+type Conflict = { id: string; politicianName: string; city: string; conflictType: string; severity: string; agendaItemSummary: string; detectedAt: string };
+type SortKey = "severity" | "detectedAt";
+const title = (value: string) =&gt; value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (character) =&gt; character.toUpperCase());
+const severityClass = (severity: string) =&gt; severity.toUpperCase() === "HIGH" ? "bg-red-50 text-red-800 ring-red-200" : <span class="branch-1 cbranch-no" title="branch not covered" >severity.toUpperCase() === "MEDIUM" ? "bg-amber-50 text-amber-800 ring-amber-200" : "bg-blue-50 text-blue-800 ring-blue-200";</span>
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >meta() {</span> <span class="cstat-no" title="statement not covered" >return [{ title: "Conflict flags | FAIR" }, { name: "description", content: "Browse potential conflicts identified from public Form 700 disclosures and local government agendas." }]; }</span>
+&nbsp;
+export default function ConflictsDashboard() {
+  const { data, loading, error, retry } = usePublicData&lt;Conflict[]&gt;(`${API_URL}/api/conflicts?limit=100`);
+  const conflicts = data ?? [];
+  const [city, setCity] = useState(""); const [type, setType] = useState(""); const [severity, setSeverity] = useState(""); const [sort, setSort] = useState&lt;SortKey&gt;("detectedAt"); const [page, setPage] = useState(1);
+  const cities = useMemo(() =&gt; [...new Set(conflicts.map((item) =&gt; item.city).filter(Boolean))].sort(), [conflicts]);
+  const types = useMemo(() =&gt; [...new Set(conflicts.map((item) =&gt; item.conflictType).filter(Boolean))].sort(), [conflicts]);
+  const filtered = useMemo(() =&gt; conflicts.filter((item) =&gt; (!city || <span class="branch-1 cbranch-no" title="branch not covered" >item.city === city) &amp;&amp; (!</span>type || <span class="branch-3 cbranch-no" title="branch not covered" >item.conflictType === type) &amp;&amp; (!</span>severity || item.severity.toUpperCase() === severity)).sort(<span class="fstat-no" title="function not covered" >(l</span>eft, right) =&gt; <span class="cstat-no" title="statement not covered" >sort === "severity" ? (severityOrder[right.severity.toUpperCase()] ?? 0) - (severityOrder[left.severity.toUpperCase()] ?? 0) : new Date(right.detectedAt).getTime() - new Date(left.detectedAt).getTime())</span>, [conflicts, city, type, severity, sort]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)); const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE); const hasFilters = Boolean(city || type || severity);
+  function updateFilter(setter: (value: string) =&gt; void, value: string) { setter(value); setPage(1); }
+  function clearFilters() { setCity(""); setType(""); setSeverity(""); setPage(1); }
+&nbsp;
+  const exportParams = new URLSearchParams();
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (city) <span class="cstat-no" title="statement not covered" >exportParams.set("city", city);</span>
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (type) <span class="cstat-no" title="statement not covered" >exportParams.append("types", type);</span>
+  if (severity) exportParams.append("severities", severity);
+  const exportUrl = `${API_URL}/api/conflicts/export?${exportParams.toString()}`;
+&nbsp;
+  return &lt;main className="page-shell"&gt;&lt;header className="max-w-3xl"&gt;&lt;p className="eyebrow"&gt;Public review&lt;/p&gt;&lt;h1 className="mt-3 text-4xl font-bold tracking-tight"&gt;Conflict flags&lt;/h1&gt;&lt;p className="mt-4 text-lg leading-8 text-slate-600"&gt;Explore potential overlaps between reported financial interests and local government agenda items. A flag supports review; it does not establish a legal conflict.&lt;/p&gt;&lt;/header&gt;
+    &lt;section className="surface mt-8 p-5" aria-labelledby="filter-heading"&gt;&lt;div className="flex flex-wrap items-center justify-between gap-3"&gt;&lt;div className="flex items-center gap-2"&gt;&lt;Filter size={18} className="text-blue-700" /&gt;&lt;h2 id="filter-heading" className="font-semibold"&gt;Filter records&lt;/h2&gt;&lt;/div&gt;{hasFilters &amp;&amp; &lt;button type="button" onClick={clearFilters} className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"&gt;&lt;RotateCcw size={15} /&gt; Clear filters&lt;/button&gt;}&lt;/div&gt;&lt;div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4"&gt;&lt;label className="text-sm font-semibold text-slate-700"&gt;City&lt;select value={city} onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >updateFilter(setCity, event.target.value)} c</span>lassName="field mt-2"&gt;&lt;option value=""&gt;All cities&lt;/option&gt;{cities.map((value) =&gt; &lt;option key={value}&gt;{value}&lt;/option&gt;)}&lt;/select&gt;&lt;/label&gt;&lt;label className="text-sm font-semibold text-slate-700"&gt;Flag type&lt;select value={type} onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >updateFilter(setType, event.target.value)} c</span>lassName="field mt-2"&gt;&lt;option value=""&gt;All flag types&lt;/option&gt;{types.map((value) =&gt; &lt;option key={value} value={value}&gt;{title(value)}&lt;/option&gt;)}&lt;/select&gt;&lt;/label&gt;&lt;label className="text-sm font-semibold text-slate-700"&gt;Severity&lt;select value={severity} onChange={(event) =&gt; updateFilter(setSeverity, event.target.value)} className="field mt-2"&gt;&lt;option value=""&gt;All severities&lt;/option&gt;&lt;option&gt;HIGH&lt;/option&gt;&lt;option&gt;MEDIUM&lt;/option&gt;&lt;option&gt;LOW&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label className="text-sm font-semibold text-slate-700"&gt;Sort by&lt;select value={sort} onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; { <span class="cstat-no" title="statement not covered" >setSort(event.target.value as SortKey); <span class="cstat-no" title="statement not covered" >s</span>etPage(1); }</span>} className="field mt-2"&gt;&lt;option value="detectedAt"&gt;Most recent&lt;/option&gt;&lt;option value="severity"&gt;Highest severity&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;&lt;/section&gt;
+    {error &amp;&amp; &lt;RequestError message={error} onRetry={retry} /&gt;}{loading &amp;&amp; &lt;div className="surface mt-6 p-8 text-slate-600" role="status"&gt;Loading conflict flags…&lt;/div&gt;}
+    {!loading &amp;&amp; !error &amp;&amp; &lt;section className="mt-6" aria-label="Conflict flag results"&gt;&lt;div className="mb-4 flex items-center justify-between gap-4"&gt;&lt;p className="text-sm text-slate-600"&gt;&lt;strong className="text-slate-950"&gt;{filtered.length}&lt;/strong&gt; record{filtered.length === 1 ? "" : "s"}&lt;/p&gt;&lt;p className="text-sm text-slate-500"&gt;Page {page} of {pageCount}&lt;/p&gt;
+&lt;a href={exportUrl} className="button-primary"&gt;Download CSV&lt;/a&gt;&lt;/div&gt;{visible.length === 0 ? &lt;div className="surface p-12 text-center"&gt;&lt;h2 className="text-lg font-semibold"&gt;No records match these filters&lt;/h2&gt;&lt;p className="mt-2 text-sm text-slate-600"&gt;Clear a filter to broaden the results.&lt;/p&gt;&lt;/div&gt; : &lt;div className="space-y-3"&gt;{visible.map((conflict) =&gt; &lt;Link key={conflict.id} to={`/conflicts/${conflict.id}`} className="surface group grid gap-4 p-5 transition hover:border-blue-300 md:grid-cols-[1fr_auto] md:items-center"&gt;&lt;div&gt;&lt;div className="flex flex-wrap items-center gap-2"&gt;&lt;span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${severityClass(conflict.severity)}`}&gt;{conflict.severity}&lt;/span&gt;&lt;span className="text-xs font-semibold uppercase tracking-wide text-slate-500"&gt;{title(conflict.conflictType)}&lt;/span&gt;&lt;/div&gt;&lt;h2 className="mt-3 text-lg font-semibold group-hover:text-blue-800"&gt;{conflict.politicianName}&lt;/h2&gt;&lt;p className="mt-1 text-sm text-slate-500"&gt;{conflict.city} · Detected {new Date(conflict.detectedAt).toLocaleDateString()}&lt;/p&gt;&lt;p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600"&gt;{conflict.agendaItemSummary}&lt;/p&gt;&lt;/div&gt;&lt;span className="text-sm font-semibold text-blue-700"&gt;Review details →&lt;/span&gt;&lt;/Link&gt;)}&lt;/div&gt;}
+      {pageCount &gt; 1 &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;nav aria-label="Results pagination" className="mt-6 flex items-center justify-end gap-2"&gt;&lt;button className="button-secondary px-3" disabled={page === 1} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etPage(<span class="fstat-no" title="function not covered" >(v</span>alue) =&gt; <span class="cstat-no" title="statement not covered" >Math.max(1, value - 1))</span>}&gt;&lt;</span>ChevronLeft size={17} /&gt; Previous&lt;/button&gt;&lt;button className="button-secondary px-3" disabled={page === pageCount} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etPage(<span class="fstat-no" title="function not covered" >(v</span>alue) =&gt; <span class="cstat-no" title="statement not covered" >Math.min(pageCount, value + 1))</span>}&gt;N</span>ext &lt;ChevronRight size={17} /&gt;&lt;/button&gt;&lt;/nav&gt;}&lt;</span>/section&gt;}
+  &lt;/main&gt;;
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-10-27T00:48:41.680Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

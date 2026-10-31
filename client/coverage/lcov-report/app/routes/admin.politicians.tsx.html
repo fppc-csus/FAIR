@@ -1,0 +1,421 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for app/routes/admin.politicians.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">app/routes</a> admin.politicians.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">50.45% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>55/109</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">39.43% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>28/71</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">52% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>13/25</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">55.71% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>39/70</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line medium'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">40x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Check, Merge, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { AdminGuard, AdminNav } from "../adminComponents";
+import { adminFetch } from "../adminAuth";
+import RequestError from "../components/RequestError";
+&nbsp;
+type Politician = { id: string; slug: string; name: string; officeTitle: string; district: string; city: string; needsReview: boolean; filingCount: number };
+type PoliticianForm = { name: string; district: string; city: string; officeTitle: string };
+const emptyForm: PoliticianForm = { name: "", district: "", city: "", officeTitle: "" };
+&nbsp;
+async function <span class="fstat-no" title="function not covered" >responseError(r</span>esponse: Response) {
+  const payload = <span class="cstat-no" title="statement not covered" >await response.json().catch(<span class="fstat-no" title="function not covered" >() =&gt; (<span class="cstat-no" title="statement not covered" >{</span>}))</span>;</span>
+<span class="cstat-no" title="statement not covered" >  return payload.error ?? "The request could not be completed.";</span>
+}
+&nbsp;
+export default function AdminPoliticiansPage() {
+  const [politicians, setPoliticians] = useState&lt;Politician[]&gt;([]);
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState&lt;string | null&gt;(null);
+  const [deleting, setDeleting] = useState&lt;Politician | null&gt;(null);
+  const [merging, setMerging] = useState&lt;Politician | null&gt;(null);
+  const [mergeTargetId, setMergeTargetId] = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [actionId, setActionId] = useState&lt;string | null&gt;(null);
+  const [error, setError] = useState&lt;string | null&gt;(null);
+  const [notice, setNotice] = useState&lt;string | null&gt;(null);
+&nbsp;
+  async function loadPoliticians() {
+    setLoading(true);
+    try {
+      const response = await adminFetch("/api/admin/politicians");
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.ok) <span class="cstat-no" title="statement not covered" >throw new Error(await responseError(response));</span>
+      setPoliticians((await response.json()).data);
+    } catch (loadError) {
+<span class="cstat-no" title="statement not covered" >      setError(loadError instanceof Error ? loadError.message : "Could not load politician list.");</span>
+    } finally {
+      setLoading(false);
+    }
+  }
+&nbsp;
+  useEffect(() =&gt; { void loadPoliticians(); }, []);
+&nbsp;
+  function <span class="fstat-no" title="function not covered" >startEdit(p</span>olitician: Politician) {
+<span class="cstat-no" title="statement not covered" >    setEditingId(politician.id);</span>
+<span class="cstat-no" title="statement not covered" >    setForm({ name: politician.name, district: politician.district, city: politician.city, officeTitle: politician.officeTitle });</span>
+<span class="cstat-no" title="statement not covered" >    setNotice(null);</span>
+<span class="cstat-no" title="statement not covered" >    setError(null);</span>
+<span class="cstat-no" title="statement not covered" >    window.scrollTo({ top: 0, behavior: "smooth" });</span>
+  }
+&nbsp;
+  function <span class="fstat-no" title="function not covered" >resetForm() {</span> <span class="cstat-no" title="statement not covered" >setEditingId(null); <span class="cstat-no" title="statement not covered" >s</span>etForm(emptyForm); }</span>
+&nbsp;
+  async function <span class="fstat-no" title="function not covered" >savePolitician(e</span>vent: FormEvent&lt;HTMLFormElement&gt;) {
+<span class="cstat-no" title="statement not covered" >    event.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >    if (!form.name.trim() || !form.district.trim() || !form.city.trim()) { <span class="cstat-no" title="statement not covered" >setError("Name, district, and city are required."); <span class="cstat-no" title="statement not covered" >r</span>eturn; }</span></span>
+<span class="cstat-no" title="statement not covered" >    setSaving(true); <span class="cstat-no" title="statement not covered" >s</span>etError(null); <span class="cstat-no" title="statement not covered" >s</span>etNotice(null);</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+      const response = <span class="cstat-no" title="statement not covered" >await adminFetch(`/api/admin/politicians${editingId ? `/${encodeURIComponent(editingId)}` : ""}`, { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });</span>
+<span class="cstat-no" title="statement not covered" >      if (!response.ok) <span class="cstat-no" title="statement not covered" >throw new Error(await responseError(response));</span></span>
+<span class="cstat-no" title="statement not covered" >      setNotice(editingId ? "Politician profile updated." : "Politician added to the master list.");</span>
+<span class="cstat-no" title="statement not covered" >      resetForm(); <span class="cstat-no" title="statement not covered" >a</span>wait loadPoliticians();</span>
+    } catch (saveError) { <span class="cstat-no" title="statement not covered" >setError(saveError instanceof Error ? saveError.message : "Could not save politician."); }</span>
+    finally { <span class="cstat-no" title="statement not covered" >setSaving(false); }</span>
+  }
+&nbsp;
+  async function approvePolitician(politician: Politician) {
+    setActionId(politician.id); setError(null); setNotice(null);
+    try {
+      const response = await adminFetch(`/api/admin/politicians/${encodeURIComponent(politician.id)}/approve`, { method: "POST" });
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.ok) <span class="cstat-no" title="statement not covered" >throw new Error(await responseError(response));</span>
+      setNotice(`${politician.name} was approved and removed from the review queue.`); await loadPoliticians();
+    } catch (approveError) { <span class="cstat-no" title="statement not covered" >setError(approveError instanceof Error ? approveError.message : "Could not approve politician."); }</span>
+    finally { setActionId(null); }
+  }
+&nbsp;
+  async function reconcilePolitician() {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!merging || !mergeTargetId) <span class="cstat-no" title="statement not covered" >return;</span>
+    setActionId(merging.id); setError(null); setNotice(null);
+    try {
+      const response = await adminFetch(`/api/admin/politicians/${encodeURIComponent(merging.id)}/reconcile`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetPoliticianId: mergeTargetId }) });
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.ok) <span class="cstat-no" title="statement not covered" >throw new Error(await responseError(response));</span>
+      const payload = await response.json(); setNotice(payload.message ?? <span class="branch-1 cbranch-no" title="branch not covered" >`${merging.name} was reconciled.`)</span>;
+      setMerging(null); setMergeTargetId(""); await loadPoliticians();
+    } catch (mergeError) { <span class="cstat-no" title="statement not covered" >setError(mergeError instanceof Error ? mergeError.message : "Could not reconcile politicians."); }</span>
+    finally { setActionId(null); }
+  }
+&nbsp;
+  async function <span class="fstat-no" title="function not covered" >deletePolitician() {</span>
+<span class="cstat-no" title="statement not covered" >    if (!deleting) <span class="cstat-no" title="statement not covered" >return;</span></span>
+<span class="cstat-no" title="statement not covered" >    setActionId(deleting.id); <span class="cstat-no" title="statement not covered" >s</span>etError(null);</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+      const response = <span class="cstat-no" title="statement not covered" >await adminFetch(`/api/admin/politicians/${encodeURIComponent(deleting.id)}`, { method: "DELETE" });</span>
+<span class="cstat-no" title="statement not covered" >      if (!response.ok) <span class="cstat-no" title="statement not covered" >throw new Error(await responseError(response));</span></span>
+<span class="cstat-no" title="statement not covered" >      setNotice(`${deleting.name} was deleted.`); <span class="cstat-no" title="statement not covered" >s</span>etDeleting(null); <span class="cstat-no" title="statement not covered" >a</span>wait loadPoliticians();</span>
+    } catch (deleteError) { <span class="cstat-no" title="statement not covered" >setError(deleteError instanceof Error ? deleteError.message : "Could not delete politician."); }</span>
+    finally { <span class="cstat-no" title="statement not covered" >setActionId(null); }</span>
+  }
+&nbsp;
+  const visiblePoliticians = politicians.filter((politician) =&gt; `${politician.name} ${politician.city} ${politician.district}`.toLowerCase().includes(search.toLowerCase()));
+  return &lt;AdminGuard&gt;&lt;div className="min-h-screen bg-slate-50 text-slate-900"&gt;&lt;AdminNav title="Politician master list" /&gt;&lt;main className="mx-auto max-w-7xl space-y-6 px-5 py-8"&gt;
+    &lt;section className="surface p-5 sm:p-6"&gt;&lt;div className="mb-4 flex items-center justify-between gap-3"&gt;&lt;div&gt;&lt;h2 className="text-lg font-semibold"&gt;{editingId ? <span class="branch-0 cbranch-no" title="branch not covered" >"Edit politician" : "</span>Add politician"}&lt;/h2&gt;&lt;p className="mt-1 text-sm text-slate-600"&gt;Name, district, and city are required.&lt;/p&gt;&lt;/div&gt;{editingId &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;button className="inline-flex items-center gap-1 px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" type="button" onClick={resetForm}&gt;&lt;X size={16} /&gt; Cancel edit&lt;/button&gt;}&lt;</span>/div&gt;
+      &lt;form onSubmit={savePolitician} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"&gt;{([ ["name", "Name"], ["district", "District"], ["city", "City"], ["officeTitle", "Office title"] ] as const).map(([field, label]) =&gt; &lt;label key={field} className="text-sm font-medium text-slate-700"&gt;{label}{field !== "officeTitle" &amp;&amp; &lt;span className="text-red-700"&gt; *&lt;/span&gt;}&lt;input required={field !== "officeTitle"} value={form[field]} onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setForm({ ...form, [field]: event.target.value })} c</span>lassName="mt-1 w-full border border-slate-300 px-3 py-2 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100" /&gt;&lt;/label&gt;)}&lt;div className="flex items-end"&gt;&lt;button disabled={saving} className="inline-flex items-center gap-2 bg-emerald-800 px-4 py-2.5 font-semibold text-white hover:bg-emerald-900 disabled:opacity-50" type="submit"&gt;&lt;Plus size={17} /&gt;{saving ? <span class="branch-0 cbranch-no" title="branch not covered" >"Saving..." : e</span>ditingId ? <span class="branch-0 cbranch-no" title="branch not covered" >"Save changes" : "</span>Add politician"}&lt;/button&gt;&lt;/div&gt;&lt;/form&gt;
+      {error &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;RequestError message={error} onRetry={loadPoliticians} /&gt;}{n</span>otice &amp;&amp; &lt;p className="mt-4 border-l-4 border-emerald-700 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900" role="status"&gt;{notice}&lt;/p&gt;}
+      {deleting &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;div className="mt-4 flex flex-wrap items-center gap-3 border border-amber-300 bg-amber-50 p-3 text-sm"&gt;&lt;span&gt;Delete {deleting.name}? Profiles with linked records must be reconciled instead.&lt;/span&gt;&lt;button disabled={actionId === deleting.id} type="button" onClick={deletePolitician} className="bg-red-800 px-3 py-1.5 font-medium text-white disabled:opacity-50"&gt;Confirm delete&lt;/button&gt;&lt;button type="button" onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etDeleting(null)} c</span>lassName="px-3 py-1.5 text-slate-700 hover:bg-white"&gt;Cancel&lt;/button&gt;&lt;/div&gt;}</span>
+      {merging &amp;&amp; &lt;div className="mt-4 border border-blue-300 bg-blue-50 p-4 text-sm"&gt;&lt;p className="font-medium"&gt;Reconcile duplicate: {merging.name}&lt;/p&gt;&lt;p className="mt-1 text-slate-700"&gt;Linked filings, votes, conflicts, and review history will move to the selected surviving profile.&lt;/p&gt;&lt;div className="mt-3 flex flex-wrap items-center gap-2"&gt;&lt;label htmlFor="merge-target" className="font-medium"&gt;Surviving profile&lt;/label&gt;&lt;select id="merge-target" value={mergeTargetId} onChange={(event) =&gt; setMergeTargetId(event.target.value)} className="field max-w-sm"&gt;&lt;option value=""&gt;Choose a profile&lt;/option&gt;{politicians.filter((candidate) =&gt; candidate.id !== merging.id).map((candidate) =&gt; &lt;option key={candidate.id} value={candidate.id}&gt;{candidate.name} — {candidate.city}, {candidate.district}&lt;/option&gt;)}&lt;/select&gt;&lt;button disabled={!mergeTargetId || actionId === merging.id} type="button" onClick={reconcilePolitician} className="bg-blue-800 px-3 py-2 font-medium text-white disabled:opacity-50"&gt;Confirm reconciliation&lt;/button&gt;&lt;button type="button" onClick={<span class="fstat-no" title="function not covered" >() =&gt; {</span> <span class="cstat-no" title="statement not covered" >setMerging(null); <span class="cstat-no" title="statement not covered" >s</span>etMergeTargetId(""); }</span>} className="px-3 py-2 text-slate-700 hover:bg-white"&gt;Cancel&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;}
+    &lt;/section&gt;
+    &lt;section className="surface overflow-hidden"&gt;&lt;div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4"&gt;&lt;div&gt;&lt;h2 className="font-semibold"&gt;Politicians&lt;/h2&gt;&lt;p className="text-sm text-slate-600"&gt;{visiblePoliticians.length} of {politicians.length} records&lt;/p&gt;&lt;/div&gt;&lt;input type="search" aria-label="Search politicians" placeholder="Search name, city, district" value={search} onChange={<span class="fstat-no" title="function not covered" >(e</span>vent) =&gt; <span class="cstat-no" title="statement not covered" >setSearch(event.target.value)} c</span>lassName="w-full border border-slate-300 px-3 py-2 sm:max-w-xs" /&gt;&lt;/div&gt;
+      {loading ? &lt;p className="p-6 text-sm text-slate-600"&gt;Loading politicians...&lt;/p&gt; : &lt;div className="overflow-x-auto"&gt;&lt;table className="w-full min-w-[860px] text-left text-sm"&gt;&lt;thead className="bg-slate-50 text-xs uppercase text-slate-600"&gt;&lt;tr&gt;&lt;th className="px-4 py-3"&gt;Politician&lt;/th&gt;&lt;th className="px-4 py-3"&gt;District&lt;/th&gt;&lt;th className="px-4 py-3"&gt;City&lt;/th&gt;&lt;th className="px-4 py-3"&gt;Filings&lt;/th&gt;&lt;th className="px-4 py-3"&gt;Review&lt;/th&gt;&lt;th className="px-4 py-3 text-right"&gt;Actions&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;{visiblePoliticians.map((politician) =&gt; &lt;tr key={politician.id} className="border-t border-slate-200"&gt;&lt;td className="px-4 py-3"&gt;&lt;a className="font-medium text-emerald-900 underline" href={`/politicians/${encodeURIComponent(politician.slug)}`}&gt;{politician.name}&lt;/a&gt;&lt;div className="text-xs text-slate-500"&gt;{politician.officeTitle}&lt;/div&gt;&lt;/td&gt;&lt;td className="px-4 py-3"&gt;{politician.district}&lt;/td&gt;&lt;td className="px-4 py-3"&gt;{politician.city}&lt;/td&gt;&lt;td className="px-4 py-3 tabular-nums"&gt;{politician.filingCount}&lt;/td&gt;&lt;td className="px-4 py-3"&gt;{politician.needsReview ? &lt;span className="font-medium text-amber-800"&gt;Needs review&lt;/span&gt; : &lt;span className="text-slate-500"&gt;Ready&lt;/span&gt;}&lt;/td&gt;&lt;td className="px-4 py-3"&gt;&lt;div className="flex justify-end gap-1"&gt;{politician.needsReview &amp;&amp; &lt;button title="Approve politician" aria-label={`Approve ${politician.name}`} disabled={actionId === politician.id} onClick={() =&gt; approvePolitician(politician)} className="p-2 text-emerald-800 hover:bg-emerald-50 disabled:opacity-50" type="button"&gt;&lt;Check size={17} /&gt;&lt;/button&gt;}&lt;button title="Reconcile duplicate" aria-label={`Reconcile ${politician.name}`} onClick={() =&gt; { setMerging(politician); setMergeTargetId(""); setError(null); }} className="p-2 text-blue-800 hover:bg-blue-50" type="button"&gt;&lt;Merge size={17} /&gt;&lt;/button&gt;&lt;button title="Edit politician" aria-label={`Edit ${politician.name}`} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>tartEdit(politician)} c</span>lassName="p-2 text-slate-700 hover:bg-slate-100" type="button"&gt;&lt;Pencil size={17} /&gt;&lt;/button&gt;&lt;button title="Delete politician" aria-label={`Delete ${politician.name}`} onClick={<span class="fstat-no" title="function not covered" >() =&gt; {</span> <span class="cstat-no" title="statement not covered" >setDeleting(politician); <span class="cstat-no" title="statement not covered" >s</span>etError(null); }</span>} className="p-2 text-red-800 hover:bg-red-50" type="button"&gt;&lt;Trash2 size={17} /&gt;&lt;/button&gt;&lt;/div&gt;&lt;/td&gt;&lt;/tr&gt;)}{!visiblePoliticians.length &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;tr&gt;&lt;td colSpan={6} className="px-4 py-8 text-center text-slate-500"&gt;{politicians.length ? "No politicians match this search." : "No politicians have been added."}&lt;/td&gt;&lt;/tr&gt;}&lt;</span>/tbody&gt;&lt;/table&gt;&lt;/div&gt;}
+    &lt;/section&gt;
+  &lt;/main&gt;&lt;/div&gt;&lt;/AdminGuard&gt;;
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-10-27T00:48:41.680Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

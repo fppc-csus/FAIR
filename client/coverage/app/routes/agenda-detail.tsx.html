@@ -1,0 +1,145 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for app/routes/agenda-detail.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">app/routes</a> agenda-detail.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">64.28% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>9/14</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">44.82% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>13/29</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">20% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>1/5</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">70% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>7/10</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line medium'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { usePublicData } from "../hooks/usePublicData";
+import RequestError from "../components/RequestError";
+import { Link, useParams } from "react-router";
+import { ArrowLeft, CalendarDays, Flag, Landmark, MapPin } from "lucide-react";
+&nbsp;
+const API_URL = import.meta.env.VITE_API_URL ?? <span class="branch-1 cbranch-no" title="branch not covered" >"http://localhost:3001";</span>
+type Conflict = { id: string; conflictType: string; severity: string; entityName: string | null; ruleReference: string; politician: { id: string; fullName: string; district: string | null } };
+type AgendaItem = { id: string; title: string | null; description: string | null; itemText: string | null; itemNumber: string | null; meetingDate: string | null; cityName: string | null; sourceType: string; bodyName: string | null; conflicts: Conflict[] };
+const title = <span class="fstat-no" title="function not covered" >(v</span>alue: string) =&gt; <span class="cstat-no" title="statement not covered" >value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, <span class="fstat-no" title="function not covered" >(c</span>haracter) =&gt; <span class="cstat-no" title="statement not covered" >character.toUpperCase())</span>;</span>
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >meta() {</span> <span class="cstat-no" title="statement not covered" >return [{ title: "Agenda item | FAIR" }]; }</span>
+export default function AgendaDetail() {
+  const { id } = useParams();
+  const { data, loading, error, retry } = usePublicData&lt;AgendaItem&gt;(`${API_URL}/api/agenda/${encodeURIComponent(id ?? "")}`);
+  const item = data;
+  if (loading) return &lt;main className="page-shell"&gt;&lt;div className="surface p-8 text-slate-600" role="status"&gt;Loading agenda item…&lt;/div&gt;&lt;/main&gt;;
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (error || <span class="branch-1 cbranch-no" title="branch not covered" >!item) r</span>eturn &lt;main className="page-shell"&gt;&lt;RequestError message={error || <span class="branch-1 cbranch-no" title="branch not covered" >"Record not found."} o</span>nRetry={retry} /&gt;&lt;/main&gt;;
+<span class="cstat-no" title="statement not covered" >  return &lt;main className="page-shell"&gt;&lt;Link to="/conflicts" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700"&gt;&lt;ArrowLeft size={16} /&gt; Conflict flags&lt;/Link&gt;&lt;header className="mt-7 max-w-4xl"&gt;&lt;p className="eyebrow"&gt;Agenda item {item.itemNumber ? `· ${item.itemNumber}` : ""}&lt;/p&gt;&lt;h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl"&gt;{item.title ?? <span class="branch-1 cbranch-no" title="branch not covered" >"Untitled agenda item"}&lt;</span>/h1&gt;&lt;div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm text-slate-600"&gt;{item.meetingDate &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;span className="inline-flex items-center gap-2"&gt;&lt;CalendarDays size={16} /&gt;{new Date(item.meetingDate).toLocaleDateString()}&lt;/span&gt;}{i</span>tem.cityName &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;span className="inline-flex items-center gap-2"&gt;&lt;MapPin size={16} /&gt;{item.cityName}&lt;/span&gt;}{i</span>tem.bodyName &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;span className="inline-flex items-center gap-2"&gt;&lt;Landmark size={16} /&gt;{item.bodyName}&lt;/span&gt;}&lt;</span>/div&gt;&lt;/header&gt;</span>
+    &lt;div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.6fr]"&gt;&lt;section className="surface p-6 sm:p-8"&gt;&lt;h2 className="text-xl font-bold"&gt;Agenda text&lt;/h2&gt;&lt;p className="mt-5 whitespace-pre-wrap leading-8 text-slate-700"&gt;{item.itemText ?? <span class="branch-1 cbranch-no" title="branch not covered" >item.description ?? <span class="branch-2 cbranch-no" title="branch not covered" >"</span>No agenda text is available."}&lt;</span>/p&gt;&lt;/section&gt;&lt;aside&gt;&lt;div className="flex items-center gap-3"&gt;&lt;Flag className="text-blue-700" size={20} /&gt;&lt;h2 className="text-xl font-bold"&gt;Linked flags&lt;/h2&gt;&lt;/div&gt;&lt;p className="mt-2 text-sm leading-6 text-slate-600"&gt;Potential overlaps associated with this item.&lt;/p&gt;&lt;div className="mt-4 space-y-3"&gt;{item.conflicts.length === 0 ? &lt;div className="surface p-5 text-sm text-slate-600"&gt;No conflict flags are linked to this item.&lt;/div&gt; : item.conflicts.map(<span class="fstat-no" title="function not covered" >(c</span>onflict) =&gt; <span class="cstat-no" title="statement not covered" >&lt;Link key={conflict.id} to={`/conflicts/${conflict.id}`} className="surface group block p-5 transition hover:border-blue-300"&gt;&lt;div className="flex items-center justify-between gap-3"&gt;&lt;span className="text-xs font-bold uppercase tracking-wide text-slate-500"&gt;{title(conflict.conflictType)}&lt;/span&gt;&lt;span className="text-xs font-bold text-slate-700"&gt;{conflict.severity}&lt;/span&gt;&lt;/div&gt;&lt;h3 className="mt-3 font-semibold group-hover:text-blue-800"&gt;{conflict.politician.fullName}&lt;/h3&gt;{conflict.entityName &amp;&amp; &lt;p className="mt-2 text-sm text-slate-600"&gt;Matched entity: {conflict.entityName}&lt;/p&gt;}&lt;/Link&gt;)</span>}&lt;/div&gt;&lt;/aside&gt;&lt;/div&gt;
+  &lt;/main&gt;;
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-10-27T00:48:41.654Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    
