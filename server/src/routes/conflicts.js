@@ -7,6 +7,7 @@ import {
   conflictInclude,
   dashboardRow,
   matchesFilters,
+  parseExportFilters,
   csvHeaders,
   csvLine,
   conflictCsvLine,
@@ -17,45 +18,34 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 router.get("/", async (req, res, next) => {
   try {
-    const requestedLimit = Number.parseInt(String(_req.query.limit ?? ""), 10);
-    const take = Number.isFinite(requestedLimit)
-      ? Math.max(1, Math.min(requestedLimit, 100))
-      : undefined;
-    const conflicts = await prisma.conflict.findMany({
-      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
-      include: conflictInclude,
-      orderBy: [
-        { detectedAt: "desc" },
-        { id: "asc" },
-      ],
-      ...(take ? { take } : {}),
-    });
+    const filters = parseConflictQuery(req.query);
+    const { from, order } = conflictSql(filters);
+    const result = await prisma.$transaction(async tx => {
+      const counts = await tx.$queryRaw(Prisma.sql`SELECT COUNT(*)::int AS total ${from}`);
+      const ids = await tx.$queryRaw(Prisma.sql`SELECT c.id ${from} ORDER BY ${order} LIMIT ${filters.pageSize} OFFSET ${(filters.page - 1) * filters.pageSize}`);
+      const conflicts = ids.length ? await tx.conflict.findMany({
+        where: { id: { in: ids.map(row => row.id) } },
+        include: conflictInclude,
+      }) : [];
+      const byId = new Map(conflicts.map(row => [row.id, row]));
+      return {
+        data: ids.map(row => dashboardRow(byId.get(row.id))),
+        total: Number(counts[0].total),
+        page: filters.page,
+        pageSize: filters.pageSize,
+      };
+    }, { isolationLevel: 'RepeatableRead' });
+    return res.json(result);
+  } catch (error) { return next(error); }
+});
 
 // Global city choices must not be derived from just one results page.
 router.get('/filters', async (_req, res, next) => {
   try {
-    const cities = await prisma.$queryRaw(Prisma.sql`SELECT DISTINCT COALESCE(a.city_name, j.name, 'Unknown') AS city FROM conflicts c JOIN agenda_items a ON a.id = c.agenda_item_id JOIN politicians p ON p.id = c.politician_id LEFT JOIN jurisdictions j ON j.id = p.jurisdiction_id ORDER BY city`);
+    const { from } = conflictSql(parseConflictQuery({}));
+    const cities = await prisma.$queryRaw(Prisma.sql`SELECT DISTINCT COALESCE(a.city_name, j.name, 'Unknown') AS city ${from} ORDER BY city`);
     res.json({ data: cities.map(row => row.city) });
   } catch (error) { next(error); }
-});
-
-// Backwards-compatible endpoint for clients that load filter options separately.
-// Keep this before `/:id`, otherwise Express treats "filters" as a conflict ID.
-router.get('/filters', async (_req, res, next) => {
-  try {
-    const conflicts = await prisma.conflict.findMany({
-      where: { politician: { isDemo: false }, agendaItem: { isDemo: false } },
-      include: conflictInclude,
-      orderBy: [{ detectedAt: 'desc' }, { id: 'asc' }],
-    });
-    const rows = conflicts.map(dashboardRow);
-    const unique = values => [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
-    return res.status(200).json({ data: {
-      cities: unique(rows.map(row => row.city)),
-      conflictTypes: unique(rows.map(row => row.conflictType)),
-      severities: unique(rows.map(row => row.severity)),
-    } });
-  } catch (error) { return next(error); }
 });
 
 const STREET_ABBREVIATIONS = [

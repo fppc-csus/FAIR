@@ -35,7 +35,7 @@ export function parseConflictQuery(query) {
 
 // All user values are SQL parameters. Only fixed sort expressions are SQL text.
 export function conflictSql(filters) {
-  const terms = [Prisma.sql`TRUE`];
+  const terms = [Prisma.sql`p.is_demo = false AND a.is_demo = false`];
   if (filters.city) terms.push(Prisma.sql`COALESCE(a.city_name, j.name, 'Unknown') = ${filters.city}`);
   if (filters.types.length) terms.push(Prisma.sql`c.conflict_type IN (${Prisma.join(filters.types)})`);
   if (filters.severities.length) terms.push(Prisma.sql`UPPER(c.severity) IN (${Prisma.join(filters.severities)})`);

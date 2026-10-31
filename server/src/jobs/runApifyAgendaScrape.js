@@ -36,30 +36,7 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-export async function downloadPdf(
-  pdfUrl,
-  { fetchImpl = fetch, timeoutMs = PDF_DOWNLOAD_TIMEOUT_MS, maxBytes = MAX_PDF_BYTES } = {},
-) {
-  const response = await fetchImpl(pdfUrl, {
-    headers: { Accept: 'application/pdf' },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-
-  if (!response.ok) {
-    throw new Error(`PDF download failed (${response.status} ${response.statusText})`);
-  }
-
-  const contentLength = Number(response.headers?.get?.('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
-    throw new Error(`PDF exceeds ${Math.floor(maxBytes / 1024 / 1024)} MB limit`);
-  }
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length > maxBytes) {
-    throw new Error(`PDF exceeds ${Math.floor(maxBytes / 1024 / 1024)} MB limit`);
-  }
-  return buffer;
-}
+export { downloadPdf };
 
 async function findOrCreateDataSource(prismaClient, cityName) {
   const existing = await prismaClient.dataSource.findFirst({
