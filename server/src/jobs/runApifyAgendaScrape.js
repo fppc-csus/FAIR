@@ -84,6 +84,12 @@ async function performApifyAgendaScrape({
         documentsFound: items.length,
         pdfsFetched: 0,
         documentsSkipped: items.length,
+        documentsWithText: 0,
+        documentsImageOnly: 0,
+        documentsUnsupported: 0,
+        documentsDownloadFailed: 0,
+        documentsOversized: 0,
+        documentsParseError: 0,
         itemsInserted: 0,
         itemsSkipped: 0,
         conflictCandidates: 0,
@@ -92,6 +98,7 @@ async function performApifyAgendaScrape({
         detectionFailures: 0,
         detectionErrors: [],
         errors: [{ message }],
+        sampledDocuments: [],
       });
     }
   }
@@ -101,6 +108,12 @@ async function performApifyAgendaScrape({
     documentsFound: result.documentsFound + summary.documentsFound,
     pdfsFetched: result.pdfsFetched + summary.pdfsFetched,
     documentsSkipped: result.documentsSkipped + summary.documentsSkipped,
+    documentsWithText: result.documentsWithText + summary.documentsWithText,
+    documentsImageOnly: result.documentsImageOnly + summary.documentsImageOnly,
+    documentsUnsupported: result.documentsUnsupported + summary.documentsUnsupported,
+    documentsDownloadFailed: result.documentsDownloadFailed + summary.documentsDownloadFailed,
+    documentsOversized: result.documentsOversized + summary.documentsOversized,
+    documentsParseError: result.documentsParseError + summary.documentsParseError,
     itemsInserted: result.itemsInserted + summary.itemsInserted,
     itemsSkipped: result.itemsSkipped + summary.itemsSkipped,
     inserted: result.inserted + summary.itemsInserted,
@@ -111,6 +124,7 @@ async function performApifyAgendaScrape({
     detectionFailures: result.detectionFailures + summary.detectionErrors.length,
     detectionErrors: result.detectionErrors.concat(summary.detectionErrors),
     errors: result.errors + summary.errors.length,
+    sampledDocuments: result.sampledDocuments.concat(summary.sampledDocuments ?? []),
   }), {
     citiesProcessed: 0,
     documentsFound: 0,
@@ -118,6 +132,12 @@ async function performApifyAgendaScrape({
     inserted: 0,
     skipped: missingCity,
     documentsSkipped: 0,
+    documentsWithText: 0,
+    documentsImageOnly: 0,
+    documentsUnsupported: 0,
+    documentsDownloadFailed: 0,
+    documentsOversized: 0,
+    documentsParseError: 0,
     itemsInserted: 0,
     itemsSkipped: 0,
     conflictCandidates: 0,
@@ -126,6 +146,7 @@ async function performApifyAgendaScrape({
     detectionFailures: 0,
     detectionErrors: [],
     errors: missingCity + sourceErrors.length,
+    sampledDocuments: [],
   });
 
   totals.inserted = totals.itemsInserted;

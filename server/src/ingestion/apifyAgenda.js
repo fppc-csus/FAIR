@@ -8,6 +8,38 @@ import { runSyncJob } from '../jobs/syncJobRun.js';
 const PDF_DOWNLOAD_TIMEOUT_MS = 30_000;
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 const DOCUMENT_URL_PATTERN = /^https?:\/\/\S+$/i;
+export const QUALITY_SAMPLE_LIMIT = 5;
+
+const DOCUMENT_QUALITY = {
+  HAS_TEXT: 'has-text',
+  IMAGE_ONLY: 'image-only',
+  UNSUPPORTED: 'unsupported',
+  DOWNLOAD_FAILED: 'download-failed',
+  OVERSIZED: 'oversized',
+  PARSE_ERROR: 'parse-error',
+};
+
+function classifyError(error) {
+  const message = errorMessage(error);
+  if (/not a PDF/.test(message)) return DOCUMENT_QUALITY.UNSUPPORTED;
+  if (/exceeds.*MB limit/.test(message)) return DOCUMENT_QUALITY.OVERSIZED;
+  if (/Download|timeout|AbortSignal|network|fetch/i.test(message)) return DOCUMENT_QUALITY.DOWNLOAD_FAILED;
+  if (/no (extractable |parseable )?(agenda )?text|no valid agenda items/.test(message)) return DOCUMENT_QUALITY.IMAGE_ONLY;
+  return DOCUMENT_QUALITY.PARSE_ERROR;
+}
+
+const QUALITY_COUNT_KEYS = {
+  [DOCUMENT_QUALITY.HAS_TEXT]: 'documentsWithText',
+  [DOCUMENT_QUALITY.IMAGE_ONLY]: 'documentsImageOnly',
+  [DOCUMENT_QUALITY.UNSUPPORTED]: 'documentsUnsupported',
+  [DOCUMENT_QUALITY.DOWNLOAD_FAILED]: 'documentsDownloadFailed',
+  [DOCUMENT_QUALITY.OVERSIZED]: 'documentsOversized',
+  [DOCUMENT_QUALITY.PARSE_ERROR]: 'documentsParseError',
+};
+
+function qualityCountKey(quality) {
+  return QUALITY_COUNT_KEYS[quality] ?? 'documentsParseError';
+}
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
@@ -236,6 +268,12 @@ async function performApifyAgendaIngestion({
     documentsFound: items.length,
     pdfsFetched: 0,
     documentsSkipped: 0,
+    documentsWithText: 0,
+    documentsImageOnly: 0,
+    documentsUnsupported: 0,
+    documentsDownloadFailed: 0,
+    documentsOversized: 0,
+    documentsParseError: 0,
     itemsInserted: 0,
     itemsSkipped: 0,
     conflictCandidates: 0,
@@ -244,6 +282,7 @@ async function performApifyAgendaIngestion({
     detectionErrors: [],
   };
   const errors = [];
+  const sampled = [];
 
   for (const actorItem of items) {
     let item;
@@ -266,6 +305,10 @@ async function performApifyAgendaIngestion({
       ));
       counts.itemsInserted += result.inserted;
       counts.itemsSkipped += result.skipped;
+      counts.documentsWithText += 1;
+      if (sampled.length < QUALITY_SAMPLE_LIMIT) {
+        sampled.push({ pdfUrl: item.pdfUrl, quality: DOCUMENT_QUALITY.HAS_TEXT, message: null });
+      }
       if (result.changedIds.length) {
         const detection = await detectAgendaConflictsSafely(result.changedIds, detect, { prisma: prismaClient });
         counts.conflictCandidates += detection.conflictCandidates;
@@ -278,10 +321,16 @@ async function performApifyAgendaIngestion({
       }
     } catch (error) {
       counts.documentsSkipped += 1;
+      const quality = classifyError(error);
+      counts[qualityCountKey(quality)] += 1;
       const detail = {
         pdfUrl: item?.pdfUrl ?? null,
         message: errorMessage(error),
+        quality,
       };
+      if (sampled.length < QUALITY_SAMPLE_LIMIT) {
+        sampled.push({ pdfUrl: detail.pdfUrl, quality, message: detail.message });
+      }
       errors.push(detail);
       log(`[apify] city="${source.cityName}" skipped pdf="${detail.pdfUrl ?? 'unknown'}": ${detail.message}`);
     }
@@ -291,6 +340,7 @@ async function performApifyAgendaIngestion({
   return {
     cityName: source.cityName,
     ...counts,
+    sampledDocuments: sampled,
     errors,
   };
 }
