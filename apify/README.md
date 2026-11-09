@@ -63,6 +63,9 @@ plus `source_page_url` and `document_title`. City names are preserved unchanged.
 The cutoff uses the Pacific calendar date minus `lookbackDays`, inclusively;
 published future meetings are included. Numeric dates use US month/day/year.
 Documents must have a PDF signature, not merely a PDF filename or content type.
+For an explicit historical backfill, provide both `startDate` and `endDate` in
+`YYYY-MM-DD` form; the Actor includes both endpoints and ignores the rolling
+lookback cutoff for that run.
 
 ## Scope and limitations
 

@@ -277,7 +277,23 @@ npm --prefix server run backfill:legistar -- --city "Sonoma County" --start 2024
 
 Omit `--city` to backfill every enabled Legistar source. If `--start` is omitted,
 the command imports the previous two years. Re-running the command is safe:
-Legistar item IDs prevent duplicate agenda rows.
+Legistar item IDs prevent duplicate agenda rows, and historical reruns also
+recheck conflict detection for existing items. The command reports per-city
+results and fails if a city or detection pass fails.
+
+For PDF-only sources, run the Apify ingestion with the same inclusive date
+range:
+
+```bash
+npm --prefix server run run:apify-agendas -- --city "City Name" --start 2024-01-01 --end 2025-12-31
+```
+
+Apify backfills pass the date window to the Actor, filter dataset results to
+that window, and recheck conflicts for existing parsed items. Review the Actor
+`SUMMARY` for crawl limits and skipped documents. Record measured per-city
+results, final stored counts, source limitations, and client sign-off in
+[`docs/fair/agenda-ingestion/backfill-acceptance.md`](docs/fair/agenda-ingestion/backfill-acceptance.md);
+the commands do not independently certify source completeness.
 
 #### Sonoma staff-report research pilot (no alert writes)
 
