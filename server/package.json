@@ -17,6 +17,7 @@
     "test:integration": "vitest run tests/integration",
     "test:functional": "vitest run tests/functional",
     "test:storage": "node scripts/test-form700-storage.mjs",
+    "load:security": "node scripts/security-load-test.mjs",
     "smoke:legistar-api": "node scripts/legistar-api-smoke.mjs"
   },
   "prisma": {
@@ -30,18 +31,28 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.3",
     "fuse.js": "^7.3.0",
+    "helmet": "^8.3.0",
     "multer": "^2.3.0",
     "node-cron": "^4.2.1",
     "pdf-parse": "^1.1.1",
     "postgres": "^3.4.9",
     "puppeteer": "^25.13.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "prisma": "^6.12.0",
     "supertest": "^7.2.2",
-    "vitest": "^4.1.5"
+    "vitest": "4.1.12"
+  },
+  "overrides": {
+    "basic-ftp": "6.2.1",
+    "get-uri": {
+      "basic-ftp": "6.2.1"
+    },
+    "proxy-agent": "^8.0.2",
+    "qs": "6.16.1"
   }
 }
