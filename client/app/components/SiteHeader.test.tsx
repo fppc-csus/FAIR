@@ -7,7 +7,7 @@ import { TIMEOUT_MESSAGE } from "../lib/request";
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 it("keeps the full brand and search available alongside collapsible navigation", () => {
   render(<MemoryRouter><SiteHeader /></MemoryRouter>);
-  const home = screen.getByRole("link", { name: "FAIR home — Public records review" });
+  const home = screen.getByRole("link", { name: "FAIRPublic records review" });
   expect(home).toHaveTextContent("FAIR");
   expect(home).toHaveTextContent("Public records review");
   expect(screen.getByRole("searchbox", { name: "Search FAIR records" })).toBeInTheDocument();
