@@ -23,32 +23,32 @@ rule reference, severity, and source key for auditability.
 
 ### Eligibility (SH-324)
 
-**PROVISIONAL — CLIENT APPROVAL PENDING.** Eligibility is separate from the
-entity/amount matching rules. `server/src/config/eligibilityPolicy.js` controls
-the filing-period policy; `server/src/detection/eligibility.js` evaluates it.
-The default is `PENDING`: no new automatic candidates are generated, and existing
-candidates are **not** deactivated because the policy is pending. An operator can
-explicitly configure `FAIR_FILING_PERIOD_OFFSETS` as comma-separated nonnegative
-meeting-year minus filing-year offsets (for example `0,1`), pending written
-client approval. This is a provisional calendar-year approximation, **not** a
-determination of legal filing coverage. Exact reporting dates are not stored.
+The revised SH-324 policy compares verified Form 700 disclosures against **every**
+new agenda item, across all jurisdictions and filing years. Jurisdiction and filing
+year are required, administrator-verified metadata, **not** comparison filters.
+Meeting dates must also be present and administrator-verified. The executable
+policy is `server/src/config/eligibilityPolicy.js`; the checks are in
+`server/src/detection/eligibility.js`. No filing-year offset setting is used.
+Existing records are not implicitly verified by the migration. An administrator
+confirms the stored values using authenticated
+`POST /api/admin/eligibility/{politician|filing|agenda}/:id/verify`.
+Send `{ "expectedValue": ... }` (jurisdiction UUID, integer filing year, or
+UTC ISO date-time) matching the value reviewed by the administrator; mismatches
+return `STALE_VALUE`. Verification records the confirmed value, admin identity,
+time, and an append-only audit event. Changes to jurisdiction, year, item date,
+linked meeting, or linked meeting date invalidate verification through database
+triggers, including when an old value is later restored. Existing ingestion paths
+can still store unverified records.
+`GET /api/admin/politicians/eligibility-review` lists unverified records and
+reasons. Missing, invalid, or conflicting meeting dates and unverified filing
+years or politician jurisdictions are excluded; detection returns `reviewRequired`
+reasons. Corrections and confirmations create durable retryable detection runs
+in the metadata transaction, dispatched after commit. A politician change
+rechecks every filing; a linked meeting-date correction rechecks every agenda
+item in the meeting. Agenda verification rechecks the selected item. Failed
+runs can be retried under admin detection runs; legacy rows remain untouched.
 
-Agenda items use a linked meeting jurisdiction, or an unambiguous jurisdiction
-ID/name from `cityId`/`cityName`. Conflicting or unknown city mappings require
-review. Disclosures require the filing politician's canonical jurisdiction to
-equal the agenda jurisdiction; cross-city filings are excluded. Missing meeting
-dates, filing years, filing/disclosure identifiers, unreviewed politician identities,
-inconsistent politician IDs, or unresolved jurisdictions require review, not
-automatic matching. Detection returns `reviewRequired` reasons to ingestion
-callers. The authenticated `GET /api/admin/politicians/eligibility-review`
-endpoint exposes unresolved or identity-review filing politicians, agenda items
-without meeting dates or city identifiers, and whether the period policy is
-pending. Ambiguous city-name mappings and missing
-filing years are currently surfaced only in the detection result; a comprehensive
-persisted per-item review queue is not yet implemented. Correcting metadata and
-rerunning detection is necessary before candidates can be generated.
-
-New automated candidates retain filing/disclosure IDs, filing year, jurisdiction,
+New automated candidates retain filing/disclosure IDs, filing year, agenda and politician jurisdictions,
 meeting date, source path, and legal rule reference. Reprocessing marks only
 positively identified SH-324-managed candidates inactive when no longer matched;
 reprocessing refreshes their matching evidence, and reactivation preserves existing
@@ -64,8 +64,6 @@ offsets before this policy is approved.
 When disclosure IDs are present, the candidate source key includes the disclosure
 ID to distinguish same-named interests in different filings. A legacy candidate
 using the older key is retained rather than automatically claimed by SH-324.
-
-The checked-in Jira export requires client approval of these rules. This repository
-contains no written client approval artifact as of September 28, 2026, so that
-external sign-off remains outstanding before FAIR should be represented as an
-authoritative legal determination.
+Cross-jurisdiction matches do not establish official authority; old disclosures
+do not prove a present financial interest. Every result requires human verification,
+not a legal determination.

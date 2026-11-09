@@ -9,16 +9,25 @@ export function createMockPrisma({
 } = {}) {
   const insertedConflicts = [...initialConflicts];
 
-  const filterRows = (rows, { where }) => rows.filter((row) =>
-    where.filing.politician.OR[0].jurisdictionId.in.includes(row.filing?.politician?.jurisdictionId ?? row.politicianJurisdictionId)
-    || (row.filing?.politician?.jurisdictionId ?? row.politicianJurisdictionId) == null,
-  );
+  const verifiedAt = new Date('2026-01-01T00:00:00.000Z');
+  const verifiedItem = (item) => ({ ...item, meetingDateVerifiedAt: verifiedAt,
+    meetingDateVerifiedBy: 'test-admin', meetingDateVerifiedValue: new Date(item.meetingDate) });
+  const verifiedRow = (row) => ({ ...row, filing: {
+    id: row.filingId, filingYear: row.filingYear, filingYearVerifiedValue: row.filingYear,
+    filingYearVerifiedAt: verifiedAt, filingYearVerifiedBy: 'test-admin',
+    politicianId: row.politicianId, politician: {
+      jurisdictionId: row.politicianJurisdictionId,
+      jurisdictionVerifiedId: row.politicianJurisdictionId,
+      jurisdictionVerifiedAt: verifiedAt, jurisdictionVerifiedBy: 'test-admin', needsReview: false,
+    },
+  } });
+  const filterRows = (rows) => rows.map(verifiedRow);
 
   const client = {
     jurisdiction: { findMany: vi.fn().mockResolvedValue([{ id: "sac", name: "Sacramento" }]) },
     $transaction: async (fn) => fn(client),
     agendaItem: {
-      findMany: vi.fn().mockResolvedValue(agendaItems),
+      findMany: vi.fn().mockResolvedValue(agendaItems.map(verifiedItem)),
     },
 
     scheduleBRealEstate: {

@@ -6,6 +6,15 @@ function identity(row) {
   return `${row.politicianId}|${row.agendaItemId}|${row.conflictType}|${row.sourceKey}`;
 }
 
+const verifiedAt = new Date("2026-01-01T00:00:00.000Z");
+function verifiedRow(row) {
+  return { ...row, filing: { id: row.filingId, filingYear: row.filingYear,
+    filingYearVerifiedValue: row.filingYear, filingYearVerifiedAt: verifiedAt,
+    filingYearVerifiedBy: "admin", politicianId: row.politicianId,
+    politician: { jurisdictionId: row.politicianJurisdictionId,
+      jurisdictionVerifiedId: row.politicianJurisdictionId,
+      jurisdictionVerifiedAt: verifiedAt, jurisdictionVerifiedBy: "admin" } } };
+}
 function createMemoryPrisma(seed = {}) {
   const conflicts = [];
 
@@ -16,17 +25,20 @@ function createMemoryPrisma(seed = {}) {
     agendaItem: {
       findMany: async ({ where } = {}) => {
         const ids = where?.id?.in || [];
-        return (seed.agendaItems || []).filter((item) => ids.includes(item.id));
+        return (seed.agendaItems || []).filter((item) => ids.includes(item.id)).map((item) => ({
+          ...item, meetingDateVerifiedAt: verifiedAt, meetingDateVerifiedBy: "admin",
+          meetingDateVerifiedValue: new Date(item.meetingDate),
+        }));
       },
     },
     scheduleBRealEstate: {
-      findMany: async ({ where }) => (seed.scheduleB || []).filter((row) => where.filing.politician.OR[0].jurisdictionId.in.includes(row.politicianJurisdictionId)),
+      findMany: async () => (seed.scheduleB || []).map(verifiedRow),
     },
     scheduleCdeIncome: {
-      findMany: async ({ where }) => (seed.scheduleCde || []).filter((row) => where.filing.politician.OR[0].jurisdictionId.in.includes(row.politicianJurisdictionId)),
+      findMany: async () => (seed.scheduleCde || []).map(verifiedRow),
     },
     scheduleA2BusinessPosition: {
-      findMany: async ({ where }) => (seed.scheduleA2 || []).filter((row) => where.filing.politician.OR[0].jurisdictionId.in.includes(row.politicianJurisdictionId)),
+      findMany: async () => (seed.scheduleA2 || []).map(verifiedRow),
     },
     conflict: {
       findMany: async () => conflicts,
@@ -110,11 +122,11 @@ describe("detectConflictsForAgendaItems", () => {
       scheduleA2: [],
     });
 
-    const first = await detectConflictsForAgendaItems(["item-1"], { prisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] } });
+    const first = await detectConflictsForAgendaItems(["item-1"], { prisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" } });
     expect(first.inserted).toBe(1);
     expect(first.totalCandidates).toBe(1);
 
-    const second = await detectConflictsForAgendaItems(["item-1"], { prisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] } });
+    const second = await detectConflictsForAgendaItems(["item-1"], { prisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" } });
     expect(second.inserted).toBe(0);
     expect(prisma._conflicts).toHaveLength(1);
   });
@@ -140,7 +152,7 @@ describe("detectConflictsForAgendaItems", () => {
       ],
     });
 
-    const result = await detectConflictsForAgendaItems(["item-a2"], { prisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] } });
+    const result = await detectConflictsForAgendaItems(["item-a2"], { prisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" } });
 
     expect(result.inserted).toBe(1);
     expect(result.totalCandidates).toBe(1);

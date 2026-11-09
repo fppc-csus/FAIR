@@ -70,13 +70,11 @@ function evidence(row) {
   };
 }
 
-async function loadRows(delegate, jurisdictionIds, isDemo) {
+async function loadRows(delegate, isDemo) {
   if (!delegate?.findMany) return [];
   return delegate.findMany({
-    where: { filing: { politician: { isDemo, OR: [
-      { jurisdictionId: { in: jurisdictionIds } }, { jurisdictionId: null },
-    ] } } },
-    include: { filing: { include: { politician: { select: { jurisdictionId: true, needsReview: true } } } } },
+    where: { filing: { politician: { isDemo } } },
+    include: { filing: { include: { politician: { select: { jurisdictionId: true, jurisdictionVerifiedId: true, jurisdictionVerifiedAt: true, jurisdictionVerifiedBy: true, needsReview: true } } } } },
   });
 }
 
@@ -113,20 +111,18 @@ async function detectLockedAgendaItems(client, ids, deps) {
     select: { id: true, name: true },
   }) : [];
   const scopes = new Map(items.map((item) => [item.id, resolveAgendaScope(item, jurisdictions)]));
-  const jurisdictionIds = [...new Set([...scopes.values()].map((scope) => scope.jurisdictionId).filter(Boolean))];
   const policy = deps.eligibilityPolicy ?? eligibilityPolicy();
-  if (policy.period !== "PENDING" && (policy.period !== "YEAR_OFFSETS"
-    || !Array.isArray(policy.offsets) || !policy.offsets.every((offset) => Number.isInteger(offset) && offset >= 0))) {
-    throw new Error("Unknown filing-period policy");
+  if (policy.period !== "ALL_VERIFIED" || policy.jurisdiction !== "ALL_VERIFIED") {
+    throw new Error("Unknown eligibility policy");
   }
 
   const groups = new Map();
   for (const isDemo of new Set(items.map((item) => Boolean(item.isDemo)))) {
     groups.set(isDemo, await Promise.all([
-      loadRows(client.scheduleAInvestment, jurisdictionIds, isDemo),
-      loadRows(client.scheduleBRealEstate, jurisdictionIds, isDemo),
-      loadRows(client.scheduleCdeIncome, jurisdictionIds, isDemo),
-      loadRows(client.scheduleA2BusinessPosition, jurisdictionIds, isDemo),
+      loadRows(client.scheduleAInvestment, isDemo),
+      loadRows(client.scheduleBRealEstate, isDemo),
+      loadRows(client.scheduleCdeIncome, isDemo),
+      loadRows(client.scheduleA2BusinessPosition, isDemo),
     ]));
   }
 
@@ -145,7 +141,6 @@ async function detectLockedAgendaItems(client, ids, deps) {
       reviewRequired.push(entry);
     }
   };
-  const pendingItemIds = new Set();
   for (const item of items) {
     const [investments, properties, sources, positions] = groups.get(Boolean(item.isDemo));
     const scheduleA = (investments || []).map(asScheduleA);
@@ -153,21 +148,23 @@ async function detectLockedAgendaItems(client, ids, deps) {
     const scheduleCde = (sources || []).map(asScheduleCde);
     const scheduleA2 = (positions || []).map(asScheduleA2);
     const scope = scopes.get(item.id);
-    if (!scope.jurisdictionId || !scope.meetingDate) {
-      requireReview({ agendaItemId: item.id, reason: scope.reason ?? "MISSING_MEETING_DATE" });
-      pendingItemIds.add(item.id);
+    if (!scope.meetingDate || scope.reason === "AMBIGUOUS_MEETING_DATE") {
+      requireReview({ agendaItemId: item.id, reason: scope.reason === "AMBIGUOUS_MEETING_DATE" ? scope.reason : "MISSING_MEETING_DATE" });
       continue;
     }
-    if (policy.period === "PENDING") {
-      requireReview({ agendaItemId: item.id, reason: "POLICY_PENDING" });
-      pendingItemIds.add(item.id);
+    if (!item.meetingDateVerifiedAt || !item.meetingDateVerifiedBy || !item.meetingDateVerifiedValue
+      || new Date(item.meetingDateVerifiedValue).getTime() !== scope.meetingDate.getTime()) {
+      requireReview({ agendaItemId: item.id, reason: "UNVERIFIED_MEETING_DATE" });
+      continue;
     }
+    scope.meetingDateVerifiedAt = item.meetingDateVerifiedAt;
+    scope.meetingDateVerifiedBy = item.meetingDateVerifiedBy;
+    scope.meetingDateVerifiedValue = item.meetingDateVerifiedValue;
     const eligible = (rows) => rows.filter((row) => {
       const result = disclosureEligibility(scope, row, policy);
       if (result.status === "REVIEW_REQUIRED") {
         requireReview({ agendaItemId: item.id, filingId: row.filingId, reason: result.reason });
       }
-      if (["POLICY_PENDING", "REVIEW_REQUIRED"].includes(result.status)) pendingItemIds.add(item.id);
       return result.status === "ELIGIBLE";
     });
     for (const [rows, detector] of [
@@ -182,18 +179,17 @@ async function detectLockedAgendaItems(client, ids, deps) {
             source_key: `${flag.source_key}:disclosure:${row.disclosureId}`,
             filingId: row.filingId, disclosureId: row.disclosureId,
             filingYear: row.filingYear, jurisdictionId: scope.jurisdictionId,
+            politicianJurisdictionId: row.politicianJurisdictionId,
             meetingDate: scope.meetingDate, supportingSource: row.supportingSource });
         }
       }
     }
   }
 
-  // A review-required disclosure must not invalidate earlier matches, but it
-  // must not prevent independently eligible disclosures from being recorded.
+  // A candidate that no longer has verified supporting records is not current.
   const persisted = await persistConflicts(candidates, {
     prisma: client,
     agendaItemIds: items.map((item) => item.id),
-    preserveAgendaItemIds: [...pendingItemIds],
     lockedAgendaItems: true,
   });
   return { ...persisted, totalCandidates: candidates.length, reviewRequired };

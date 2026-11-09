@@ -142,15 +142,27 @@ Senior-Project/
 
 ## Developer instructions
 
-### Provisional SH-324 eligibility
+### SH-324 disclosure eligibility
 
-**PROVISIONAL — CLIENT APPROVAL PENDING.** Automatic conflict detection requires
-an unambiguous canonical jurisdiction and meeting date. Filing-period eligibility
-defaults to pending (no new automatic candidates); to opt into the provisional
-calendar-year-offset policy, set `FAIR_FILING_PERIOD_OFFSETS` to comma-separated
-nonnegative meeting-year minus filing-year offsets, for example `0,1`.
-Existing candidates are retained while policy is pending. Admin review is still
-required; see `docs/conflict_rules.md` for lifecycle and missing-data behavior.
+The detector compares disclosures across all cities and filing years. A stored
+jurisdiction, filing year and agenda meeting date must each be explicitly verified
+by an administrator before the records generate candidates. Existing records start
+unverified. Review missing or unverified records at the authenticated
+`GET /api/admin/politicians/eligibility-review` endpoint, then confirm each stored
+value using `POST /api/admin/eligibility/{politician|filing|agenda}/:id/verify`
+with JSON `{ "expectedValue": ... }`: jurisdiction UUID for politician, integer
+year for filing, or full UTC ISO date-time for agenda. If the stored value changed
+since review, the endpoint returns `409 STALE_VALUE`; refresh and verify again.
+Admins can now open `/admin/eligibility` to inspect excluded politicians, filings,
+and agenda items with their source context. Correct a value there, then separately
+review and confirm the corrected value. `POST /api/admin/eligibility/{politician|filing|agenda}/:id/correct`
+accepts `{ "expectedValue": ..., "correctedValue": ... }` and rejects stale values;
+corrections are audited and do not themselves verify records. For linked agendas,
+correcting the date updates the meeting and the selected agenda item; other linked
+items require their own confirmation. Identity review is handled under Officials.
+Corrections and confirmations create retryable detection runs; inspect and retry
+failed runs in admin detection runs. Apply Prisma migrations and regenerate the
+Prisma client before using the endpoints. See `docs/conflict_rules.md` for details.
 
 > **CSC 191 — placeholder.** Expand this section with full local-setup steps, env var matrix, and troubleshooting as the team finalizes the dev environment in class.
 

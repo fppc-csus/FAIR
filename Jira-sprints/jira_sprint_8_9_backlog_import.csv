@@ -92,18 +92,24 @@ Acceptance criteria — definition of done
 * Detection-run logs distinguish processed agenda items, candidates, inserted conflicts, duplicates, and failures
 * A failed detection run can be retried even when its agenda items were already inserted by an earlier ingestion run
 * Tests cover disclosure-after-agenda ordering, interrupted runs, repeated runs, and preservation of reviews","SH Sprint 8","8","SH-175"
-"Enforce jurisdiction and disclosure-period scope in conflict detection","SH-324","Story","To Do","SH","Software Hornets","software","Highest","Conflict_Detection","Prevent the detector from comparing every disclosure with every agenda item. Define and enforce which officials, jurisdictions, filing periods, and meeting dates are applicable to a candidate while preserving FAIR's role as a review tool rather than a legal determination system.
+"Enforce jurisdiction and disclosure-period eligibility in conflict detection","SH-324","Story","To Do","SH","Software Hornets","software","Highest","Conflict_Detection","Define and enforce which financial disclosures are eligible for comparison against city council agenda items. Compare all eligible politicians' disclosures against every new agenda item regardless of jurisdiction or filing period, while requiring verified politician jurisdiction, filing year, and agenda meeting date before automated detection. Preserve FAIR's role as a review tool rather than a legal determination system.
 
 Acceptance criteria — definition of done
 
-* The client-approved jurisdiction and filing-period rules are recorded in the executable conflict configuration and explanatory documentation
-* Detection loads only disclosures applicable to the agenda item's jurisdiction under the approved rules
-* Filing year and meeting date are retained through the detection adapters and used where required by the approved policy
-* Unresolved politician jurisdiction is handled explicitly and surfaced for admin review rather than silently matched across all cities
-* Cross-city and out-of-period disclosures do not generate candidates in automated tests
-* Same-city and applicable-period examples continue to generate expected candidates
-* Reprocessing after politician or jurisdiction correction updates candidates idempotently
-* Conflict output continues to identify the rule reference and supporting disclosure source","SH Sprint 8","8","SH-175"
+* The client-approved all-jurisdiction and all-period comparison rules are recorded in executable conflict configuration and explanatory documentation
+* Mandatory metadata verification is explicitly distinguished from comparison restrictions: politician jurisdiction, filing year, and agenda meeting date must be present and verified, but differences in jurisdiction or reporting year do not exclude otherwise eligible disclosures
+* Detection compares disclosures from all eligible politicians against every new agenda item regardless of jurisdiction, including cross-city comparisons
+* Disclosures from all filing years remain eligible for comparison regardless of the agenda meeting date, provided the required metadata is verified
+* Filing year, meeting date, politician jurisdiction, and filing identity are retained through detection adapters and available for review
+* Records with missing, invalid, ambiguous, or unverified politician jurisdiction, filing year, or agenda meeting date are excluded from automated detection and surfaced for administrator review with an explicit reason
+* Corrections that resolve missing or invalid required metadata automatically trigger reprocessing of affected records
+* Corrections to jurisdiction or filing year do not independently invalidate otherwise applicable candidates, while corrections that remove or change supporting evidence trigger reevaluation
+* Reprocessing updates candidates idempotently, marks candidates no longer supported by corrected information as inactive rather than deleting them, and preserves administrator decisions, notes, and review history
+* Cross-city and different-filing-year disclosures generate expected candidates in automated tests when required metadata is verified and detection rules are satisfied
+* Same-city and same-year examples continue to generate expected candidates in automated tests
+* Missing-metadata exclusions, automatic reprocessing after correction, candidate inactivation/reactivation, and preservation of review history are covered by automated tests
+* Conflict output continues to identify the detection rule reference, supporting Form 700 filing and disclosure source, associated politician, and agenda item
+* Generated candidates are presented as potential conflicts requiring human verification rather than confirmed legal conflicts","SH Sprint 8","8","SH-175"
 "Complete admin CRUD and politician review/reconciliation","SH-325","Story","To Do","SH","Software Hornets","software","High","Frontend/UI","Finish the existing authenticated administration APIs and UI so source configuration and automatically created politician profiles can be maintained safely. Extend the current needs-review display into an actionable reconciliation workflow.
 
 Acceptance criteria — definition of done

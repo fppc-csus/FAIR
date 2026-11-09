@@ -55,14 +55,17 @@ export async function runSyntheticConflictCheck(prisma) {
     const politician = await tx.politician.upsert({
       where: { slug: OFFICIAL_SLUG },
       create: { slug: OFFICIAL_SLUG, fullName: 'FAIR TEST OFFICIAL 001 — NOT A REAL PERSON',
-        officeTitle: 'Fictional demo official', district: DEMO_CITY, isDemo: true, jurisdictionId: DEMO_JURISDICTION_ID },
-      update: { isDemo: true, jurisdictionId: DEMO_JURISDICTION_ID },
+        officeTitle: 'Fictional demo official', district: DEMO_CITY, isDemo: true, jurisdictionId: DEMO_JURISDICTION_ID,
+        jurisdictionVerifiedId: DEMO_JURISDICTION_ID, jurisdictionVerifiedAt: new Date(), jurisdictionVerifiedBy: 'synthetic-fixture' },
+      update: { isDemo: true, jurisdictionId: DEMO_JURISDICTION_ID,
+        jurisdictionVerifiedId: DEMO_JURISDICTION_ID, jurisdictionVerifiedAt: new Date(), jurisdictionVerifiedBy: 'synthetic-fixture' },
     });
     const filing = await tx.form700Filing.upsert({
       where: { politicianId_filingYear: { politicianId: politician.id, filingYear: 2025 } },
       create: { politicianId: politician.id, filingYear: 2025, filerName: politician.fullName,
-        originalFilename: 'SYNTHETIC-DATABASE-FIXTURE-NOT-AN-UPLOADED-FORM.xlsx' },
-      update: {},
+        originalFilename: 'SYNTHETIC-DATABASE-FIXTURE-NOT-AN-UPLOADED-FORM.xlsx',
+        filingYearVerifiedValue: 2025, filingYearVerifiedAt: new Date(), filingYearVerifiedBy: 'synthetic-fixture' },
+      update: { filingYearVerifiedValue: 2025, filingYearVerifiedAt: new Date(), filingYearVerifiedBy: 'synthetic-fixture' },
     });
     // This fixture owns this filing; replace its schedule to keep reruns deterministic.
     await tx.scheduleCdeIncome.deleteMany({ where: { filingId: filing.id } });
@@ -74,7 +77,8 @@ export async function runSyntheticConflictCheck(prisma) {
       [CONTROL_ID, 'SYNTHETIC TEST ONLY: Approve the fictional county meeting calendar.'],
     ]) {
       const row = { title, itemText: title, isDemo: true, sourceType: 'demo',
-        cityName: DEMO_CITY, meetingDate: new Date('2025-11-04T00:00:00Z') };
+        cityName: DEMO_CITY, meetingDate: new Date('2025-11-04T00:00:00Z'),
+        meetingDateVerifiedValue: new Date('2025-11-04T00:00:00Z'), meetingDateVerifiedAt: new Date(), meetingDateVerifiedBy: 'synthetic-fixture' };
       rows.push(await tx.agendaItem.upsert({
         where: { legistarItemId: key }, create: { ...row, legistarItemId: key }, update: row,
       }));
@@ -82,8 +86,7 @@ export async function runSyntheticConflictCheck(prisma) {
     return rows;
   });
   const ids = items.map((item) => item.id);
-  // A same-year policy is explicit for this fictional fixture only.
-  const deps = { prisma, eligibilityPolicy: { period: 'YEAR_OFFSETS', offsets: [0] } };
+  const deps = { prisma };
   const firstRun = await detectConflictsForAgendaItems(ids, deps);
   const secondRun = await detectConflictsForAgendaItems(ids, deps);
   const status = await getSyntheticConflictStatus(prisma);

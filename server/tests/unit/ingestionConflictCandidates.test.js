@@ -224,17 +224,13 @@ function createSql(insertedIds) {
   return sql;
 }
 
-function expectVisibleIncomeConflict() {
-  expect(testState.state.conflicts).toHaveLength(1);
-  expect(testState.state.conflicts[0]).toMatchObject({
-    politicianId: 'politician-1',
-    conflictType: 'INCOME',
-    entityName: 'Acme Builders',
-    reviewStatus: 'pending',
-  });
+function expectUnverifiedAgendaExcluded() {
+  expect(testState.state.agendaItems.length).toBeGreaterThan(0);
+  expect(testState.state.agendaItems.every((item) => !item.meetingDateVerifiedAt)).toBe(true);
+  expect(testState.state.conflicts).toHaveLength(0);
 }
 
-describe('agenda ingestion creates visible conflict candidates from matching disclosures', () => {
+describe('agenda ingestion leaves unverified metadata out of conflict detection', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
@@ -274,7 +270,7 @@ describe('agenda ingestion creates visible conflict candidates from matching dis
     vi.stubGlobal('fetch', vi.fn(async () => new Response('%PDF-1.7 agenda')));
   });
 
-  it('creates a conflict from matching Legistar data in the scheduled sync worker', async () => {
+  it('does not create a conflict from unverified Legistar data in the scheduled sync worker', async () => {
     const id = 'agenda-legistar';
     testState.state.agendaItems.push({
       id,
@@ -291,11 +287,11 @@ describe('agenda ingestion creates visible conflict candidates from matching dis
       { detectionDependencies: { prisma: testState.prisma } },
     );
 
-    expect(result.conflictsDetected).toBe(1);
-    expectVisibleIncomeConflict();
+    expect(result.conflictsDetected).toBe(0);
+    expectUnverifiedAgendaExcluded();
   });
 
-  it('creates a conflict from matching Apify/PDF data in the scheduled scraper', async () => {
+  it('does not create a conflict from unverified Apify/PDF data in the scheduled scraper', async () => {
     const result = await runApifyAgendaScrape({
       prismaClient: testState.prisma,
       scrapeAgendaPDFs: vi.fn().mockResolvedValue(testState.state.actorItems),
@@ -303,19 +299,19 @@ describe('agenda ingestion creates visible conflict candidates from matching dis
       log: vi.fn(),
     });
 
-    expect(result.conflictsDetected).toBe(1);
-    expectVisibleIncomeConflict();
+    expect(result.conflictsDetected).toBe(0);
+    expectUnverifiedAgendaExcluded();
   });
 
-  it('creates a conflict from matching data during an admin-triggered Legistar sync', async () => {
+  it('does not create a conflict from unverified data during an admin-triggered Legistar sync', async () => {
     const response = await request(app).post('/api/admin/sources/source-1/sync');
 
     expect(response.status).toBe(202);
     await vi.waitFor(() => expect(testState.state.syncLogs[0]?.status).toBe('success'));
-    expectVisibleIncomeConflict();
+    expectUnverifiedAgendaExcluded();
   });
 
-  it('creates a conflict from matching data during an admin-triggered Apify/PDF sync', async () => {
+  it('does not create a conflict from unverified data during an admin-triggered Apify/PDF sync', async () => {
     testState.prisma.dataSource.findUnique.mockResolvedValue({
       id: 'source-1',
       cityName: 'Test City',
@@ -328,6 +324,6 @@ describe('agenda ingestion creates visible conflict candidates from matching dis
 
     expect(response.status).toBe(202);
     await vi.waitFor(() => expect(testState.state.syncLogs[0]?.status).toBe('success'));
-    expectVisibleIncomeConflict();
+    expectUnverifiedAgendaExcluded();
   });
 });

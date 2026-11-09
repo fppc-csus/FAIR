@@ -10,6 +10,7 @@ export default [
   route("admin/users", "routes/admin.users.tsx"),
   route("admin/upload", "routes/admin.upload.tsx"),
   route("admin/politicians", "routes/admin.politicians.tsx"),
+  route("admin/eligibility", "routes/admin.eligibility.tsx"),
   route("admin/sources", "routes/admin.sources.tsx"),
   route("admin/reports", "routes/admin.reports.tsx"),
   route("admin/history", "routes/admin.history.tsx"),

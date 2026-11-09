@@ -26,15 +26,7 @@ async function loadRunTargets(client, run) {
         },
       },
     });
-    if (!filing?.politician) {
-      throw new Error("Filing or associated politician no longer exists.");
-    }
-    if (
-      run.jurisdictionId &&
-      filing.politician.jurisdictionId !== run.jurisdictionId
-    ) {
-      throw new Error("The filer is no longer assigned to this detection run's jurisdiction.");
-    }
+    if (!filing?.politician) return [];
     return [filing.politician];
   }
 
@@ -67,33 +59,8 @@ async function loadRunTargets(client, run) {
   }));
 }
 
-async function loadAgendaItems(client, year, politician) {
-  if (!politician.jurisdictionId || !politician.jurisdiction?.name) {
-    throw new Error(`Politician ${politician.id} has no assigned jurisdiction.`);
-  }
-
-  const dateRange = calendarYearRange(year);
+async function loadAgendaItems(client) {
   return client.agendaItem.findMany({
-    where: {
-      OR: [
-        {
-          meeting: {
-            is: {
-              jurisdictionId: politician.jurisdictionId,
-              meetingDate: dateRange,
-            },
-          },
-        },
-        {
-          meetingDate: dateRange,
-          meeting: { is: { jurisdictionId: politician.jurisdictionId } },
-        },
-        {
-          meetingDate: dateRange,
-          cityName: { equals: politician.jurisdiction.name, mode: "insensitive" },
-        },
-      ],
-    },
     select: { id: true },
   });
 }
@@ -177,28 +144,45 @@ export async function runDetectionRun(runId, deps = {}) {
     const run = await client.detectionRun.findUnique({ where: { id: runId } });
     if (!run) throw new Error("Detection run not found.");
 
-    const targets = await loadRunTargets(client, run);
-    for (const politician of targets) {
-      if (run.jurisdictionId && politician.jurisdictionId !== run.jurisdictionId) {
-        throw new Error("A target politician is outside this detection run's jurisdiction.");
-      }
-      if (!run.jurisdictionId) {
-        run.jurisdictionId = politician.jurisdictionId;
-        await client.detectionRun.update({
-          where: { id: runId },
-          data: { jurisdictionId: politician.jurisdictionId },
-        });
-      }
-      const agendaItems = await loadAgendaItems(client, run.filingYear, politician);
-      if (agendaItems.length > 0) {
+    // Agenda reruns need no surviving filings or politician: the scoped detector
+    // reconciles every managed candidate on that agenda, including inactivation.
+    if (run.trigger === "eligibility_correction" && run.agendaItemId) {
+      const result = await (deps.detectConflictsForAgendaItems ?? detectConflictsForAgendaItems)(
+        [run.agendaItemId], { prisma: client },
+      );
+      const stats = {
+        totalItems: 1, processedItems: 1, candidateCount: result.totalCandidates ?? 0,
+        insertedCount: result.inserted ?? 0, duplicateCount: result.duplicates ?? result.skipped ?? 0,
+        failureCount: 0,
+      };
+      const finalRun = await client.detectionRun.update({ where: { id: runId }, data: {
+        ...stats, status: "completed", error: null, completedAt: new Date(), lockAt: null,
+      } });
+      return { run: finalRun, ...stats };
+    }
+
+    if (run.trigger === "eligibility_correction") {
+      const agendaItems = await loadAgendaItems(client);
+      if (agendaItems.length) {
         await client.detectionRunItem.createMany({
-          data: agendaItems.map(({ id: agendaItemId }) => ({
-            detectionRunId: runId,
-            agendaItemId,
-            politicianId: politician.id,
-          })),
+          data: agendaItems.map(({ id: agendaItemId }) => ({ detectionRunId: runId, agendaItemId, politicianId: run.politicianId })),
           skipDuplicates: true,
         });
+      }
+    } else {
+      const targets = await loadRunTargets(client, run);
+      for (const politician of targets) {
+        const agendaItems = await loadAgendaItems(client);
+        if (agendaItems.length > 0) {
+          await client.detectionRunItem.createMany({
+            data: agendaItems.map(({ id: agendaItemId }) => ({
+              detectionRunId: runId,
+              agendaItemId,
+              politicianId: politician.id,
+            })),
+            skipDuplicates: true,
+          });
+        }
       }
     }
 
@@ -226,7 +210,7 @@ export async function runDetectionRun(runId, deps = {}) {
       try {
         const result = await (deps.detectConflictsForAgendaItems ?? detectConflictsForAgendaItems)(
           [item.agendaItemId],
-          { prisma: client, politicianIds: [item.politicianId] },
+          { prisma: client },
         );
         await client.detectionRunItem.update({
           where: { id: item.id },

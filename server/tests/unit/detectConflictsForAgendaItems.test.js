@@ -50,7 +50,7 @@ describe("detectConflictsForAgendaItems", () => {
     });
 
     const result = await detectConflictsForAgendaItems([100], {
-      prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
+      prisma: mockPrisma,
     });
 
     expect(result.totalCandidates).toBe(1);
@@ -92,11 +92,11 @@ describe("detectConflictsForAgendaItems", () => {
   });
 
   const firstRun = await detectConflictsForAgendaItems([100], {
-    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
+    prisma: mockPrisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" },
   });
 
   const secondRun = await detectConflictsForAgendaItems([100], {
-    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
+    prisma: mockPrisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" },
   });
 
   expect(firstRun.inserted).toBe(1);
@@ -138,7 +138,7 @@ it("does not change review status or notes when a conflict is redetected", async
   });
 
   const result = await detectConflictsForAgendaItems([100], {
-    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
+    prisma: mockPrisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" },
   });
 
   expect(result.inserted).toBe(0);
@@ -155,7 +155,7 @@ it("does not persist conflicts when agenda items have no matching entities", asy
   });
 
   const result = await detectConflictsForAgendaItems([300], {
-    prisma: mockPrisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
+    prisma: mockPrisma, eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" },
   });
 
   expect(result.totalCandidates).toBe(0);
@@ -186,7 +186,7 @@ it("detects conflicts across all supported schedule types", async () => {
     [100, 200, 201, 202, 203],
     {
       prisma: mockPrisma,
-      eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] },
+      eligibilityPolicy: { period: "ALL_VERIFIED", jurisdiction: "ALL_VERIFIED" },
       matchNamedEntity,
     },
   );

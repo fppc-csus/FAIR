@@ -28,7 +28,7 @@ export function toConflictRecord(candidate = {}) {
     sourceKey,
     detectedAt: detectedAt ? new Date(detectedAt) : new Date(),
   };
-  for (const field of ["filingId", "disclosureId", "filingYear", "jurisdictionId", "meetingDate", "supportingSource"]) {
+  for (const field of ["filingId", "disclosureId", "filingYear", "jurisdictionId", "politicianJurisdictionId", "meetingDate", "supportingSource"]) {
     if (candidate[field] != null) record[field] = candidate[field];
   }
   return record;
@@ -91,7 +91,7 @@ export async function persistConflicts(candidates, deps = {}) {
       where: { agendaItemId: { in: ids } },
       select: { id: true, politicianId: true, agendaItemId: true, conflictType: true, sourceKey: true,
         detectionOwner: true, eligibilityStatus: true, filingId: true, disclosureId: true,
-        filingYear: true, jurisdictionId: true, meetingDate: true, supportingSource: true,
+        filingYear: true, jurisdictionId: true, politicianJurisdictionId: true, meetingDate: true, supportingSource: true,
         severity: true, ruleReference: true, entityName: true },
     });
     const existing = occupied.filter((row) => row.detectionOwner === "SH-324");
@@ -110,7 +110,7 @@ export async function persistConflicts(candidates, deps = {}) {
         data.eligibilityStatus = "active";
         reactivated += 1;
       }
-      for (const field of ["severity", "ruleReference", "entityName", "filingId", "disclosureId", "filingYear", "jurisdictionId", "meetingDate", "supportingSource"]) {
+      for (const field of ["severity", "ruleReference", "entityName", "filingId", "disclosureId", "filingYear", "jurisdictionId", "politicianJurisdictionId", "meetingDate", "supportingSource"]) {
         if (candidate[field] !== undefined && String(candidate[field]) !== String(row[field])) data[field] = candidate[field];
       }
       if (Object.keys(data).length) await tx.conflict.update({ where: { id: row.id }, data });

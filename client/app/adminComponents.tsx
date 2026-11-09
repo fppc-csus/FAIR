@@ -15,7 +15,7 @@ export function AdminGuard({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-const baseLinks = [{ to: "/admin/upload", label: "Upload", Icon: FileUp }, { to: "/admin/history", label: "History", Icon: FileClock }, { to: "/admin/politicians", label: "Officials", Icon: UsersRound }, { to: "/admin/sources", label: "Sources", Icon: Database }, { to: "/admin/reports", label: "Reports", Icon: FileText }];
+const baseLinks = [{ to: "/admin/upload", label: "Upload", Icon: FileUp }, { to: "/admin/history", label: "History", Icon: FileClock }, { to: "/admin/politicians", label: "Officials", Icon: UsersRound }, { to: "/admin/eligibility", label: "Eligibility", Icon: ShieldCheck }, { to: "/admin/sources", label: "Sources", Icon: Database }, { to: "/admin/reports", label: "Reports", Icon: FileText }];
 export function AdminNav({ title }: { title: string }) {
   const [owner, setOwner] = useState(false);
   const links = [...baseLinks, ...(owner ? [{ to: '/admin/users', label: 'Users', Icon: UsersRound }] : [])];

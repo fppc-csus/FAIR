@@ -12,6 +12,10 @@ const syncJobRunPrismaMigrationPath = path.join(
   repositoryRoot,
   'server/prisma/migrations/20261103000000_persisted_sync_job_runs/migration.sql',
 );
+const eligibilityPrismaMigrationPath = path.join(
+  repositoryRoot,
+  'server/prisma/migrations/20261108120000_sh324_metadata_verification/migration.sql',
+);
 const migrationPaths = [
   'supabase/migrations/20261102190000_enable_application_table_rls.sql',
   'supabase/migrations/20261103010000_sync_job_runs_rls.sql',
@@ -35,6 +39,8 @@ describe('Supabase RLS migration', () => {
     const migration = migrations.join('\n');
     const prismaTables = [...schema.matchAll(/@@map\("([^"]+)"\)/g)]
       .map((match) => match[1])
+      // Added later by Prisma, with its own default-deny RLS migration below.
+      .filter((table) => table !== 'eligibility_verification_events')
       .sort();
     const enabledTables = [...migration.matchAll(
       /ALTER TABLE public\."([^"]+)" ENABLE ROW LEVEL SECURITY;/g,
@@ -72,5 +78,26 @@ describe('Supabase RLS migration', () => {
     expect(migration).toMatch(
       /REVOKE ALL ON TABLE "sync_job_runs" FROM authenticated;/i,
     );
+  });
+
+  it('protects the append-only eligibility verification audit table on creation', async () => {
+    const migration = await readFile(eligibilityPrismaMigrationPath, 'utf8');
+    expect(migration).toMatch(/ALTER TABLE "eligibility_verification_events" ENABLE ROW LEVEL SECURITY;/);
+    for (const role of ['PUBLIC', 'anon', 'authenticated']) {
+      expect(migration).toContain(`REVOKE ALL ON TABLE "eligibility_verification_events" FROM ${role};`);
+    }
+  });
+
+  it('invalidates confirmed values across Prisma and raw-SQL correction paths without auto-verifying old data', async () => {
+    const migration = await readFile(eligibilityPrismaMigrationPath, 'utf8');
+    expect(migration).toMatch(/BEFORE UPDATE OF jurisdiction_id, needs_review ON politicians/);
+    expect(migration).toMatch(/BEFORE UPDATE OF filing_year ON form700_filings/);
+    expect(migration).toMatch(/BEFORE UPDATE OF meeting_date, meeting_id ON agenda_items/);
+    expect(migration).toMatch(/AFTER UPDATE OF meeting_date ON meetings/);
+    expect(migration).toMatch(/OLD\.jurisdiction_id IS DISTINCT FROM NEW\.jurisdiction_id/);
+    expect(migration).toMatch(/OLD\.filing_year IS DISTINCT FROM NEW\.filing_year/);
+    expect(migration).toMatch(/OLD\.meeting_date IS DISTINCT FROM NEW\.meeting_date/);
+    expect(migration).toMatch(/INSERT INTO eligibility_verification_events/);
+    expect(migration).not.toMatch(/UPDATE\s+(?:politicians|form700_filings|agenda_items)\s+SET\s+\w+_verified_\w+\s*=\s*(?:true|now\(\))/i);
   });
 });

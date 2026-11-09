@@ -269,6 +269,8 @@ router.get("/:id", async (req, res, next) => {
         filingId: conflict.filingId ?? null,
         disclosureId: conflict.disclosureId ?? null,
         filingYear: conflict.filingYear ?? null,
+        politicianJurisdictionId: conflict.politicianJurisdictionId ?? null,
+        agendaJurisdictionId: conflict.jurisdictionId ?? null,
         supportingSource: conflict.supportingSource ?? null,
         scheduleEntry,
         agendaItem: {

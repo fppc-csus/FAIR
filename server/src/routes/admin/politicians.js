@@ -1,7 +1,6 @@
 import express from "express";
 
 import { prisma } from "../../lib/prisma.js";
-import { eligibilityPolicy } from "../../config/eligibilityPolicy.js";
 
 const router = express.Router();
 
@@ -110,21 +109,42 @@ router.get("/", async (_req, res, next) => {
 // Read-only review queue derived from current records; no destructive backfill.
 router.get("/eligibility-review", async (_req, res, next) => {
   try {
-    const [politicians, agendaItems] = await Promise.all([
+    const [politicians, agendaItems, jurisdictions] = await Promise.all([
       prisma.politician.findMany({
-        where: { filings: { some: {} }, OR: [{ jurisdictionId: null }, { needsReview: true }] },
-        select: { id: true, fullName: true, needsReview: true },
+        where: { filings: { some: {} } },
+        select: { id: true, fullName: true, slug: true, needsReview: true, jurisdictionId: true,
+          jurisdiction: { select: { name: true } },
+          jurisdictionVerifiedId: true, jurisdictionVerifiedAt: true, jurisdictionVerifiedBy: true },
       }),
       prisma.agendaItem.findMany({
-        where: { meetingId: null, OR: [{ meetingDate: null }, { cityName: null }] },
-        select: { id: true, cityId: true, cityName: true, meetingDate: true },
+        select: { id: true, title: true, sourceType: true, sourceUrl: true, cityId: true, cityName: true, meetingDate: true,
+          meetingDateVerifiedValue: true, meetingDateVerifiedAt: true, meetingDateVerifiedBy: true,
+          meeting: { select: { meetingDate: true, agendaUrl: true } } },
       }),
+      prisma.jurisdiction.findMany({ select: { id: true, name: true, type: true }, orderBy: { name: "asc" } }),
     ]);
+    const filings = await prisma.form700Filing.findMany({
+      select: { id: true, politicianId: true, filerName: true, originalFilename: true, archivedPath: true, storagePath: true, filingYear: true, filingYearVerifiedValue: true,
+        filingYearVerifiedAt: true, filingYearVerifiedBy: true },
+    });
     return res.json({
       data: {
-        policyPending: eligibilityPolicy().period === "PENDING",
-        politicians: politicians.map((row) => ({ ...row, reason: row.needsReview ? "POLITICIAN_IDENTITY_REVIEW" : "UNRESOLVED_POLITICIAN_JURISDICTION" })),
-        agendaItems: agendaItems.map((row) => ({ ...row, reason: row.meetingDate ? "UNRESOLVED_JURISDICTION" : "MISSING_MEETING_DATE" })),
+        policyPending: false,
+        jurisdictions,
+        politicians: politicians.filter((row) => !row.jurisdictionId || row.needsReview || !row.jurisdictionVerifiedAt
+          || !row.jurisdictionVerifiedBy || row.jurisdictionVerifiedId !== row.jurisdictionId)
+          .map((row) => ({ ...row, reason: row.needsReview ? "POLITICIAN_IDENTITY_REVIEW"
+            : row.jurisdictionId ? "UNVERIFIED_POLITICIAN_JURISDICTION" : "UNRESOLVED_POLITICIAN_JURISDICTION" })),
+        filings: filings.filter((row) => !Number.isInteger(row.filingYear) || row.filingYear < 1900 || row.filingYear > 9999
+          || !row.filingYearVerifiedAt || !row.filingYearVerifiedBy || row.filingYearVerifiedValue !== row.filingYear)
+          .map((row) => ({ ...row, reason: Number.isInteger(row.filingYear) && row.filingYear >= 1900 && row.filingYear <= 9999
+            ? "UNVERIFIED_FILING_YEAR" : "MISSING_FILING_YEAR" })),
+        agendaItems: agendaItems.filter((row) => {
+          const date = row.meetingDate ?? row.meeting?.meetingDate;
+          return !date || !row.meetingDateVerifiedAt || !row.meetingDateVerifiedBy
+            || new Date(row.meetingDateVerifiedValue).getTime() !== new Date(date).getTime();
+        }).map((row) => ({ ...row, effectiveMeetingDate: row.meetingDate ?? row.meeting?.meetingDate ?? null,
+          reason: row.meetingDate || row.meeting?.meetingDate ? "UNVERIFIED_MEETING_DATE" : "MISSING_MEETING_DATE" })),
       },
     });
   } catch (error) {
@@ -168,7 +188,7 @@ router.put("/:id", async (req, res, next) => {
 
     const current = await prisma.politician.findUnique({
       where: { id: req.params.id },
-      select: { id: true, _count: { select: { filings: true } } },
+      select: { id: true, jurisdictionId: true, _count: { select: { filings: true } } },
     });
     if (!current) return res.status(404).json({ error: "Politician not found." });
 
@@ -182,6 +202,8 @@ router.put("/:id", async (req, res, next) => {
         officeTitle: parsed.value.officeTitle,
         district: parsed.value.district,
         jurisdictionId: cityId,
+        ...(cityId !== current.jurisdictionId
+          ? { jurisdictionVerifiedId: null, jurisdictionVerifiedAt: null, jurisdictionVerifiedBy: null } : {}),
       },
       select: politicianSelect,
     });

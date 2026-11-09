@@ -99,6 +99,9 @@ model Politician {
   externalId     String?       @map("external_id")
   jurisdictionId String?       @map("jurisdiction_id") @db.Uuid
   jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
+  jurisdictionVerifiedId String? @map("jurisdiction_verified_id") @db.Uuid
+  jurisdictionVerifiedAt DateTime? @map("jurisdiction_verified_at") @db.Timestamptz(3)
+  jurisdictionVerifiedBy String? @map("jurisdiction_verified_by")
   /// Set when a Form 700 filer could not be confidently matched to an existing
   /// politician and a new row was auto-created (see findOrCreatePolitician.js).
   needsReview    Boolean       @default(false) @map("needs_review")
@@ -135,6 +138,21 @@ model PoliticianReviewEvent {
 
   @@index([politicianId, createdAt], map: "politician_review_events_politician_created_idx")
   @@map("politician_review_events")
+}
+
+/// Append-only record of metadata confirmation and invalidation. Record IDs are
+/// deliberately not foreign keys so deletion never erases the audit trail.
+model EligibilityVerificationEvent {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recordType String   @map("record_type")
+  recordId   String   @map("record_id") @db.Uuid
+  action     String
+  value      String?
+  actorId    String?  @map("actor_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([recordType, recordId, createdAt], map: "eligibility_verification_events_record_idx")
+  @@map("eligibility_verification_events")
 }
 
 model Meeting {
@@ -177,6 +195,9 @@ model AgendaItem {
   cityName    String?   @map("city_name")
   bodyName    String?   @map("body_name")
   meetingDate DateTime? @map("meeting_date")
+  meetingDateVerifiedValue DateTime? @map("meeting_date_verified_value")
+  meetingDateVerifiedAt DateTime? @map("meeting_date_verified_at") @db.Timestamptz(3)
+  meetingDateVerifiedBy String? @map("meeting_date_verified_by")
 
   // Legistar REST fields written by server/src/jobs/nightlySync.js
   legistarItemId      String?  @unique @map("legistar_item_id")
@@ -223,6 +244,9 @@ model Form700Filing {
   politicianId     String     @map("politician_id") @db.Uuid
   politician       Politician @relation(fields: [politicianId], references: [id], onDelete: Cascade)
   filingYear       Int        @map("filing_year")
+  filingYearVerifiedValue Int? @map("filing_year_verified_value")
+  filingYearVerifiedAt DateTime? @map("filing_year_verified_at") @db.Timestamptz(3)
+  filingYearVerifiedBy String? @map("filing_year_verified_by")
   /// Filer name exactly as printed on the cover page (before entity resolution).
   filerName        String?    @map("filer_name")
   /// Original upload filename (e.g. "smith-2025.xlsx").
@@ -301,6 +325,7 @@ model Conflict {
   disclosureId      String?   @map("disclosure_id") @db.Uuid
   filingYear        Int?      @map("filing_year")
   jurisdictionId    String?   @map("jurisdiction_id") @db.Uuid
+  politicianJurisdictionId String? @map("politician_jurisdiction_id") @db.Uuid
   meetingDate       DateTime? @map("meeting_date")
   supportingSource  String?   @map("supporting_source")
   detectedAt    DateTime     @default(now()) @map("detected_at") @db.Timestamptz(3)
@@ -341,6 +366,7 @@ model ConflictReview {
 model DetectionRun {
   id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   filingId        String?      @map("filing_id") @db.Uuid
+  agendaItemId    String?      @map("agenda_item_id") @db.Uuid
   filing          Form700Filing? @relation(fields: [filingId], references: [id], onDelete: Cascade)
   politicianId    String?      @map("politician_id") @db.Uuid
   politician      Politician?  @relation(fields: [politicianId], references: [id], onDelete: SetNull)
@@ -366,6 +392,7 @@ model DetectionRun {
 
   @@index([status, createdAt], map: "detection_runs_status_created_at_idx")
   @@index([filingId], map: "detection_runs_filing_id_idx")
+  @@index([agendaItemId], map: "detection_runs_agenda_item_id_idx")
   @@index([jurisdictionId, filingYear], map: "detection_runs_jurisdiction_year_idx")
   @@map("detection_runs")
 }

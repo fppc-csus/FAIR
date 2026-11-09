@@ -104,7 +104,28 @@ function makePrisma({ agendaItems = [{ id: "agenda-1" }] } = {}) {
 }
 
 describe("runDetectionRun", () => {
-  it("evaluates already-ingested agenda items within the jurisdiction and filing-year window", async () => {
+  it("rechecks an agenda correction in a durable retryable item even when no filings remain", async () => {
+    const prisma = makePrisma({ agendaItems: [{ id: "agenda-1" }, { id: "agenda-2" }] });
+    prisma.runs.get(RUN_ID).trigger = "eligibility_correction";
+    prisma.runs.get(RUN_ID).agendaItemId = "agenda-1";
+    const detect = vi.fn().mockResolvedValue({ inserted: 0, totalCandidates: 0 });
+    const result = await runDetectionRun(RUN_ID, { prisma, detectConflictsForAgendaItems: detect });
+    expect(result.run.status).toBe("completed");
+    expect(detect).toHaveBeenCalledWith(["agenda-1"], { prisma });
+    expect(prisma.runItems).toHaveLength(0);
+    expect(result).toMatchObject({ totalItems: 1, processedItems: 1 });
+  });
+
+  it("persists an agenda reprocessing failure for retry instead of swallowing it", async () => {
+    const prisma = makePrisma();
+    prisma.runs.get(RUN_ID).trigger = "eligibility_correction";
+    prisma.runs.get(RUN_ID).agendaItemId = "agenda-1";
+    const detect = vi.fn().mockRejectedValueOnce(new Error("temporary failure")).mockResolvedValue({ inserted: 0 });
+    expect(await runDetectionRun(RUN_ID, { prisma, detectConflictsForAgendaItems: detect })).toMatchObject({ status: "failed", error: "temporary failure" });
+    expect((await runDetectionRun(RUN_ID, { prisma, detectConflictsForAgendaItems: detect })).run.status).toBe("completed");
+    expect(detect).toHaveBeenCalledTimes(2);
+  });
+  it("evaluates already-ingested agenda items across jurisdictions and filing years", async () => {
     const prisma = makePrisma();
     const detectConflictsForAgendaItems = vi.fn(async () => ({
       totalCandidates: 2,
@@ -117,41 +138,10 @@ describe("runDetectionRun", () => {
       detectConflictsForAgendaItems,
     });
 
-    expect(prisma.agendaItem.findMany).toHaveBeenCalledWith({
-      where: {
-        OR: [
-          {
-            meeting: {
-              is: {
-                jurisdictionId: JURISDICTION_ID,
-                meetingDate: {
-                  gte: new Date(Date.UTC(2025, 0, 1)),
-                  lt: new Date(Date.UTC(2026, 0, 1)),
-                },
-              },
-            },
-          },
-          {
-            meetingDate: {
-              gte: new Date(Date.UTC(2025, 0, 1)),
-              lt: new Date(Date.UTC(2026, 0, 1)),
-            },
-            meeting: { is: { jurisdictionId: JURISDICTION_ID } },
-          },
-          {
-            meetingDate: {
-              gte: new Date(Date.UTC(2025, 0, 1)),
-              lt: new Date(Date.UTC(2026, 0, 1)),
-            },
-            cityName: { equals: "Sacramento", mode: "insensitive" },
-          },
-        ],
-      },
-      select: { id: true },
-    });
+    expect(prisma.agendaItem.findMany).toHaveBeenCalledWith({ select: { id: true } });
     expect(detectConflictsForAgendaItems).toHaveBeenCalledWith(
       ["agenda-1"],
-      { prisma, politicianIds: [POLITICIAN_ID] },
+      { prisma },
     );
     expect(result.run.status).toBe("completed");
     expect(result).toMatchObject({
