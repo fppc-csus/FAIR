@@ -1,58 +1,84 @@
-# SH-336 pre-launch credential audit
+# SH-336 Pre-launch credential audit
 
-Date: November 8, 2026 (America/Los_Angeles). Reviewer: Ishkaram Gill.
-Baseline: supplied snapshot of main commit a9262bf. Status: IN PROGRESS; NOT a release security approval.
+**Audit date:** November 8, 2026 (Pacific time)
+**Auditor and SH-336 sign-off owner:** Ishkaram Gill
+**Repository baseline:** `main` commit `a9262bf`
+**Status:** In Progress. Release sign-off pending.
 
 ## Completed evidence
 
-- User ran Gitleaks 8.30.1 against all locally available Git refs: 210 commits, no leaks detected. Reports: Desktop/SH336-history-redacted.json and SH336-files-redacted.json. File scan covered the clean audit worktree (not ignored local files in the original worktree). Scanner success is not proof that no secrets exist elsewhere.
-- Only client/.env.example and server/.env.example were listed as tracked environment files at the audited checkout. Templates excluded from the uploaded ZIP; contents not reviewed here.
-- Supabase FAIR production project visible under fppc-csus; shared project email has Owner role. Client approval and actual custodians remain unverified.
-- Railway service laudable-light in invigorating-heart/production connects to fppc-csus/FAIR, main, root server. Migrations: npx prisma migrate deploy; start: npm start; health path /health. Deployment shown active. Health endpoint not independently requested.
-- Railway variable names cover database URLs, Supabase privileged key, Apify token, origin, first-owner email and scheduler controls. Values not inspected. NODE_ENV absent from explicit list; effective runtime value unverified. Gemini credentials absent from explicit list; optional feature scope requires confirmation.
-- Vercel fair has VITE_API_URL and VITE_SUPABASE_URL in Production/Preview, VITE_SUPABASE_ANON_KEY in Production, and a truncated publishable-key variable name in Production/Preview. No server-secret names among the four visible VITE variables. Values and deployed assets unverified.
-- Apify shared account owns fair-agenda-pdf-scraper. One masked personal token visible. Token permissions, expiration and rotation not established.
-- Google 2-Step Verification off, recovery phone/email absent, password last changed April 3. GitHub 2FA off, Google connected, no GitHub password configured. Apify 2FA off. Supabase membership MFA indicator shows cross. Railway/Vercel independent MFA controls not reviewed.
+- Gitleaks 8.30.1 scanned the clean audit worktree and 210 commits across locally available Git refs. Both scans reported no leaks. The redacted reports are `SH336-history-redacted.json` and `SH336-files-redacted.json`. The worktree scan covered the separate audit checkout.
+- The tracked environment-file check listed only `client/.env.example` and `server/.env.example`. The review archive excluded both templates.
+- The shared project account has the Owner role on the FAIR production project in Supabase under `fppc-csus`. The approved custodians and account recovery arrangements still need verification.
+- Railway’s `laudable-light` production service is connected to `fppc-csus/FAIR` on `main`, with `server` as the root directory. The dashboard showed an active deployment configured with `npx prisma migrate deploy`, `npm start`, and `/health` as the health-check path. An independent health check remains pending.
+- Railway lists variables for database access, Supabase, Apify, the frontend origin, the initial admin email, and scheduler settings. The effective production values remain unverified. `NODE_ENV` and Gemini key names were absent from the explicit service-variable list.
+- Vercel’s `fair` project shows `VITE_API_URL` and `VITE_SUPABASE_URL` in Production and Preview, `VITE_SUPABASE_ANON_KEY` in Production, and a Supabase publishable-key entry in Production and Preview. The four visible `VITE_*` names correspond to public configuration. The values and deployed browser bundle still need verification. Vercel also lists server credential names whose build or runtime use needs review.
+- The shared Apify account owns `fair-agenda-pdf-scraper`. The dashboard showed one masked personal API token and no connected third-party apps. Token permissions, expiration, and rotation remain unverified.
+- Google 2-Step Verification, GitHub 2FA, and Apify 2FA were off when reviewed. The Google account showed no recovery phone or email and listed April 3 as the last password change. GitHub showed a connected Google account. Supabase showed an × under MFA for the shared Owner account. Railway and Vercel MFA and recovery status remain unverified.
+
+## Credential follow-up
+
+On November 8, Sina said the credentials were shared privately in the team Discord for development. Ishkaram then verified that the Supabase secret key listed in the FAIR production project exactly matches the key shared in Discord. Whether Railway uses that key remains unverified. Record only status, dates, affected services, and restricted evidence references.
+
+| Credential | Evidence | Rotation and revocation status | Evidence needed to close |
+| --- | --- | --- | --- |
+| Supabase secret key | On November 8, Ishkaram confirmed an exact match between the key listed in the FAIR production Supabase project and the key shared in Discord for development. | Previously shared key confirmed still listed as of November 8. Railway usage and subsequent revocation remain unverified. | Identify deployments that use the key, coordinate replacement, verify the backend works with the new key, and record the date the old key was revoked. |
+| Database password | The password was shared in the development `.env` message and used in both database connection strings shown there. | Unverified | Confirm whether the database password was reset and the old password invalidated. Record updates to affected deployments and the database connectivity check. |
+| Apify API token | A token was shared in the development `.env` message. Apify shows a masked personal token, and Railway lists `APIFY_TOKEN`. | Unverified | Confirm whether the shared token was revoked. If it was still active, record the replacement, old-token revocation, and ingestion smoke-test result. |
+| Shared Google password | The shared account was used during the audit. The password provided for that account matched the historical database password. | Unverified | Confirm whether the Google password was replaced with a distinct password. Record who controls account access and recovery. |
 
 ## Open findings and proposed owners
 
 | Finding | Provisional severity | Proposed owner | Closure evidence |
 | --- | --- | --- | --- |
-| Privileged Supabase key, database password and Apify token shared in Discord and this conversation; active status unknown | High | Sina + client service custodians | Replacement deployed where needed, old credentials revoked/reset, successful smoke checks, dated confirmation without values |
-| Shared Google password disclosed and matches the decoded historical DB password | High | Sina + client | Distinct replacement passwords, coordinated database/deployment updates, approved custodians and secure distribution |
-| Shared privileged account; MFA off across inspected accounts; Google recovery methods missing | High | Client account owner + Sina | Named custodians/access review, coordinated MFA/recovery setup and confirmation of who retains recovery material |
-| Server credentials in Vercel, including Preview; actual need unverified | Medium pending review | Sina + frontend deployment owner | Review SSR/build/runtime usage; remove unnecessary credentials, redeploy and test, inspect client assets for secrets |
-| Preview lacks the anon-key variable used by reviewed client code | Medium | Frontend owner | Provide intended public configuration or implement/test publishable-key fallback; preview login succeeds |
-| Production configuration missing-variable behavior not comprehensively validated | Medium | Ishkaram + backend owner | Run provided preflight with actual deployment env privately; fix missing/invalid names and test application error behavior |
-| Apify resource access says anyone with ID can read | Medium pending data review | Apify custodian + Mao | Review resources for sensitive input/logs; restrict access where needed and verify ingestion compatibility |
-
-Shared accounts and disabled MFA are observed findings; task wording requires verification but does not by itself mandate a particular MFA policy. Client/release owner must classify launch blockers. Rotation of potentially active disclosed credentials is required before an audit pass. Do not include secret values in tickets, logs or evidence.
-
-November 8 follow-up — Sina confirmed the credentials were shared privately in the team Discord for development. Production use, rotation, and revocation remain unverified.
+| The shared Supabase secret key is still listed in the production project. The status of the other shared credentials remains unverified. | High | Sina and service custodians | Record Supabase key replacement and revocation, plus the backend smoke-test result. Confirm the status of the other shared credentials and record remediation where required. |
+| Shared privileged access, missing Google recovery methods, and MFA disabled on inspected accounts | High | Client account owner and Sina | Approved custodians, confirmation of who requires access, and documented MFA and recovery status where supported. |
+| Server credentials listed in Vercel, including Preview | Medium, pending review | Sina and frontend deployment owner | Verify build, server runtime, and deployment use. Remove unnecessary entries and verify the deployed browser bundle contains no privileged credentials. |
+| Preview lacks the anon-key variable used by the reviewed client code | Medium | Frontend owner | Verify Preview sign-in with the intended public configuration. If needed, configure the public key the code expects or implement and test a publishable-key fallback. |
+| Effective production configuration and missing-variable behavior remain unverified | Medium | Ishkaram and backend/frontend deployment owners | Run the preflight privately against the effective deployment environments. In staging, omit a required variable and record how the application reports it. |
+| Apify resource access allows reading by resource ID | Medium, pending review | Apify custodian and Mao | Review whether the setting exposes sensitive inputs or logs. If access changes are needed, verify ingestion still works afterward. |
 
 ## Environment preflight
 
-New scripts are standalone, read-only, dependency-free and do not change application startup. They do not load .env automatically or contact services.
-
-From repository root:
+From the repository root, run the test suite for the checker:
 
 ```bash
 node --test scripts/check-release-env.test.mjs
+```
+
+Run each preflight in a trusted environment where the corresponding deployment variables are already loaded:
+
+```bash
+# Railway backend environment
 node scripts/check-release-env.mjs server
+
+# Vercel frontend build environment
 node scripts/check-release-env.mjs client
 ```
 
-Run server/client checks only in a trusted environment containing that target's deployment variables. Do not export production secrets to chat or copy them into commands. A local empty audit worktree is expected to fail required-variable checks. Optional Gemini, initialized admin memberships and source-specific Actor IDs produce review warnings. Scheduler expression validity is left to existing node-cron validation. Preflight cannot verify token liveness, scopes, MFA, authorization, or deployed bundle contents.
+The scripts read the supplied environment and report variable names and validation errors without printing credential values. A clean local worktree without deployment variables will report missing settings. Verify credential validity, access controls, and deployed browser assets separately.
 
-## Validation of proposed changes
+## Local validation
 
 Local validation on November 8, 2026:
 
 - After generating the Prisma client, `npm test` passed with 89 frontend, 458 backend, and 23 Apify tests.
 - All seven configuration-checker tests passed.
 - Documentation navigation validation passed, and all four documentation tests passed.
-- Production configuration checks and credential rotation remain pending.
 
 ## Remaining acceptance items
 
-Confirm ownership/approved account custodians for all services including Gemini if used; confirm Resend remains disabled/unimplemented. Inspect deployment assets without exposing values. Resolve rotation and configuration findings. Verify how the deployed app handles missing required configuration. Record exact release commit and final evidence. Obtain release owner's final security go/no-go. Audit remains IN PROGRESS.
+- [ ] Coordinate replacement of the shared Supabase secret key, verify the backend with the replacement, and record revocation of the old key.
+- [ ] Verify the status of the shared database password, Apify token, and Google password. Record rotation and revocation evidence where required.
+- [ ] Verify approved production account custodians and access for Supabase, Apify, Railway, and Vercel. Confirm whether Gemini and Resend are enabled and verify their account ownership if applicable.
+- [ ] Record MFA and recovery status where supported, including the remaining Railway and Vercel checks.
+- [ ] Run the production configuration preflight, review server credential placement and deployed browser assets, and document missing-variable behavior in staging.
+- [ ] Record the exact release commit, date, auditor, and restricted evidence references. Ishkaram Gill records the SH-336 audit decision before go-live once the acceptance criteria are satisfied.
+
+**Current decision:** Local checks passed. The previously shared Supabase secret key was confirmed still listed in the production project on November 8. Credential remediation and production verification remain open.
+## Database password cutover review
+
+- Railway Production `DATABASE_URL` matches the database password shared on October 26. The `DIRECT_URL` comparison remains unverified. Both Railway variables are editable and are on the cutover checklist.
+- Vercel Production and Preview `DATABASE_URL` both match the previously shared value. Vercel Project Storage showed no connected resource, and the reviewed frontend source had no direct database URL references. Deployment usage remains unverified.
+- Before any reset, Railway `/health/ready` returned HTTP 200 with database status `ok`.
+- Reset status: pending. Confirm which Vercel entries are needed, coordinate updates for affected deployments, and rerun readiness and public smoke checks after the cutover.
