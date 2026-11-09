@@ -28,6 +28,8 @@ Baseline: supplied snapshot of main commit a9262bf. Status: IN PROGRESS; NOT a r
 
 Shared accounts and disabled MFA are observed findings; task wording requires verification but does not by itself mandate a particular MFA policy. Client/release owner must classify launch blockers. Rotation of potentially active disclosed credentials is required before an audit pass. Do not include secret values in tickets, logs or evidence.
 
+November 8 follow-up — Sina confirmed the credentials were shared privately in the team Discord for development. Production use, rotation, and revocation remain unverified.
+
 ## Environment preflight
 
 New scripts are standalone, read-only, dependency-free and do not change application startup. They do not load .env automatically or contact services.
