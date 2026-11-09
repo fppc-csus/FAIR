@@ -15,17 +15,49 @@ function isStaleRunningRun(run, now = Date.now()) {
 }
 
 function safeErrorSummary(errors) {
-  if (!errors) return null;
+  return safeErrorDetails(errors)[0]?.message ?? null;
+}
 
-  if (typeof errors === "string") {
-    return errors.slice(0, 500);
-  }
+function safeErrorDetails(errors) {
+  if (!errors) return [];
+  const entries = Array.isArray(errors) ? errors : [errors];
+  return entries.slice(0, 20).map((entry) => {
+    if (typeof entry === "string") return { message: entry.slice(0, 500) };
+    if (!entry || typeof entry !== "object") {
+      return { message: "The run failed. Check the server logs for more information." };
+    }
 
-  if (typeof errors === "object" && typeof errors.message === "string") {
-    return errors.message.slice(0, 500);
-  }
+    let url = null;
+    if (typeof entry.pdfUrl === "string") {
+      try {
+        const parsed = new URL(entry.pdfUrl);
+        if (["http:", "https:"].includes(parsed.protocol) && !parsed.username && !parsed.password) {
+          parsed.search = "";
+          parsed.hash = "";
+          url = parsed.href.slice(0, 500);
+        }
+      } catch {
+        url = null;
+      }
+    }
 
-  return "The run failed. Check the server logs for more information.";
+    return {
+      ...(url ? { url } : {}),
+      message: typeof entry.message === "string"
+        ? entry.message.slice(0, 500)
+        : "The run failed. Check the server logs for more information.",
+    };
+  });
+}
+
+function safeDetectionErrors(errors) {
+  if (!Array.isArray(errors)) return [];
+  return errors.slice(0, 20).map((entry) => ({
+    agendaItemCount: Array.isArray(entry?.agendaItemIds) ? entry.agendaItemIds.length : 0,
+    message: typeof entry?.message === "string"
+      ? entry.message.slice(0, 500)
+      : "Conflict detection failed. Check the server logs for more information.",
+  }));
 }
 
 function displayStatus(run, now = Date.now()) {
@@ -95,10 +127,15 @@ router.get("/", async (_req, res) => {
       completedAt: run.completedAt,
       status: displayStatus(run, now),
       itemsFound: run.itemsFound,
+      documentsFound: run.documentsFound,
+      pdfsFetched: run.pdfsFetched,
+      documentsSkipped: run.documentsSkipped,
       itemsInserted: run.itemsInserted,
       itemsSkipped: run.itemsSkipped,
       conflictsDetected: run.conflictsDetected,
       error: safeErrorSummary(run.errors),
+      sourceLimitations: safeErrorDetails(run.errors),
+      detectionErrors: safeDetectionErrors(run.detectionErrors),
       retryEligible:
         run.status === "failed" || isStaleRunningRun(run, now),
     }));
