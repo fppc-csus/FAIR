@@ -25,6 +25,9 @@ describe('Legistar historical backfill', () => {
       itemsFound: 2,
       inserted: 2,
       conflictsDetected: 0,
+      failures: 0,
+      detectionFailures: 0,
+      cityResults: [],
     });
 
     await runBackfill({
@@ -41,15 +44,20 @@ describe('Legistar historical backfill', () => {
       startDate: '2025-11-01',
       endDate: '2025-11-30',
       lookbackDays: undefined,
+      detectExistingAgendaItems: true,
+      includeFinalItemCount: true,
     });
   });
 
-  it('defaults a rolling two-year backfill to today', async () => {
+  it('defaults to an explicit inclusive two-year date range', async () => {
     const run = vi.fn().mockResolvedValue({
-      citiesProcessed: 0,
+      citiesProcessed: 1,
       itemsFound: 0,
       inserted: 0,
       conflictsDetected: 0,
+      failures: 0,
+      detectionFailures: 0,
+      cityResults: [],
     });
 
     await runBackfill({
@@ -60,9 +68,21 @@ describe('Legistar historical backfill', () => {
 
     expect(run).toHaveBeenCalledWith({
       city: null,
-      startDate: null,
+      startDate: '2024-10-28',
       endDate: '2026-10-28',
-      lookbackDays: 730,
+      lookbackDays: undefined,
+      detectExistingAgendaItems: true,
+      includeFinalItemCount: true,
     });
+  });
+
+  it.each([
+    [{ citiesProcessed: 0, failures: 0, detectionFailures: 0 }, 'processed no Legistar cities'],
+    [{ citiesProcessed: 1, failures: 1, detectionFailures: 0 }, 'failed for 1 Legistar city'],
+    [{ citiesProcessed: 1, failures: 0, detectionFailures: 1 }, 'conflict detection failed'],
+    [{ citiesProcessed: 1, failures: 0, detectionFailures: 0, skippedRun: true }, 'another Legistar run is active'],
+  ])('fails acceptance backfills when sync evidence is incomplete', async (result, message) => {
+    await expect(runBackfill({ run: vi.fn().mockResolvedValue(result), log: vi.fn() }))
+      .rejects.toThrow(message);
   });
 });

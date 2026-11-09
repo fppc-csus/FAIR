@@ -1,6 +1,6 @@
 const DETECTION_FIELDS = ['title', 'description', 'itemText'];
 
-export async function upsertAgendaItems(prisma, rows, getWhere) {
+export async function upsertAgendaItems(prisma, rows, getWhere, { includeUnchanged = false } = {}) {
   let inserted = 0;
   let skipped = 0;
   const changedIds = [];
@@ -24,7 +24,7 @@ export async function upsertAgendaItems(prisma, rows, getWhere) {
     }
 
     skipped += 1;
-    if (DETECTION_FIELDS.some((field) => (existing[field] ?? null) !== (row[field] ?? null))) {
+    if (includeUnchanged || DETECTION_FIELDS.some((field) => (existing[field] ?? null) !== (row[field] ?? null))) {
       changedIds.push(saved.id);
     }
   }

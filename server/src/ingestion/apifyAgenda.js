@@ -144,7 +144,7 @@ function hasAgendaText(value) {
   return Boolean(text) && !DOCUMENT_URL_PATTERN.test(text);
 }
 
-async function upsertAgendaRows(prismaClient, rows, source, sourceUrl, documentTitle) {
+async function upsertAgendaRows(prismaClient, rows, source, sourceUrl, documentTitle, includeUnchanged) {
   let inserted = 0;
   let skipped = 0;
   const changedIds = [];
@@ -180,7 +180,7 @@ async function upsertAgendaRows(prismaClient, rows, source, sourceUrl, documentT
       sourceType: 'apify',
     };
 
-    const result = await upsertAgendaItems(prismaClient, [data], () => where);
+    const result = await upsertAgendaItems(prismaClient, [data], () => where, { includeUnchanged });
     inserted += result.inserted;
     skipped += result.skipped;
     changedIds.push(...result.changedIds);
@@ -239,6 +239,7 @@ async function performApifyAgendaIngestion({
   parsePdf = parsePdfAgenda,
   fetchImpl = fetch,
   detect = detectConflictsForAgendaItems,
+  detectExistingAgendaItems = false,
   log = console.log,
 } = {}) {
   if (!Array.isArray(items)) throw new Error('Apify dataset results must be an array');
@@ -301,7 +302,14 @@ async function performApifyAgendaIngestion({
       }
 
       const result = await prismaClient.$transaction((transactionClient) => (
-        upsertAgendaRows(transactionClient, validRows, source, item.pdfUrl, item.title)
+        upsertAgendaRows(
+          transactionClient,
+          validRows,
+          source,
+          item.pdfUrl,
+          item.title,
+          detectExistingAgendaItems,
+        )
       ));
       counts.itemsInserted += result.inserted;
       counts.itemsSkipped += result.skipped;
@@ -339,6 +347,7 @@ async function performApifyAgendaIngestion({
   await updateRunRecords(prismaClient, source, run.id, counts, errors);
   return {
     cityName: source.cityName,
+    cityId: source.id,
     ...counts,
     sampledDocuments: sampled,
     errors,
@@ -375,7 +384,7 @@ export async function ingestApifyAgendaItems(options = {}) {
     }),
     {
       prismaClient,
-      hasErrors: (result) => result.errors.length > 0,
+      hasErrors: (result) => result.errors.length > 0 || result.detectionErrors.length > 0,
     },
   );
   if (!outcome.skipped) return outcome.result;
