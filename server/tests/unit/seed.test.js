@@ -9,7 +9,10 @@ function createPrismaSeedMock() {
   const dataSources = new Map();
   const jurisdictionUpsert = vi.fn(async ({ where, create }) => {
     if (!jurisdictions.has(where.legistarClientId)) {
-      jurisdictions.set(where.legistarClientId, { id: 'jurisdiction-1', ...create });
+      jurisdictions.set(where.legistarClientId, {
+        id: `jurisdiction-${jurisdictions.size + 1}`,
+        ...create,
+      });
     }
     return jurisdictions.get(where.legistarClientId);
   });
@@ -77,7 +80,7 @@ describe('Prisma seed process', () => {
     await seedDatabase(prisma, log);
     await seedDatabase(prisma, log);
 
-    expect(jurisdictions.size).toBe(1);
+    expect(jurisdictions.size).toBe(4);
     expect(jurisdictions.get('ca-state')).toMatchObject({
       name: 'State of California',
       type: 'STATE',
@@ -91,7 +94,15 @@ describe('Prisma seed process', () => {
       'scott-wiener',
       'shannon-grove',
     ]);
-    expect(jurisdictionUpsert).toHaveBeenCalledTimes(2);
+    expect(jurisdictionUpsert).toHaveBeenCalledTimes(8);
+    expect([...jurisdictions.values()].map(({ name, type, legistarClientId }) => ({
+      name, type, legistarClientId,
+    }))).toEqual([
+      { name: 'State of California', type: 'STATE', legistarClientId: 'ca-state' },
+      { name: 'Fresno', type: 'city', legistarClientId: 'fresno' },
+      { name: 'Oakland', type: 'city', legistarClientId: 'oakland' },
+      { name: 'San Jose', type: 'city', legistarClientId: 'sanjose' },
+    ]);
     expect(politicianUpsert).toHaveBeenCalledTimes(12);
     expect([...dataSources.values()]).toEqual([
       {
@@ -102,6 +113,7 @@ describe('Prisma seed process', () => {
         legistarClientId: 'fresno',
         apifyActorId: null,
         startUrl: null,
+        jurisdictionId: 'jurisdiction-2',
         enabled: false,
       },
       {
@@ -112,6 +124,7 @@ describe('Prisma seed process', () => {
         legistarClientId: 'oakland',
         apifyActorId: null,
         startUrl: null,
+        jurisdictionId: 'jurisdiction-3',
         enabled: false,
       },
       {
@@ -122,6 +135,7 @@ describe('Prisma seed process', () => {
         legistarClientId: 'sanjose',
         apifyActorId: null,
         startUrl: null,
+        jurisdictionId: 'jurisdiction-4',
         enabled: false,
       },
     ]);
@@ -148,6 +162,7 @@ describe('Prisma seed process', () => {
       sourceType: 'legistar',
       legistarBaseUrl: 'https://webapi.legistar.com/v1/fresno',
       legistarClientId: 'fresno',
+      jurisdictionId: 'jurisdiction-2',
       enabled: true,
     });
   });

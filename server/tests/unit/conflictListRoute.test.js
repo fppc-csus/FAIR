@@ -2,13 +2,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { parseConflictQuery, conflictSql } from '../../src/utils/conflictQuery.js';
-const db = vi.hoisted(() => ({ $transaction: vi.fn(), $queryRaw: vi.fn(), conflict: { findMany: vi.fn() } }));
+const db = vi.hoisted(() => ({
+  $transaction: vi.fn(),
+  $queryRaw: vi.fn(),
+  jurisdiction: { findMany: vi.fn() },
+  conflict: { findMany: vi.fn() },
+}));
 vi.mock('../../src/lib/prisma.js', () => ({ prisma: db, default: db }));
 import router from '../../src/routes/conflicts.js';
 const app = express();
 app.use('/api/conflicts', router);
 app.use((err, _req, res, _next) => res.status(err.status ?? 500).json({ error: err.publicMessage ?? 'internal server error' }));
-beforeEach(() => { vi.resetAllMocks(); db.$transaction.mockImplementation(fn => fn(db)); });
+beforeEach(() => {
+  vi.resetAllMocks();
+  db.$transaction.mockImplementation(fn => fn(db));
+  db.jurisdiction.findMany.mockResolvedValue([]);
+});
 const row = id => ({ id, politician: { fullName: 'Alex', jurisdiction: { name: 'Davis' } }, agendaItem: { cityName: 'Davis', title: 'Contract' }, detectedAt: new Date('2026-10-01'), conflictType: 'INCOME', severity: 'HIGH' });
 describe('conflict list contract', () => {
   it('returns bounded pagination and preserves SQL ordering', async () => {

@@ -96,6 +96,18 @@ export async function seedDatabase(prisma, log = console.log) {
   }
 
   for (const source of launchCitySources) {
+    const jurisdiction = await prisma.jurisdiction.upsert({
+      where: { legistarClientId: source.legistarClientId },
+      create: {
+        name: source.cityName,
+        type: "city",
+        legistarClientId: source.legistarClientId,
+      },
+      update: {
+        name: source.cityName,
+        type: "city",
+      },
+    });
     const existing = await prisma.dataSource.findFirst({
       where: {
         cityName: { equals: source.cityName, mode: "insensitive" },
@@ -106,6 +118,7 @@ export async function seedDatabase(prisma, log = console.log) {
       ...source,
       apifyActorId: null,
       startUrl: null,
+      jurisdictionId: jurisdiction.id,
     };
 
     if (existing) {

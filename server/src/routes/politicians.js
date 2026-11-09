@@ -17,6 +17,9 @@ router.get('/', async (_req, res, next) => {
         slug: true,
         fullName: true,
         district: true,
+        jurisdiction: {
+          select: { name: true },
+        },
         _count: {
           select: {
             conflicts: { where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: 'active' }] } },
@@ -34,6 +37,7 @@ router.get('/', async (_req, res, next) => {
       slug: politician.slug,
       fullName: politician.fullName,
       district: politician.district,
+      city: politician.jurisdiction?.name ?? null,
       conflictCount: politician._count.conflicts,
     }));
 
@@ -57,6 +61,9 @@ router.get('/id/:id', async (req, res, next) => {
         id: true,
         fullName: true,
         district: true,
+        jurisdiction: {
+          select: { name: true },
+        },
         filings: {
           select: {
             id: true,
@@ -100,7 +107,14 @@ router.get('/id/:id', async (req, res, next) => {
     }
 
     return res.status(200).json({
-      data: politician,
+      data: {
+        id: politician.id,
+        fullName: politician.fullName,
+        district: politician.district,
+        city: politician.jurisdiction?.name ?? null,
+        filings: politician.filings,
+        conflicts: politician.conflicts,
+      },
     });
   } catch (error) {
     return next(error);
@@ -162,4 +176,3 @@ router.get('/:slug', async (req, res, next) => {
 });
 
 export default router;
-

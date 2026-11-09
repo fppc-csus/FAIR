@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Conflicts from "./conflicts";
 import Politicians from "./politicians";
@@ -24,12 +24,12 @@ describe("public request recovery", () => {
     expect(fetch).toHaveBeenCalledTimes(Page === Conflicts ? 3 : 2);
     if (Page !== Conflicts) expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
-  it("shows essential conflict information and clears an empty filter", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
-      const url = String(input);
-      return Response.json(url.includes('/filters') ? { data: ['Sacramento'] } : { data: url.includes('severities=LOW') ? [] : [record], total: url.includes('severities=LOW') ? 0 : 1 });
-    });
-    render(<MemoryRouter><Conflicts /></MemoryRouter>);
+    it("shows essential conflict information and clears an empty filter", async () => {
+      vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+        const url = String(input);
+        return Response.json(url.includes('/filters') ? { data: ['Sacramento'] } : { data: url.includes('severities=LOW') ? [] : [record], total: url.includes('severities=LOW') ? 0 : 1 });
+      });
+      render(<MemoryRouter><Conflicts /></MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Jordan Lee" })).toBeInTheDocument();
     expect(screen.getAllByText("HIGH")).toHaveLength(2);
     expect(screen.getByRole("link", { name: /Jordan Lee/ })).toHaveAttribute("href", "/conflicts/1");
@@ -37,6 +37,67 @@ describe("public request recovery", () => {
     expect(await screen.findByText("No records match these filters")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(await screen.findByRole("heading", { name: "Jordan Lee" })).toBeInTheDocument();
+  });
+  it("shows city jurisdictions on public official and agenda pages", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/api/politicians?")) {
+        return Response.json({ data: [{
+          id: "official-1",
+          slug: "fresno-official",
+          fullName: "Jordan Lee",
+          district: "District 1",
+          city: "Fresno",
+          conflictCount: 0,
+        }] });
+      }
+      if (url.includes("/api/politicians/")) {
+        return Response.json({ data: {
+          id: "official-1",
+          name: "Jordan Lee",
+          officeTitle: "Councilmember",
+          district: "District 1",
+          city: "Fresno",
+          filings: [],
+          conflicts: [],
+        } });
+      }
+      return Response.json({ data: {
+        id: "agenda-1",
+        title: "Budget review",
+        description: null,
+        itemText: "Review the annual budget.",
+        itemNumber: "1",
+        meetingDate: "2026-10-01",
+        cityName: "San Jose",
+        sourceType: "legistar",
+        bodyName: "City Council",
+        conflicts: [],
+      } });
+    });
+
+    const politicianList = render(<MemoryRouter><Politicians /></MemoryRouter>);
+    expect(await screen.findByText("Fresno")).toBeInTheDocument();
+    politicianList.unmount();
+
+    const politicianDetail = render(
+      <MemoryRouter initialEntries={["/politicians/fresno-official"]}>
+        <Routes>
+          <Route path="/politicians/:id" element={<PoliticianDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Fresno", { selector: "span" })).toBeInTheDocument();
+    politicianDetail.unmount();
+
+    render(
+      <MemoryRouter initialEntries={["/agenda/agenda-1"]}>
+        <Routes>
+          <Route path="/agenda/:id" element={<AgendaDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("San Jose")).toBeInTheDocument();
   });
   it("recovers from a server failure", async () => {
     let failed = false;

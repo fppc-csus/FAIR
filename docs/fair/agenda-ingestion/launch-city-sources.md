@@ -9,8 +9,9 @@ task is Fresno, Oakland, and San Jose. All three use Legistar:
 | Oakland | `oakland` | `https://webapi.legistar.com/v1/oakland` |
 | San Jose | `sanjose` | `https://webapi.legistar.com/v1/sanjose` |
 
-The source definitions live in `server/prisma/seed.js`. Run `npx prisma db seed`
-from `server/` with the authorized target database configured to persist them.
+The source and city-jurisdiction definitions live in `server/prisma/seed.js`.
+Run `npx prisma db seed` from `server/` with the authorized target database
+configured to persist them. Each source is linked to its city jurisdiction.
 New sources are created disabled, so adding the configuration does not turn on
 scheduled ingestion before its acceptance criterion is verified. If a matching
 Legistar source already exists, the seed updates its canonical city and URL
