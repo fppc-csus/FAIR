@@ -32,6 +32,7 @@ describe("GET /api/politicians", () => {
         id: "politician-1",
         fullName: "Jane Smith",
         district: "District 1",
+        jurisdiction: { name: "Fresno" },
         _count: {
           conflicts: 2,
         },
@@ -40,6 +41,7 @@ describe("GET /api/politicians", () => {
         id: "politician-2",
         fullName: "John Doe",
         district: null,
+        jurisdiction: null,
         _count: {
           conflicts: 0,
         },
@@ -59,12 +61,14 @@ describe("GET /api/politicians", () => {
           id: "politician-1",
           fullName: "Jane Smith",
           district: "District 1",
+          city: "Fresno",
           conflictCount: 2,
         },
         {
           id: "politician-2",
           fullName: "John Doe",
           district: null,
+          city: null,
           conflictCount: 0,
         },
       ],
@@ -90,6 +94,7 @@ describe("GET /api/politicians/id/:id", () => {
       id: "politician-1",
       fullName: "Jane Smith",
       district: "District 1",
+      jurisdiction: { name: "Oakland" },
       filings: [
         {
           id: "filing-1",
@@ -122,11 +127,15 @@ describe("GET /api/politicians/id/:id", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.fullName).toBe("Jane Smith");
+    expect(res.body.data.city).toBe("Oakland");
     expect(res.body.data.filings).toHaveLength(1);
     expect(res.body.data.conflicts).toHaveLength(1);
     expect(res.body.data.conflicts[0].agendaItem.id).toBe("agenda-1");
     expect(prisma.politician.findUnique.mock.calls[0][0].select.conflicts.where).toEqual({
       OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }],
+    });
+    expect(prisma.politician.findUnique.mock.calls[0][0].select.jurisdiction).toEqual({
+      select: { name: true },
     });
   });
   it("returns 404 when the politician does not exist", async () => {
@@ -142,4 +151,3 @@ describe("GET /api/politicians/id/:id", () => {
   });
 });
 });
-

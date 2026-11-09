@@ -32,10 +32,15 @@ const healthData = {
       completedAt: "2026-11-08T02:05:00.000Z",
       status: "success",
       itemsFound: 10,
+      documentsFound: 0,
+      pdfsFetched: 0,
+      documentsSkipped: 0,
       itemsInserted: 4,
       itemsSkipped: 6,
       conflictsDetected: 2,
       error: null,
+      sourceLimitations: [],
+      detectionErrors: [],
       retryEligible: false,
     },
     {
@@ -46,10 +51,21 @@ const healthData = {
       completedAt: "2026-11-07T03:10:00.000Z",
       status: "failed",
       itemsFound: 5,
+      documentsFound: 5,
+      pdfsFetched: 4,
+      documentsSkipped: 1,
       itemsInserted: 0,
       itemsSkipped: 5,
       conflictsDetected: 0,
-      error: "Actor failed safely",
+      error: "PDF contained no parseable agenda text",
+      sourceLimitations: [{
+        url: "https://city.test/agenda.pdf",
+        message: "PDF contained no parseable agenda text",
+      }],
+      detectionErrors: [{
+        agendaItemCount: 2,
+        message: "Conflict detector unavailable",
+      }],
       retryEligible: true,
     },
   ],
@@ -93,7 +109,10 @@ describe("AdminHealthPage", () => {
      ).toBeInTheDocument();   
       
     expect(screen.getAllByText("Success").length).toBeGreaterThan(0);
-    expect(screen.getByText("Actor failed safely")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: /PDF contained no parseable agenda text/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Source document" })).toHaveAttribute("href", "https://city.test/agenda.pdf");
+    expect(screen.getByRole("cell", { name: /Conflict detector unavailable/ })).toHaveTextContent(/Detection error.*2 agenda items/);
+    expect(screen.getByText(/Documents: 5; PDFs fetched: 4; documents skipped: 1/)).toBeInTheDocument();
     expect(screen.getByText("Recent detection runs")).toBeInTheDocument();
     expect(screen.getByText("Last successful legistar run")).toBeInTheDocument();
   });

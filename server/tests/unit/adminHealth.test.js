@@ -50,6 +50,10 @@ const successfulLegistarRun = {
   itemsInserted: 4,
   itemsSkipped: 6,
   conflictsDetected: 2,
+  documentsFound: 0,
+  pdfsFetched: 0,
+  documentsSkipped: 0,
+  detectionErrors: [],
   errors: null,
   dataSource: { cityName: "Sacramento", sourceType: "legistar" },
 };
@@ -64,7 +68,17 @@ const failedApifyRun = {
   itemsInserted: 0,
   itemsSkipped: 5,
   conflictsDetected: 0,
-  errors: { message: "Actor failed safely" },
+  documentsFound: 5,
+  pdfsFetched: 4,
+  documentsSkipped: 1,
+  detectionErrors: [{
+    agendaItemIds: ["agenda-1", "agenda-2"],
+    message: "Conflict detector unavailable",
+  }],
+  errors: [{
+    pdfUrl: "https://city.test/agenda.pdf?access_token=secret#page=1",
+    message: "PDF contained no parseable agenda text",
+  }],
   dataSource: {
    id: "source-apify",
    cityName: "Elk Grove",
@@ -142,9 +156,21 @@ describe("admin health API", () => {
 
     expect(failedRun).toMatchObject({
       status: "failed",
-      error: "Actor failed safely",
+      error: "PDF contained no parseable agenda text",
+      documentsFound: 5,
+      pdfsFetched: 4,
+      documentsSkipped: 1,
+      sourceLimitations: [{
+        url: "https://city.test/agenda.pdf",
+        message: "PDF contained no parseable agenda text",
+      }],
+      detectionErrors: [{
+        agendaItemCount: 2,
+        message: "Conflict detector unavailable",
+      }],
       retryEligible: true,
     });
+    expect(JSON.stringify(failedRun)).not.toContain("access_token");
   });
 
   it("retries an eligible failed run through the shared source pipeline", async () => {

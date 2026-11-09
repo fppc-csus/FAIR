@@ -18,6 +18,7 @@ Ingest **city council agendas** for cross-reference with Form 700 data.
 - Apify results are document references, not agenda items: the PDF must yield extractable agenda text before any `agenda_items` row is written. A failed, unreadable, password-protected, image-only, or oversized PDF is recorded as a skipped document and does not stop the remaining documents.
 - The original PDF link is retained in `agenda_items.source_url` for admin document links; `item_text` contains only parsed agenda content.
 - Apify sync-log and data-source metrics distinguish documents found, PDFs fetched, documents skipped, agenda items inserted/skipped, and per-document errors. Admin polling reads the same persisted run results used by scheduled and CLI execution.
+- The admin health API and page expose per-document source limitations, safe document links, Apify document counts, and conflict-detection errors from persisted sync logs. URL credentials, query strings, and fragments are not shown.
 
 ## Related docs
 

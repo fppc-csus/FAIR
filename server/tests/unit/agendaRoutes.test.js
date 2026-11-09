@@ -34,7 +34,7 @@ describe("GET /api/agenda/:id", () => {
       itemText: "Full agenda item text",
       itemNumber: "10",
       meetingDate: "2026-09-10T00:00:00.000Z",
-      cityName: "Sacramento",
+      cityName: "San Jose",
       sourceType: "legistar",
       bodyName: "City Council",
       conflicts: [
@@ -65,7 +65,7 @@ describe("GET /api/agenda/:id", () => {
     expect(res.body.data.meetingDate).toBe(
       "2026-09-10T00:00:00.000Z",
     );
-    expect(res.body.data.cityName).toBe("Sacramento");
+    expect(res.body.data.cityName).toBe("San Jose");
     expect(res.body.data.sourceType).toBe("legistar");
     expect(res.body.data.conflicts).toHaveLength(1);
     expect(res.body.data.conflicts[0].politician.id).toBe(

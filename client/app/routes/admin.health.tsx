@@ -11,10 +11,15 @@ type Run = {
   completedAt: string | null;
   status: string;
   itemsFound: number;
+  documentsFound: number;
+  pdfsFetched: number;
+  documentsSkipped: number;
   itemsInserted: number;
   itemsSkipped: number;
   conflictsDetected: number;
   error: string | null;
+  sourceLimitations: { url?: string; message: string }[];
+  detectionErrors: { agendaItemCount: number; message: string }[];
   retryEligible: boolean;
 };
 
@@ -302,7 +307,7 @@ export default function AdminHealthPage() {
                         <th className="px-4 py-3 font-semibold">Completed</th>
                         <th className="px-4 py-3 font-semibold">Status</th>
                         <th className="px-4 py-3 font-semibold">Counts</th>
-                        <th className="px-4 py-3 font-semibold">Error</th>
+                        <th className="px-4 py-3 font-semibold">Errors / limitations</th>
                         <th className="px-4 py-3 font-semibold">Action</th>
                       </tr>
                     </thead>
@@ -328,6 +333,12 @@ export default function AdminHealthPage() {
                           </td>
                           <td className="px-4 py-3 text-xs text-slate-600">
                             Found: {run.itemsFound}
+                            {run.documentsFound > 0 && (
+                              <>
+                                <br />
+                                Documents: {run.documentsFound}; PDFs fetched: {run.pdfsFetched}; documents skipped: {run.documentsSkipped}
+                              </>
+                            )}
                             <br />
                             Inserted: {run.itemsInserted}
                             <br />
@@ -335,8 +346,36 @@ export default function AdminHealthPage() {
                             <br />
                             Conflicts: {run.conflictsDetected}
                           </td>
-                          <td className="max-w-xs px-4 py-3 text-xs text-red-700">
-                            {run.error ?? "—"}
+                          <td className="max-w-sm px-4 py-3 text-xs text-red-700">
+                            {run.sourceLimitations.length > 0 || run.detectionErrors.length > 0 ? (
+                              <ul className="space-y-2">
+                                {run.sourceLimitations.map((limitation, index) => (
+                                  <li key={`${limitation.url ?? "source"}-${index}`}>
+                                    {limitation.url && (
+                                      <a
+                                        className="break-all underline"
+                                        href={limitation.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        Source document
+                                      </a>
+                                    )}
+                                    {limitation.url ? ": " : ""}
+                                    {limitation.message}
+                                  </li>
+                                ))}
+                                {run.detectionErrors.map((detectionError, index) => (
+                                  <li key={`detection-${index}`}>
+                                    Detection error{detectionError.agendaItemCount > 0
+                                      ? ` (${detectionError.agendaItemCount} agenda item${detectionError.agendaItemCount === 1 ? "" : "s"})`
+                                      : ""}: {detectionError.message}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              run.error ?? "—"
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             {run.retryEligible ? (
