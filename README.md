@@ -261,6 +261,13 @@ npm run test:coverage
 # PostgreSQL database whose DATABASE_URL and DIRECT_URL contain "fair_test"
 RUN_FUNCTIONAL_TESTS=true npm run test:functional
 
+# SH-324 PostgreSQL trigger/reprocessing tests (opt-in; use an isolated, migrated
+# local fair_sh324_test database; never use production or edit server/.env).
+# Set both URLs for this command only, replacing the username with your local DB user.
+cd server
+RUN_SH324_DB_TESTS=true DATABASE_URL='postgresql://YOUR_LOCAL_USER@127.0.0.1:5432/fair_sh324_test' DIRECT_URL='postgresql://YOUR_LOCAL_USER@127.0.0.1:5432/fair_sh324_test' npm run test:integration -- sh324Eligibility.test.js
+cd ..
+
 # Run a package in watch mode while developing
 npm --prefix client run test:watch
 npm --prefix server run test:watch
