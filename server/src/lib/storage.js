@@ -19,7 +19,8 @@ export function sanitizeFilename(filename) {
     .pop()
     .trim()
     .replace(/[^A-Za-z0-9._-]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 255);
   return base.length > 0 ? base : 'upload.xlsx';
 }
 

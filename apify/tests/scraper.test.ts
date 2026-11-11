@@ -22,6 +22,9 @@ describe('input and helpers', () => {
     for (const overrides of [{ maxPages: 0 }, { maxDepth: -1 }, { lookbackDays: 1.5 }, { sameDomainOnly: 'yes' }, { startUrl: 'file:///tmp/file' }, { cityName: '' }]) {
       expect(() => parseInput({ ...input, ...overrides })).toThrow();
     }
+    expect(() => parseInput({ ...input, startDate: '2025-02-31', endDate: '2025-03-01' })).toThrow('Invalid startDate');
+    expect(() => parseInput({ ...input, startDate: '2025-01-01' })).toThrow('provided together');
+    expect(() => parseInput({ ...input, startDate: '2025-02-01', endDate: '2025-01-01' })).toThrow('on or before');
     expect(() => parseInput(null)).toThrow();
     expect(() => publicUrl('http://localhost/')).toThrow();
     expect(publicUrl('/agenda.pdf#page=2', input.startUrl).href).toBe('https://city.test/agenda.pdf');
@@ -61,6 +64,18 @@ describe('scrape', () => {
     expect(summary.records).toBe(3);
     expect(summary.errors).toBe(1);
     expect(fetcher.mock.calls.some(([url]) => url.endsWith('/minutes.pdf'))).toBe(false);
+  });
+  it('includes only meetings in the explicit inclusive historical date range', async () => {
+    const output: Agenda[] = [];
+    const summary = await scrape(
+      { ...input, startDate: '2026-10-01', endDate: '2026-10-08' },
+      fixtureFetch(),
+      async (item) => { output.push(item); },
+      vi.fn(),
+      now,
+    );
+    expect(output.map((item) => item.meeting_date)).toEqual(['2026-10-01', '2026-10-08']);
+    expect(summary.records).toBe(2);
   });
   it('respects depth and document request limits', async () => {
     expect((await scrape({ ...input, maxDepth: 0 }, fixtureFetch(), vi.fn(), vi.fn(), now)).records).toBe(0);

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/lib/prisma.js', () => ({ prisma: {} }));
 vi.mock('../../src/ingestion/pdfParser.js', () => ({ parsePdfAgenda: vi.fn() }));
 
-import { ingestApifyAgendaItems } from '../../src/ingestion/apifyAgenda.js';
+import { ingestApifyAgendaItems, QUALITY_SAMPLE_LIMIT } from '../../src/ingestion/apifyAgenda.js';
 
 const source = { id: 'source-1', cityName: 'Elk Grove', sourceType: 'apify' };
 const document = {
@@ -71,19 +71,75 @@ describe('shared Apify agenda ingestion', () => {
       items: [document], source, syncLogId: 'sync-1', prismaClient, fetchImpl, parsePdf, log: vi.fn(),
     });
 
-    expect(result).toMatchObject({ documentsSkipped: 1, itemsInserted: 0 });
+    expect(result).toMatchObject({
+      documentsSkipped: 1,
+      itemsInserted: 0,
+      documentsDownloadFailed: 1,
+      errors: [{ pdfUrl: document.pdf_url, message: 'Download unavailable', quality: 'download-failed' }],
+    });
     expect(parsePdf).not.toHaveBeenCalled();
     expect(prismaClient.agendaItem.upsert).not.toHaveBeenCalled();
     expect(prismaClient.syncLog.update).toHaveBeenCalledWith({
       where: { id: 'sync-1' },
       data: expect.objectContaining({
         status: 'failed', documentsSkipped: 1,
-        errors: [{ pdfUrl: document.pdf_url, message: 'Download unavailable' }],
+        errors: [{ pdfUrl: document.pdf_url, message: 'Download unavailable', quality: 'download-failed' }],
       }),
     });
     expect(prismaClient.dataSource.update).toHaveBeenCalledWith({
       where: { id: source.id },
       data: expect.objectContaining({ lastError: 'Download unavailable', lastDocumentsFound: 1, lastItemsInserted: 0 }),
     });
+  });
+
+  it('classifies image-only PDFs (no extractable text) as image-only quality', async () => {
+    fetchImpl.mockResolvedValue(new Response(Buffer.from('%PDF-1.7 image-only')));
+    parsePdf.mockResolvedValue([]);
+    const result = await ingestApifyAgendaItems({
+      items: [document], source, syncLogId: 'sync-1', prismaClient, fetchImpl, parsePdf, log: vi.fn(),
+    });
+
+    expect(result).toMatchObject({
+      documentsSkipped: 1,
+      itemsInserted: 0,
+      documentsImageOnly: 1,
+      errors: [{ pdfUrl: document.pdf_url, quality: 'image-only' }],
+    });
+    expect(result.sampledDocuments).toHaveLength(1);
+    expect(result.sampledDocuments[0]).toMatchObject({
+      pdfUrl: document.pdf_url,
+      quality: 'image-only',
+    });
+  });
+
+  it('classifies non-PDF documents as unsupported quality', async () => {
+    fetchImpl.mockResolvedValue(new Response(Buffer.from('not a pdf')));
+    const result = await ingestApifyAgendaItems({
+      items: [document], source, syncLogId: 'sync-1', prismaClient, fetchImpl, parsePdf, log: vi.fn(),
+    });
+
+    expect(result).toMatchObject({
+      documentsSkipped: 1,
+      itemsInserted: 0,
+      documentsUnsupported: 1,
+      errors: [{ pdfUrl: document.pdf_url, quality: 'unsupported' }],
+    });
+  });
+
+  it('includes sampled documents up to the quality sample limit', async () => {
+    fetchImpl.mockImplementation(async () => new Response(Buffer.from('%PDF-1.7 agenda')));
+    parsePdf.mockResolvedValue([{ itemNumber: '1', itemText: 'Approve contract.', meetingDate: '2026-10-01' }]);
+    const items = Array.from({ length: 10 }, (_, i) => ({
+      ...document,
+      pdf_url: `https://city.gov/agenda-${i}.pdf`,
+      meeting_date: `2026-10-${String(i + 1).padStart(2, '0')}`,
+    }));
+    const result = await ingestApifyAgendaItems({
+      items, source, syncLogId: 'sync-1', prismaClient, fetchImpl, parsePdf, log: vi.fn(),
+    });
+
+    expect(result.documentsWithText).toBe(10);
+    expect(result.sampledDocuments).toHaveLength(QUALITY_SAMPLE_LIMIT);
+    expect(result.sampledDocuments.every((s) => s.quality === 'has-text')).toBe(true);
   });
 });

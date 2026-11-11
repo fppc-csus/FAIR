@@ -5,10 +5,18 @@
 import './lib/env.js';
 import cors from 'cors';
 import express from 'express';
+import helmet from 'helmet';
 
 import { requireAdmin } from './lib/auth.js';
 import { prisma } from './lib/prisma.js';
+import { getClientOrigin } from './middleware/clientOrigin.js';
 import { requestTiming } from './middleware/requestTiming.js';
+import {
+  adminApiRateLimit,
+  publicApiRateLimit,
+  syncRateLimit,
+  uploadRateLimit,
+} from './middleware/rateLimits.js';
 import agendaRouter from './routes/agenda.js';
 import conflictsRouter from './routes/conflicts.js';
 import politiciansRouter from './routes/politicians.js';
@@ -17,6 +25,7 @@ import adminReportsRouter from './routes/admin/reports.js';
 import adminSourcesRouter from './routes/admin/sources.js';
 import adminUploadRouter from './routes/admin/upload.js';
 import adminPoliticiansRouter from './routes/admin/politicians.js';
+import adminHealthRouter from './routes/admin/health.js';
 import adminDetectionRunsRouter from './routes/admin/detectionRuns.js';
 import adminConflictsRouter from './routes/admin/conflicts.js';
 import adminHistoryRouter from './routes/admin/history.js';
@@ -29,13 +38,16 @@ import adminSyncRouter from './routes/adminSync.js';
 export const app = express();
 
 // --- global middleware -----------------------------------------------------
+const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 0);
+if (!Number.isSafeInteger(trustProxyHops) || trustProxyHops < 0) {
+  throw new Error('TRUST_PROXY_HOPS must be a non-negative integer.');
+}
+app.set('trust proxy', trustProxyHops);
+app.disable('x-powered-by');
+app.use(helmet());
 app.use(
   cors({
-    origin:
-      process.env.CLIENT_ORIGIN ||
-      (process.env.NODE_ENV === 'production'
-        ? false
-        : 'http://localhost:5173'),
+    origin: getClientOrigin(),
     exposedHeaders: ['X-Request-ID'],
   }),
 );
@@ -58,12 +70,13 @@ app.get('/health/ready', async (_req, res) => {
 });
 
 // --- public API ------------------------------------------------------------
-app.use('/api/conflicts', conflictsRouter);
-app.use('/api/politicians', politiciansRouter);
-app.use('/api/agenda', agendaRouter);
-app.use('/api/search', searchRouter);
+app.use('/api/conflicts', publicApiRateLimit, conflictsRouter);
+app.use('/api/politicians', publicApiRateLimit, politiciansRouter);
+app.use('/api/agenda', publicApiRateLimit, agendaRouter);
+app.use('/api/search', publicApiRateLimit, searchRouter);
 
 // --- admin API (Supabase JWT required) --------------------------------------
+app.use('/api/admin', adminApiRateLimit);
 app.get('/api/admin/session', requireAdmin, (req, res) => {
   res.status(200).json({ data: { userId: req.user.id, email: req.user.email, role: req.adminMember.role } });
 });
@@ -72,15 +85,16 @@ app.use('/api/admin/sources', requireAdmin, adminSourcesRouter);
 app.use('/api/admin/reports', requireAdmin, adminReportsRouter);
 app.use('/api/admin/politicians', requireAdmin, adminPoliticiansRouter);
 app.use('/api/admin/eligibility', requireAdmin, adminEligibilityRouter);
+app.use('/api/admin/health', requireAdmin, adminHealthRouter);
 app.use('/api/admin/detection-runs', requireAdmin, adminDetectionRunsRouter);
 app.use('/api/admin/conflicts', requireAdmin, adminConflictsRouter);
 app.use('/api/admin/history', requireAdmin, adminHistoryRouter);
 
 // AC4: manual nightly sync trigger
-app.use('/api/admin/sync', requireAdmin, adminSyncRouter);
+app.use('/api/admin/sync', requireAdmin, syncRateLimit, adminSyncRouter);
 
 // multer (10 MB memory storage) is applied inside the upload router, not globally.
-app.use('/api/admin/upload', requireAdmin, adminUploadRouter);
+app.use('/api/admin/upload', requireAdmin, uploadRateLimit, adminUploadRouter);
 
 // --- 404 -------------------------------------------------------------------
 app.use((_req, res) => {

@@ -3,6 +3,7 @@ import express from 'express';
 import { syncErrorMessage } from '../../utils/syncErrorMessage.js';
 import { ApifyClient } from 'apify-client';
 import { prisma } from '../../lib/prisma.js';
+import { executeSourceSync as executeSharedSourceSync } from "../../services/sourceSync.js";
 import { fetchLegistarAgendaItemsForDataSource } from '../../ingestion/legistar.js';
 import { legistarItemKey } from '../../ingestion/legistarIdentity.js';
 import { getSyntheticConflictStatus, runSyntheticConflictCheck, removeSyntheticConflictCheck } from '../../detection/syntheticConflictCheck.js';
@@ -385,7 +386,7 @@ router.post('/discover', async (req, res) => {
       ? await prisma.dataSource.update({ where: { id: existing.id }, data: { ...data, startUrl: data.startUrl ?? existing.startUrl, enabled: true } })
       : await prisma.dataSource.create({ data });
     const syncLog = await prisma.syncLog.create({ data: { dataSourceId: source.id, sourceType: 'apify', status: 'running' } });
-    void executeSourceSync(source, syncLog.id).catch((error) => console.error('[admin/sources] discovery result persistence failed', error));
+    void executeSharedSourceSync(source, syncLog.id).catch((error) => console.error('[admin/sources] discovery result persistence failed', error));
     return res.status(202).json({ sourceId: source.id, syncLogId: syncLog.id, status: 'running' });
   } catch (error) {
     return sendValidationError(res, error);
@@ -511,7 +512,7 @@ router.post('/:id/sync', async (req, res) => {
     const syncLog = await prisma.syncLog.create({
       data: { dataSourceId: source.id, sourceType: source.sourceType.toLowerCase(), status: 'running' },
     });
-    void executeSourceSync(source, syncLog.id, options).catch((error) => {
+    void executeSharedSourceSync(source, syncLog.id, options).catch((error) => {
       console.error('[admin/sources] failed to persist sync result', error);
     });
     return res.status(202).json({ syncLogId: syncLog.id, status: 'running' });

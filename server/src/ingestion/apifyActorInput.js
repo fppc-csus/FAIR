@@ -7,7 +7,7 @@ function requiredString(value, message) {
   return normalized;
 }
 
-export function buildApifyActorInput(source, { lookbackDays } = {}) {
+export function buildApifyActorInput(source, { lookbackDays, startDate, endDate } = {}) {
   const cityName = requiredString(source?.cityName, 'City name is required for an Apify sync.');
   const startUrl = requiredString(
     source?.startUrl,
@@ -22,6 +22,8 @@ export function buildApifyActorInput(source, { lookbackDays } = {}) {
     sameDomainOnly: true,
   };
   if (lookbackDays != null) input.lookbackDays = lookbackDays;
+  if (startDate != null) input.startDate = startDate;
+  if (endDate != null) input.endDate = endDate;
   return input;
 }
 

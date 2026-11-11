@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
-import { ErrorBoundary } from "./root";
+import App, { ErrorBoundary } from "./root";
 import { MemoryRouter, Routes, Route } from 'react-router';
+
+it("provides a focusable main landmark for the skip link", () => {
+  render(<MemoryRouter><Routes><Route element={<App />}><Route index element={<p>Page content</p>} /></Route></Routes></MemoryRouter>);
+  expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
+  expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
+});
 
 it("never renders exception messages or stacks", () => {
   const error = new Error("Secret database details");

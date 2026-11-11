@@ -211,6 +211,8 @@ npm run dev             # Vite dev server (default port in terminal output)
 | `SUPABASE_URL` + `SUPABASE_SECRET_KEY` | server | URL and secret/service-role key; the secret key is server-only |
 | `FAIR_ADMIN_EMAIL` | server | One-time first-owner bootstrap email; unused once access is initialized |
 | `CLIENT_ORIGIN` | server | Exact frontend origin for invitation redirects; HTTPS in production |
+| `TRUST_PROXY_HOPS` | server | Trusted reverse-proxy count; set only after verifying the production proxy chain |
+| `PRISMA_MAX_CONNECTIONS` | server | Backend connection-pool cap (1–20; default 20) |
 | `APIFY_ACTOR_ID` | server | e.g. `fppc-csus~fair-agenda-pdf-scraper` |
 | `GEMINI_API_KEY` | server | Entity resolution band only |
 | `RESEND_API_KEY` | server | Reserved for planned weekly admin digests; currently unused |
@@ -296,7 +298,23 @@ npm --prefix server run backfill:legistar -- --city "Sonoma County" --start 2024
 
 Omit `--city` to backfill every enabled Legistar source. If `--start` is omitted,
 the command imports the previous two years. Re-running the command is safe:
-Legistar item IDs prevent duplicate agenda rows.
+Legistar item IDs prevent duplicate agenda rows, and historical reruns also
+recheck conflict detection for existing items. The command reports per-city
+results and fails if a city or detection pass fails.
+
+For PDF-only sources, run the Apify ingestion with the same inclusive date
+range:
+
+```bash
+npm --prefix server run run:apify-agendas -- --city "City Name" --start 2024-01-01 --end 2025-12-31
+```
+
+Apify backfills pass the date window to the Actor, filter dataset results to
+that window, and recheck conflicts for existing parsed items. Review the Actor
+`SUMMARY` for crawl limits and skipped documents. Record measured per-city
+results, final stored counts, source limitations, and client sign-off in
+[`docs/fair/agenda-ingestion/backfill-acceptance.md`](docs/fair/agenda-ingestion/backfill-acceptance.md);
+the commands do not independently certify source completeness.
 
 #### Sonoma staff-report research pilot (no alert writes)
 
@@ -386,6 +404,15 @@ The admin login stores the complete Supabase session under `fair.admin.session`,
 CI workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uses Node.js 22, validates documentation navigation, uses a temporary Postgres service, runs `prisma generate` and `prisma migrate deploy`, executes all client/server/Actor unit suites, type-checks and builds the client, and builds the Apify Actor. Railway can deploy directly from GitHub: configure root directory `server`, pre-deploy command `npx prisma migrate deploy`, start command `npm start`, and healthcheck path `/health`. **The Railway API service is the single production scheduler owner** for Legistar and Apify: set `CRON_ENABLED=true` on that service only. CI and local development keep it false. Do not configure GitHub Actions or another external scheduler for these jobs.
 
 Configure the Railway scheduler environment as follows: `CRON_TIMEZONE=America/Los_Angeles`, `LEGISTAR_CRON_SCHEDULE=0 2 * * *` (daily at 02:00, 30-day lookback), and `APIFY_AGENDA_CRON_SCHEDULE=10 3 * * 1` (Mondays at 03:10, 14-day lookback). The checked-in GitHub scheduled workflow files contain only `# disabled`. Detection and Legistar backfill are operator/admin-triggered, not separately scheduled. Do not store `RAILWAY_TOKEN`, `RAILWAY_SERVICE_ID`, or other Railway deployment identifiers in runtime environment files.
+
+The API applies Helmet security headers, exact-origin CORS, and per-process
+request limits (public API: 120/minute; admin API: 30/minute; uploads: 5/15
+minutes; manual sync: 1/5 minutes). The rate-limit store is in-memory: keep one
+API replica or configure a shared rate-limit store before scaling horizontally.
+Set `TRUST_PROXY_HOPS` only to the verified Railway proxy-chain length, and
+confirm the deployed `CLIENT_ORIGIN`, production HTTPS/HSTS behavior, and pool
+limit before launch. The [security launch checklist](docs/security-launch-checklist.md)
+records local evidence and production-only release blockers.
 
 Each Legistar run, Apify run, and Apify city ingestion claims a persisted Postgres run key; a unique partial index prevents concurrent runs for the same key. Heartbeats run every 30 seconds. On startup and before a new claim, runs whose heartbeat is older than five minutes are marked interrupted and their running source sync logs are failed with a recovery message. There are no automatic in-process provider retries: failures are recorded per source and are retried by the next schedule (daily/weekly) or an explicit admin/CLI rerun. Agenda-item and conflict identity constraints make these reruns idempotent.
 

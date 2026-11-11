@@ -93,6 +93,11 @@ function createPrismaDouble() {
         agendaItems.set(key, row);
         return row;
       }),
+      count: vi.fn(async ({ where }) => [...agendaItems.values()].filter((row) => (
+        row.cityId === where.cityId
+        && row.meetingDate >= where.meetingDate.gte
+        && row.meetingDate < where.meetingDate.lt
+      )).length),
     },
     $transaction: vi.fn(async (operations) => (
       typeof operations === 'function' ? operations(prisma) : Promise.all(operations)
@@ -160,6 +165,22 @@ describe('runApifyAgendaScrape', () => {
     expect(state.syncJobRuns[0].status).toBe('failed');
   });
 
+  it('rejects invalid or incomplete explicit backfill ranges', async () => {
+    const scrapeAgendaPDFs = vi.fn();
+    await expect(runApifyAgendaScrape({
+      startDate: '2024-01-01',
+      scrapeAgendaPDFs,
+      prismaClient: createPrismaDouble().prisma,
+    })).rejects.toThrow('must be provided together');
+    await expect(runApifyAgendaScrape({
+      startDate: '2024-02-31',
+      endDate: '2024-03-01',
+      scrapeAgendaPDFs,
+      prismaClient: createPrismaDouble().prisma,
+    })).rejects.toThrow('--start must use YYYY-MM-DD');
+    expect(scrapeAgendaPDFs).not.toHaveBeenCalled();
+  });
+
   it('downloads, parses, persists, and logs an Apify PDF result', async () => {
     const state = createPrismaDouble();
     const scrapeAgendaPDFs = vi.fn().mockResolvedValue([{
@@ -177,7 +198,11 @@ describe('runApifyAgendaScrape', () => {
       log: vi.fn(),
     });
 
-    expect(scrapeAgendaPDFs).toHaveBeenCalledWith({ lookbackDays: 14, onSourceError: expect.any(Function) });
+    expect(scrapeAgendaPDFs).toHaveBeenCalledWith(expect.objectContaining({
+      lookbackDays: 14,
+      onSourceComplete: expect.any(Function),
+      onSourceError: expect.any(Function),
+    }));
     expect(result).toMatchObject({ citiesProcessed: 1, pdfsFetched: 1, inserted: 1, skipped: 0, errors: 0 });
     expect(state.sources).toHaveLength(1);
     expect(state.sources[0]).toMatchObject({
@@ -241,6 +266,71 @@ describe('runApifyAgendaScrape', () => {
     expect(state.agendaItems.size).toBe(1);
   });
 
+  it('records a successfully scraped city even when its historical window has no documents', async () => {
+    const state = createPrismaDouble();
+    const scrapeAgendaPDFs = vi.fn(async ({ onSourceComplete }) => {
+      onSourceComplete({ cityName: 'Empty Archive City' });
+      return [];
+    });
+
+    const result = await runApifyAgendaScrape({
+      startDate: '2024-01-01',
+      endDate: '2024-12-31',
+      prismaClient: state.prisma,
+      scrapeAgendaPDFs,
+      log: vi.fn(),
+    });
+
+    expect(result).toMatchObject({
+      citiesProcessed: 1,
+      documentsFound: 0,
+      documentsSkipped: 0,
+      errors: 0,
+      cities: [{ cityName: 'Empty Archive City', documentsFound: 0 }],
+    });
+    expect(state.syncLogs[0]).toMatchObject({ status: 'success', documentsFound: 0 });
+  });
+
+  it('filters custom scraper results to the explicit dates and rechecks prior rows', async () => {
+    const state = createPrismaDouble();
+    const detectHistorical = vi.fn().mockResolvedValue({ inserted: 0, skipped: 0, totalCandidates: 0 });
+    state.prisma.agendaItem.findUnique.mockResolvedValue({
+      id: 'existing-agenda-id',
+      title: 'Approve a public works contract.',
+      description: null,
+      itemText: 'Approve a public works contract.',
+    });
+    const scrapeAgendaPDFs = vi.fn().mockResolvedValue([
+      { pdf_url: 'https://city.test/in-range.pdf', meeting_date: '2024-02-01', city_name: 'Test City' },
+      { pdf_url: 'https://city.test/out-of-range.pdf', meeting_date: '2025-02-01', city_name: 'Test City' },
+    ]);
+
+    const result = await runApifyAgendaScrape({
+      startDate: '2024-01-01',
+      endDate: '2024-12-31',
+      prismaClient: state.prisma,
+      scrapeAgendaPDFs,
+      parsePdf,
+      detect: detectHistorical,
+      fetchImpl: vi.fn().mockImplementation(async () => pdfResponse()),
+      log: vi.fn(),
+    });
+
+    expect(scrapeAgendaPDFs).toHaveBeenCalledWith(expect.objectContaining({
+      startDate: '2024-01-01',
+      endDate: '2024-12-31',
+    }));
+    expect(result).toMatchObject({
+      documentsFound: 1,
+      documentsOutsideWindow: 1,
+      skipped: 2,
+      finalItemCount: 1,
+      cities: [{ finalItemCount: 1 }],
+    });
+    expect(state.agendaItems.size).toBe(1);
+    expect(detectHistorical).toHaveBeenCalledWith(['agenda-1'], { prisma: state.prisma });
+  });
+
   it('detects conflicts for newly inserted agenda items and records the count', async () => {
     const state = createPrismaDouble();
     const detect = vi.fn().mockResolvedValue({ inserted: 2, skipped: 1, totalCandidates: 3 });
@@ -251,7 +341,6 @@ describe('runApifyAgendaScrape', () => {
         pdf_url: 'https://city.test/agenda.pdf', meeting_date: '2026-10-01', city_name: 'Test City',
       }]),
       parsePdf,
-      detect,
       detect,
       fetchImpl: vi.fn().mockResolvedValue(pdfResponse()),
       log: vi.fn(),
@@ -301,7 +390,9 @@ describe('runApifyAgendaScrape', () => {
       errors: null,
       detectionErrors: [expect.objectContaining({ message: 'detector unavailable' })],
     });
+    expect(state.syncJobRuns[0].status).toBe('failed');
     expect(errorLog).toHaveBeenCalled();
+    expect(state.syncJobRuns.map(({ status }) => status)).toEqual(['failed', 'failed']);
     errorLog.mockRestore();
   });
 
@@ -454,6 +545,25 @@ describe('runApifyAgendaScrape', () => {
 
     expect(run).toHaveBeenCalledWith({ city: 'Test City' });
     expect(log).toHaveBeenCalledWith(JSON.stringify({ errors: 0, documentsFound: 0 }, null, 2));
+    log.mockRestore();
+  });
+
+  it('passes an explicit historical range through the CLI', async () => {
+    const previousExitCode = process.exitCode;
+    const run = vi.fn().mockResolvedValue({
+      errors: 0, detectionFailures: 0, citiesProcessed: 1,
+    });
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runApifyAgendaCli({
+      argv: ['--city', 'Test City', '--start', '2024-01-01', '--end', '2024-12-31'],
+      run,
+    });
+
+    expect(run).toHaveBeenCalledWith({
+      city: 'Test City', startDate: '2024-01-01', endDate: '2024-12-31',
+    });
+    expect(process.exitCode).toBe(previousExitCode);
     log.mockRestore();
   });
 

@@ -188,6 +188,35 @@ async function insertAgendaItemRows(sql, rows, agendaItemColumns) {
   return insertedIds;
 }
 
+async function loadAgendaItemIdsByLegistarId(sql, rows) {
+  const itemIds = [...new Set(rows.map((row) => row.legistar_item_id).filter(Boolean))];
+  const agendaItemIds = [];
+  for (const itemIdChunk of chunk(itemIds, 500)) {
+    const result = await sql`
+      SELECT id
+      FROM agenda_items
+      WHERE legistar_item_id IN ${sql(itemIdChunk)}
+    `;
+    agendaItemIds.push(...result.map((row) => row.id));
+  }
+  return agendaItemIds;
+}
+
+async function countAgendaItemsForSource(sql, source, startDate, endDate) {
+  if (!startDate || !endDate) return null;
+  if (!source.id) throw new Error('Cannot report final item count without a source ID');
+  const exclusiveEndDate = new Date(`${endDate}T00:00:00.000Z`);
+  exclusiveEndDate.setUTCDate(exclusiveEndDate.getUTCDate() + 1);
+  const result = await sql`
+    SELECT COUNT(*) AS count
+    FROM agenda_items
+    WHERE city_id = ${source.id}
+      AND meeting_date >= ${new Date(`${startDate}T00:00:00.000Z`)}
+      AND meeting_date < ${exclusiveEndDate}
+  `;
+  return Number(result[0]?.count ?? 0);
+}
+
 async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns, options = {}) {
   const cityName = getCityName(dataSource);
 
@@ -199,12 +228,18 @@ async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns,
   const insertedAgendaItemIds = await insertAgendaItemRows(sql, rows, agendaItemColumns);
   const inserted = insertedAgendaItemIds.length;
   const skipped = rows.length - inserted;
+  const agendaItemIdsToDetect = options.detectExistingAgendaItems
+    ? await loadAgendaItemIdsByLegistarId(sql, rows)
+    : insertedAgendaItemIds;
   const detect = options.detectConflictsForAgendaItems ?? detectConflictsForAgendaItems;
   const detection = await detectAgendaConflictsSafely(
-    insertedAgendaItemIds,
+    agendaItemIdsToDetect,
     detect,
     options.detectionDependencies,
   );
+  const finalItemCount = options.includeFinalItemCount
+    ? await countAgendaItemsForSource(sql, dataSource, options.startDate, options.endDate)
+    : null;
 
   console.log(
     `[cron][legistar] city="${cityName}" items_found=${rows.length} inserted=${inserted} skipped=${skipped} conflict_candidates=${detection.conflictCandidates} conflicts_inserted=${detection.conflictsDetected} conflicts_skipped=${detection.conflictsSkipped} detection_failures=${detection.detectionErrors.length}`,
@@ -220,6 +255,8 @@ async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns,
     skipped,
     itemsSkipped: skipped,
     insertedAgendaItemIds,
+    itemsRechecked: options.detectExistingAgendaItems ? agendaItemIdsToDetect.length : 0,
+    finalItemCount,
     ...detection,
   };
 }
@@ -283,6 +320,7 @@ async function performNightlyLegistarSync(options = {}) {
 
     const totals = {
       citiesProcessed: 0,
+      ...(options.includeFinalItemCount ? { finalItemCount: 0 } : {}),
       itemsFound: 0,
       inserted: 0,
       skipped: 0,
@@ -291,6 +329,7 @@ async function performNightlyLegistarSync(options = {}) {
       conflictsSkipped: 0,
       detectionFailures: 0,
       failures: 0,
+      cityResults: [],
     };
 
     const prismaClient = options.prisma ?? prisma;
@@ -298,6 +337,7 @@ async function performNightlyLegistarSync(options = {}) {
     for (const source of sourcesToProcess) {
       const startedAt = new Date();
       let syncLog = null;
+      let finalItemCount = null;
       try {
         if (prismaClient?.syncLog?.create) {
           syncLog = await prismaClient.syncLog.create({
@@ -313,7 +353,24 @@ async function performNightlyLegistarSync(options = {}) {
         }
 
         const result = await runLegistarSyncForCityWithSql(sql, source, agendaItemColumns, options);
+        finalItemCount = result.finalItemCount;
+        totals.cityResults.push({
+          cityName: result.cityName,
+          status: result.detectionErrors.length > 0 ? 'detection_failed' : 'success',
+          ...(finalItemCount != null ? { finalItemCount } : {}),
+          itemsFound: result.itemsFound,
+          inserted: result.inserted,
+          skipped: result.skipped,
+          itemsRechecked: result.itemsRechecked,
+          conflictCandidates: result.conflictCandidates,
+          conflictsDetected: result.conflictsDetected,
+          conflictsSkipped: result.conflictsSkipped,
+          detectionErrors: result.detectionErrors,
+        });
         totals.citiesProcessed += 1;
+        if (options.includeFinalItemCount && finalItemCount != null) {
+          totals.finalItemCount += finalItemCount;
+        }
         totals.itemsFound += result.itemsFound;
         totals.inserted += result.inserted;
         totals.skipped += result.skipped;
@@ -355,6 +412,24 @@ async function performNightlyLegistarSync(options = {}) {
         }
       } catch (error) {
         totals.failures += 1;
+        let finalItemCountError = null;
+        if (options.includeFinalItemCount && finalItemCount == null) {
+          try {
+            finalItemCount = await countAgendaItemsForSource(sql, source, options.startDate, options.endDate);
+          } catch (countError) {
+            finalItemCountError = countError.message;
+          }
+        }
+        if (options.includeFinalItemCount && finalItemCount != null) {
+          totals.finalItemCount += finalItemCount;
+        }
+        totals.cityResults.push({
+          cityName: getCityName(source),
+          status: 'failed',
+          ...(finalItemCount != null ? { finalItemCount } : {}),
+          ...(finalItemCountError ? { finalItemCountError } : {}),
+          error: error.message,
+        });
         console.error(`[cron][legistar] city="${getCityName(source)}" failed:`, error.message);
 
         if (prismaClient?.$transaction) {
@@ -402,7 +477,7 @@ export async function runNightlyLegistarSync(options = {}) {
     ({ runId }) => performNightlyLegistarSync({ ...options, jobRunId: runId }),
     {
       prismaClient,
-      hasErrors: (result) => result.failures > 0,
+      hasErrors: (result) => result.failures > 0 || result.detectionFailures > 0,
     },
   );
   if (!outcome.skipped) return outcome.result;
@@ -410,6 +485,7 @@ export async function runNightlyLegistarSync(options = {}) {
   return {
     citiesProcessed: 0,
     itemsFound: 0,
+    finalItemCount: 0,
     inserted: 0,
     skipped: 0,
     conflictsDetected: 0,
@@ -417,6 +493,7 @@ export async function runNightlyLegistarSync(options = {}) {
     conflictsSkipped: 0,
     detectionFailures: 0,
     failures: 0,
+    cityResults: [],
     skippedRun: true,
   };
 }

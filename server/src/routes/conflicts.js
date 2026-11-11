@@ -43,8 +43,18 @@ router.get("/", async (req, res, next) => {
 router.get('/filters', async (_req, res, next) => {
   try {
     const { from } = conflictSql(parseConflictQuery({}));
-    const cities = await prisma.$queryRaw(Prisma.sql`SELECT DISTINCT COALESCE(a.city_name, j.name, 'Unknown') AS city ${from} ORDER BY city`);
-    res.json({ data: cities.map(row => row.city) });
+    const [conflictCities, jurisdictions] = await Promise.all([
+      prisma.$queryRaw(Prisma.sql`SELECT DISTINCT COALESCE(a.city_name, j.name, 'Unknown') AS city ${from}`),
+      prisma.jurisdiction.findMany({
+        where: { type: 'city' },
+        select: { name: true },
+      }),
+    ]);
+    const cities = new Set([
+      ...conflictCities.map((row) => row.city),
+      ...jurisdictions.map((jurisdiction) => jurisdiction.name),
+    ].filter(Boolean));
+    res.json({ data: [...cities].sort((a, b) => a.localeCompare(b)) });
   } catch (error) { next(error); }
 });
 
