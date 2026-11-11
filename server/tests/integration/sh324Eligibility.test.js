@@ -2,6 +2,7 @@ import express from 'express';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { assertLocalTestDatabase } from './sh324DatabaseGuard.js';
 
 const queued = vi.hoisted(() => vi.fn());
 vi.mock('../../src/detection/detectionRuns.js', async (importOriginal) => ({
@@ -21,23 +22,9 @@ let app;
 let fixture;
 let createdIds = [];
 
-// Run before importing application modules: src/lib/prisma.js loads server/.env.
-function assertLocalTestDatabase() {
-  if (process.env.RUN_SH324_DB_TESTS !== 'true') throw new Error('Explicit SH-324 database test opt-in is required.');
-  const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL];
-  if (urls.some((value) => !value)) throw new Error('Set both DATABASE_URL and DIRECT_URL explicitly.');
-  const [runtime, direct] = urls.map((value) => new URL(value));
-  if (runtime.href !== direct.href || urls.some((value) => {
-    const url = new URL(value);
-    return !['postgresql:', 'postgres:'].includes(url.protocol)
-      || url.hostname !== '127.0.0.1' || url.port !== '5432'
-      || url.pathname !== '/fair_sh324_test' || !url.username;
-  })) throw new Error('SH-324 tests require matching local 127.0.0.1:5432/fair_sh324_test URLs with an explicit user.');
-}
-
 suite('SH-324 migrated PostgreSQL workflow', () => {
   beforeAll(async () => {
-    assertLocalTestDatabase();
+    assertLocalTestDatabase(process.env);
     ({ prisma } = await import('../../src/lib/prisma.js'));
     ({ verifyEligibilityMetadata } = await import('../../src/detection/verifyEligibility.js'));
     ({ scheduleEligibilityReprocessing } = await import('../../src/detection/scheduleEligibilityReprocessing.js'));
@@ -121,6 +108,82 @@ suite('SH-324 migrated PostgreSQL workflow', () => {
     expect(await prisma.eligibilityVerificationEvent.count({ where: { recordId: items[0].id, action: 'corrected', actorId: ADMIN } })).toBe(1);
   });
 
+  it('makes verification and durable work visible to an independent connection at dispatch time', async () => {
+    const { filing } = fixture;
+    const { PrismaClient } = await import('@prisma/client');
+    const observer = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } });
+    try {
+      const queue = vi.fn(async (id) => {
+        const run = await observer.detectionRun.findUnique({ where: { id } });
+        const savedFiling = await observer.form700Filing.findUnique({ where: { id: filing.id } });
+        return { run, savedFiling };
+      });
+      const result = await verifyEligibilityMetadata({ prisma, kind: 'filing', id: filing.id,
+        expectedValue: 2025, adminUserId: ADMIN, queue });
+      expect(queue).toHaveBeenCalledExactlyOnceWith(result.detectionRunId);
+      const [{ run, savedFiling }] = await Promise.all(queue.mock.results.map(({ value }) => value));
+      expect(run).toMatchObject({ status: 'queued', filingId: filing.id });
+      expect(savedFiling).toMatchObject({ filingYearVerifiedValue: 2025, filingYearVerifiedBy: ADMIN });
+    } finally { await observer.$disconnect(); }
+  });
+
+  it('reconciles real cross-city and cross-year candidates when a raw metadata edit invalidates verification', async () => {
+    const { politician, filing, items, other } = fixture;
+    const agenda = items[0];
+    const investment = await prisma.scheduleAInvestment.create({ data: {
+      filingId: filing.id, politicianId: politician.id, entityName: 'Acme Builders', fairMarketValue: '$100,000',
+    } });
+    await prisma.agendaItem.update({ where: { id: agenda.id }, data: { title: 'Contract with Acme Builders' } });
+    const { detectConflictsForAgendaItems } = await import('../../src/detection/detectConflicts.js');
+    try {
+      for (const [kind, id, expectedValue] of [
+        ['politician', politician.id, fixture.jurisdiction.id], ['filing', filing.id, 2025], ['agenda', agenda.id, DATE],
+      ]) await verifyEligibilityMetadata({ prisma, kind, id, expectedValue, adminUserId: ADMIN, queue: queued });
+      // Distinct politician/agenda jurisdictions, and a filing year unrelated to the meeting year.
+      await prisma.politician.update({ where: { id: politician.id }, data: { jurisdictionId: other.id } });
+      await verifyEligibilityMetadata({ prisma, kind: 'politician', id: politician.id,
+        expectedValue: other.id, adminUserId: ADMIN, queue: queued });
+      const first = await detectConflictsForAgendaItems([agenda.id], {
+        prisma, matchNamedEntity: async () => ({ matched: true }),
+      });
+      expect(first.inserted).toBe(1);
+      const conflict = await prisma.conflict.findFirst({ where: { agendaItemId: agenda.id, disclosureId: investment.id } });
+      expect(conflict).toMatchObject({ eligibilityStatus: 'active', filingYear: 2025,
+        politicianJurisdictionId: other.id, jurisdictionId: fixture.jurisdiction.id });
+      await prisma.conflict.update({ where: { id: conflict.id }, data: {
+        reviewStatus: 'confirmed_conflict', reviewNote: 'SH324 review remains',
+      } });
+      const review = await prisma.conflictReview.create({ data: {
+        conflictId: conflict.id, adminUserId: ADMIN, oldStatus: 'pending',
+        newStatus: 'confirmed_conflict', note: 'SH324 review remains',
+      } });
+      await prisma.$executeRaw`UPDATE form700_filings SET filing_year = 2024 WHERE id = ${filing.id}::uuid`;
+      const second = await detectConflictsForAgendaItems([agenda.id], {
+        prisma, matchNamedEntity: async () => ({ matched: true }),
+      });
+      expect(second.inactivated).toBe(1);
+      expect(await prisma.conflict.findUnique({ where: { id: conflict.id } })).toMatchObject({
+        eligibilityStatus: 'inactive', reviewStatus: 'confirmed_conflict', reviewNote: 'SH324 review remains',
+      });
+      await verifyEligibilityMetadata({ prisma, kind: 'filing', id: filing.id,
+        expectedValue: 2024, adminUserId: ADMIN, queue: queued });
+      const third = await detectConflictsForAgendaItems([agenda.id], {
+        prisma, matchNamedEntity: async () => ({ matched: true }),
+      });
+      expect(third.reactivated).toBe(1);
+      expect(await prisma.conflict.findUnique({ where: { id: conflict.id } })).toMatchObject({
+        eligibilityStatus: 'active', filingYear: 2024,
+        reviewStatus: 'confirmed_conflict', reviewNote: 'SH324 review remains',
+      });
+      expect(await prisma.conflictReview.findUnique({ where: { id: review.id } })).toMatchObject({
+        conflictId: conflict.id, note: 'SH324 review remains',
+      });
+    } finally {
+      await prisma.conflict.deleteMany({ where: { agendaItemId: agenda.id } });
+      await prisma.scheduleAInvestment.delete({ where: { id: investment.id } });
+    }
+  });
+
   it('rolls back metadata and audit when durable scheduling fails; does not dispatch', async () => {
     const { filing } = fixture;
     // An impossible FK rejects the durable insert *inside* the real transaction.
@@ -130,8 +193,37 @@ suite('SH-324 migrated PostgreSQL workflow', () => {
     await expect(verifyEligibilityMetadata({ prisma: client, kind: 'filing', id: filing.id,
       expectedValue: 2025, adminUserId: ADMIN, queue: queued })).rejects.toThrow();
     expect(await prisma.form700Filing.findUnique({ where: { id: filing.id } })).toMatchObject({ filingYear: 2025 });
+    expect(await prisma.form700Filing.findUnique({ where: { id: filing.id } })).toMatchObject({
+      filingYearVerifiedValue: null, filingYearVerifiedAt: null, filingYearVerifiedBy: null,
+    });
     expect(await prisma.eligibilityVerificationEvent.count({ where: { recordId: filing.id } })).toBe(0);
     expect(await prisma.detectionRun.count({ where: { filingId: filing.id } })).toBe(0);
+    expect(queued).not.toHaveBeenCalled();
+  });
+
+  it('rolls back a correction and trigger invalidation when work cannot be saved', async () => {
+    const { filing } = fixture;
+    await verifyEligibilityMetadata({ prisma, kind: 'filing', id: filing.id,
+      expectedValue: 2025, adminUserId: ADMIN, queue: queued });
+    queued.mockClear();
+    const baselineEvents = await prisma.eligibilityVerificationEvent.count({ where: { recordId: filing.id } });
+    const baselineRuns = await prisma.detectionRun.count({ where: { filingId: filing.id } });
+    const client = prisma.$extends({ query: { detectionRun: { create({ args, query }) {
+      return query({ ...args, data: { ...args.data, politicianId: '00000000-0000-4000-8000-000000000001' } });
+    } } } });
+    await expect(client.$transaction(async (tx) => {
+      await tx.form700Filing.update({ where: { id: filing.id }, data: { filingYear: 2024 } });
+      await tx.eligibilityVerificationEvent.create({ data: {
+        recordType: 'filing', recordId: filing.id, action: 'corrected', value: '2025 -> 2024', actorId: ADMIN,
+      } });
+      await scheduleEligibilityReprocessing(tx, { kind: 'filing', id: filing.id,
+        row: filing, correctedFilingYear: 2024 });
+    })).rejects.toThrow();
+    expect(await prisma.form700Filing.findUnique({ where: { id: filing.id } })).toMatchObject({
+      filingYear: 2025, filingYearVerifiedValue: 2025, filingYearVerifiedBy: ADMIN,
+    });
+    expect(await prisma.eligibilityVerificationEvent.count({ where: { recordId: filing.id } })).toBe(baselineEvents);
+    expect(await prisma.detectionRun.count({ where: { filingId: filing.id } })).toBe(baselineRuns);
     expect(queued).not.toHaveBeenCalled();
   });
 
@@ -179,8 +271,16 @@ suite('SH-324 migrated PostgreSQL workflow', () => {
     const worker = runDetectionRun(held.id, { prisma, detectConflictsForAgendaItems: concurrentDetect });
     await entered;
     try {
-      // Direct database claim simulates another process (not the in-memory activeRuns set).
-      const secondClaim = await prisma.detectionRun.updateMany({ where: { id: held.id, status: 'queued' }, data: { status: 'running' } });
+      // A second connection uses the worker's persisted claim predicate, bypassing
+      // the in-process activeRuns guard entirely.
+      const secondClaim = await prisma.detectionRun.updateMany({
+        where: { id: held.id, OR: [
+          { status: { in: ['queued', 'failed'] } },
+          { status: 'running', lockAt: null },
+          { status: 'running', lockAt: { lt: new Date(Date.now() - 10 * 60 * 1000) } },
+        ] },
+        data: { status: 'running', lockAt: new Date() },
+      });
       expect(secondClaim.count).toBe(0);
       expect(await runDetectionRun(held.id, { prisma, detectConflictsForAgendaItems: concurrentDetect })).toMatchObject({ alreadyRunning: true });
     } finally { release(); }

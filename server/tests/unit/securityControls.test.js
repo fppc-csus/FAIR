@@ -113,6 +113,7 @@ describe('security response controls', () => {
         slug: 'public-politician',
         fullName: 'Public Politician',
         district: 'District 1',
+        city: null,
         conflictCount: 1,
       }],
     });
