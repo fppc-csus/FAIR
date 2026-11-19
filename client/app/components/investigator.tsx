@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BadgeCheck, CircleAlert, Database, FileClock, FileText, FileUp, Flag, Gauge, Landmark, UsersRound } from "lucide-react";
+import { Activity, BadgeCheck, CircleAlert, Database, FileClock, FileText, FileUp, Flag, Gauge, Landmark, UsersRound } from "lucide-react";
 
 export type DetailPair = { label: string; value: string };
 
@@ -12,6 +12,7 @@ export const investigatorLinks = [
   { to: "/admin/sources", label: "Sources", Icon: Database, end: false },
   { to: "/admin/reports", label: "Reports", Icon: FileText, end: false },
   { to: "/admin/history", label: "History", Icon: FileClock, end: false },
+  { to: "/admin/health", label: "Health", Icon: Activity, end: false },
 ];
 export const ownerLinks = [{ to: "/admin/users", label: "Users", Icon: UsersRound, end: false }];
 

@@ -9,16 +9,17 @@ beforeEach(() => signInForTest());
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 it("keeps the full brand and search available alongside collapsible navigation", () => {
   render(<MemoryRouter><SiteHeader /></MemoryRouter>);
-  const home = screen.getByRole("link", { name: "FAIR home" });
+  const home = screen.getByRole("link", { name: "FAIRInvestigations" });
   expect(home).toHaveTextContent("FAIR");
   expect(home).toHaveTextContent("Investigations");
   expect(screen.getByRole("searchbox", { name: "Search FAIR records" })).toBeInTheDocument();
   const toggle = screen.getByRole("button", { name: "Toggle navigation" });
   expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(toggle).toHaveAttribute("aria-controls", "mobile-navigation");
   fireEvent.click(toggle);
   expect(toggle).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("navigation", { name: "Mobile navigation" })).toHaveTextContent("Methodology");
-  fireEvent.click(toggle);
+  fireEvent.keyDown(toggle, { key: "Escape" });
   expect(screen.queryByRole("navigation", { name: "Mobile navigation" })).not.toBeInTheDocument();
 });
 it("opens mobile navigation and retries a timed-out search", async () => {

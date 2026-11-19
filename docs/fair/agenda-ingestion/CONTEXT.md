@@ -20,6 +20,7 @@ Ingest **city council agendas** for cross-reference with Form 700 data.
 - Legistar rows are built once in `server/src/ingestion/legistarAgendaRow.js` (nightly sync and admin "sync now"). `item_text` holds the title, agenda/minutes notes, action text and the latest **matter text** (`/Matters/{id}/Versions` → `/Texts/{textId}` `MatterTextPlain`, capped at 20,000 characters). Grantee and vendor names often appear only in the recommended action. Re-syncs update changed text and re-run detection; backfill history with `npm run backfill:legistar -- --city "<name>" --start YYYY-MM-DD --end YYYY-MM-DD`.
 - Admins may paste either a Legistar InSite address (`https://oakland.legistar.com/Calendar.aspx`) or the Web API URL; both are stored as `https://webapi.legistar.com/v1/<client>`. New sources are linked to their jurisdiction so agenda items meet that jurisdiction's Form 700 filers.
 - Apify sync-log and data-source metrics distinguish documents found, PDFs fetched, documents skipped, agenda items inserted/skipped, and per-document errors. Admin polling reads the same persisted run results used by scheduled and CLI execution.
+- The admin health API and page expose per-document source limitations, safe document links, Apify document counts, and conflict-detection errors from persisted sync logs. URL credentials, query strings, and fragments are not shown.
 
 ## Related docs
 

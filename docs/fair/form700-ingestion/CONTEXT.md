@@ -2,7 +2,7 @@
 
 ## Role
 
-**Form 700** files are **uploaded by admins** (raw **XLSX or text-based PDF** archived in **Supabase Storage**). Workbooks use **SheetJS** (`xlsx` npm package); individual standard FPPC PDFs use `server/src/parsers/form700Pdf.js` and the existing `pdf-parse` dependency.
+**Form 700** files are **uploaded by admins** (raw **XLSX or text-based PDF** archived in **Supabase Storage**). Workbooks use the official SheetJS 0.20.3 release; individual standard FPPC PDFs use `server/src/parsers/form700Pdf.js` and the existing `pdf-parse` dependency.
 
 PDF ingestion uses positioned text to isolate filer/reporting-year metadata and
 schedule entity names/property locations. It does not extract amounts, interest

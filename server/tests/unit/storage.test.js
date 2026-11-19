@@ -67,5 +67,7 @@ describe("private Form 700 workbook storage", () => {
 
   it("sanitizes object-key filenames", () => {
     expect(sanitizeFilename("../../bad name?.xlsx")).toBe("bad_name_.xlsx");
+    expect(sanitizeFilename("..\\..\\private\\filing.xlsx")).toBe("filing.xlsx");
+    expect(sanitizeFilename(`${'a'.repeat(300)}.xlsx`)).toHaveLength(255);
   });
 });

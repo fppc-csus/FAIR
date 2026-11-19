@@ -46,6 +46,27 @@ const samplePoliticians = [
   },
 ];
 
+export const launchCitySources = [
+  {
+    cityName: "Fresno",
+    sourceType: "legistar",
+    legistarBaseUrl: "https://webapi.legistar.com/v1/fresno",
+    legistarClientId: "fresno",
+  },
+  {
+    cityName: "Oakland",
+    sourceType: "legistar",
+    legistarBaseUrl: "https://webapi.legistar.com/v1/oakland",
+    legistarClientId: "oakland",
+  },
+  {
+    cityName: "San Jose",
+    sourceType: "legistar",
+    legistarBaseUrl: "https://webapi.legistar.com/v1/sanjose",
+    legistarClientId: "sanjose",
+  },
+];
+
 export async function seedDatabase(prisma, log = console.log) {
   const state = await prisma.jurisdiction.upsert({
     where: { legistarClientId: "ca-state" },
@@ -74,7 +95,45 @@ export async function seedDatabase(prisma, log = console.log) {
     });
   }
 
-  log(`Seeded jurisdiction "${state.name}" and ${samplePoliticians.length} politicians.`);
+  for (const source of launchCitySources) {
+    const jurisdiction = await prisma.jurisdiction.upsert({
+      where: { legistarClientId: source.legistarClientId },
+      create: {
+        name: source.cityName,
+        type: "city",
+        legistarClientId: source.legistarClientId,
+      },
+      update: {
+        name: source.cityName,
+        type: "city",
+      },
+    });
+    const existing = await prisma.dataSource.findFirst({
+      where: {
+        cityName: { equals: source.cityName, mode: "insensitive" },
+        sourceType: source.sourceType,
+      },
+    });
+    const configuration = {
+      ...source,
+      apifyActorId: null,
+      startUrl: null,
+      jurisdictionId: jurisdiction.id,
+    };
+
+    if (existing) {
+      await prisma.dataSource.update({
+        where: { id: existing.id },
+        data: configuration,
+      });
+    } else {
+      await prisma.dataSource.create({
+        data: { ...configuration, enabled: false },
+      });
+    }
+  }
+
+  log(`Seeded jurisdiction "${state.name}", ${samplePoliticians.length} politicians, and ${launchCitySources.length} launch city sources.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -64,9 +64,9 @@ export default function App() {
   return (
     <AdminGuard>
       <SiteHeader />
-      <div id="main-content">
+      <main id="main-content" tabIndex={-1}>
         <Outlet />
-      </div>
+      </main>
       <SiteFooter />
     </AdminGuard>
   );

@@ -50,6 +50,7 @@ router.get('/', async (req, res, next) => {
       filingYears: [...new Set((politician.filings ?? []).map((filing) => filing.filingYear))],
       disclosureCount: ['scheduleAInvestments', 'scheduleA2Positions', 'scheduleBRealEstate', 'scheduleCdeIncome']
         .reduce((sum, key) => sum + (politician._count[key] ?? 0), 0),
+      city: politician.jurisdiction?.name ?? null,
       conflictCount: politician._count.conflicts,
     }));
 

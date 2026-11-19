@@ -14,9 +14,16 @@
   "dependencies": { "apify-client": "^2.23.0" },
   "devDependencies": {
     "@types/node": "^22",
-    "@vitest/coverage-v8": "4.1.5",
+    "@vitest/coverage-v8": "4.1.12",
     "typescript": "^5.9.3",
-    "vite": "7.1.7",
-    "vitest": "4.1.5"
+    "vite": "7.3.7",
+    "vitest": "4.1.12"
+  },
+  "overrides": {
+    "basic-ftp": "6.2.1",
+    "get-uri": {
+      "basic-ftp": "6.2.1"
+    },
+    "proxy-agent": "^8.0.2"
   }
 }

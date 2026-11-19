@@ -23,7 +23,7 @@ export default function Home() {
   const sourceRows = Array.isArray(sources.data) ? sources.data : [];
   const failing = sourceRows.filter((source) => source.enabled && source.lastError);
 
-  return <main className="page-shell">
+  return <div className="page-shell">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="eyebrow">Investigator workspace</p><h1 className="mt-3 text-4xl font-bold tracking-tight">Dashboard</h1><p className="mt-3 max-w-2xl text-slate-600">Candidate conflicts between Form 700 disclosures and agenda items, ordered for review. Each flag is a lead, not a finding.</p></div>
       <Link to="/conflicts?reviewStatus=pending&sort=severity" className="button-primary">Open review queue <ArrowRight size={17} /></Link>
@@ -69,5 +69,5 @@ export default function Home() {
         </section>
       </div>
     </div>
-  </main>;
+  </div>;
 }

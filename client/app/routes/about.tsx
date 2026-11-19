@@ -16,7 +16,7 @@ const RULES: [string, string, string][] = [
 
 export default function About() {
   return (
-  <main className="mx-auto max-w-4xl space-y-10 px-6 py-12">
+  <div className="mx-auto max-w-4xl space-y-10 px-6 py-12">
     <header className="space-y-4">
       <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Methodology</p>
       <h1 className="text-4xl font-bold tracking-tight text-slate-900">How FAIR finds candidate conflicts</h1>
@@ -266,6 +266,6 @@ export default function About() {
         </p>
       </div>
     </section>
-  </main>
+  </div>
 );
 }

@@ -10,9 +10,15 @@ import { fetchLegistarAgendaItemsForDataSource } from "../../src/ingestion/legis
 import { runNightlyLegistarSync } from "../../src/jobs/nightlySync.js";
 import { runLegistarSyncForCity } from "../../src/jobs/nightlySync.js";
 
-function createSql(insertedIds = []) {
+function createSql(insertedIds = [], existingIds = [], finalItemCount = 0) {
   const sql = (strings) => {
     const text = Array.isArray(strings) ? strings.join(" ") : "";
+    if (text.includes("COUNT(*)")) {
+      return Promise.resolve([{ count: String(finalItemCount) }]);
+    }
+    if (text.includes("SELECT id") && text.includes("agenda_items")) {
+      return Promise.resolve(existingIds.map((id) => ({ id })));
+    }
     if (text.includes("INSERT INTO agenda_items")) {
       return Promise.resolve(insertedIds.map((id) => ({ id })));
     }
@@ -118,6 +124,46 @@ describe("runLegistarSyncForCity", () => {
       conflictsDetected: 2,
       conflictsSkipped: 1,
       detectionErrors: [],
+    });
+  });
+
+  it("rechecks all fetched agenda rows during historical backfills", async () => {
+    fetchLegistarAgendaItemsForDataSource.mockResolvedValue({
+      meetings: [{ EventId: 10 }],
+      allItems: [
+        {
+          meetingId: 10,
+          meeting: { EventDate: "2025-01-01T00:00:00Z" },
+          item: { EventItemId: 100, EventItemTitle: "Previously stored item" },
+        },
+        {
+          meetingId: 10,
+          meeting: { EventDate: "2025-01-01T00:00:00Z" },
+          item: { EventItemId: 101, EventItemTitle: "New item" },
+        },
+      ],
+    });
+    const detector = vi.fn().mockResolvedValue({ inserted: 1, skipped: 0, totalCandidates: 1 });
+    const result = await runLegistarSyncForCity(
+      createSql(["new-agenda-id"], ["existing-agenda-id", "new-agenda-id"], 37),
+      { id: "source-1", city_name: "Test City", legistar_base_url: "https://webapi.legistar.com/v1/test" },
+      new Set(["legistar_item_id", "source_type"]),
+      {
+        detectConflictsForAgendaItems: detector,
+        detectExistingAgendaItems: true,
+        includeFinalItemCount: true,
+        startDate: "2025-01-01",
+        endDate: "2025-12-31",
+      },
+    );
+
+    expect(detector).toHaveBeenCalledWith(["existing-agenda-id", "new-agenda-id"], undefined);
+    expect(result).toMatchObject({
+      itemsFound: 2,
+      itemsInserted: 1,
+      itemsSkipped: 1,
+      itemsRechecked: 2,
+      finalItemCount: 37,
     });
   });
 

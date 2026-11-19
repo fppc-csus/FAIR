@@ -54,6 +54,7 @@ describe("GET /api/politicians", () => {
         id: "politician-2",
         fullName: "John Doe",
         district: null,
+        jurisdiction: null,
         _count: {
           conflicts: 0,
         },
@@ -78,6 +79,7 @@ describe("GET /api/politicians", () => {
           identityVerified: false,
           filingYears: [2019],
           disclosureCount: 4,
+          city: "County of Sonoma",
           conflictCount: 2,
         },
         {
@@ -89,6 +91,7 @@ describe("GET /api/politicians", () => {
           identityVerified: null,
           filingYears: [],
           disclosureCount: 0,
+          city: null,
           conflictCount: 0,
         },
       ],

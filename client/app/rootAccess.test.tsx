@@ -31,6 +31,6 @@ describe("investigator-only access", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: { userId: "u", email: "i@fppc.ca.gov", role: "admin" } }));
     renderAt("/conflicts");
     expect(await screen.findByRole("heading", { name: "Conflict data" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "FAIR home" })).toHaveTextContent("Investigations");
+    expect(screen.getByRole("link", { name: "FAIRInvestigations" })).toHaveTextContent("Investigations");
   });
 });

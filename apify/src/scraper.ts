@@ -5,6 +5,8 @@ export interface Input {
   maxPages: number;
   sameDomainOnly: boolean;
   lookbackDays: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface Agenda {
@@ -27,11 +29,24 @@ export function parseInput(value: unknown): Input {
     if (typeof n !== 'number' || !Number.isInteger(n) || n < min || n > max) throw new Error(`Invalid ${key}`);
     return n;
   };
+  const date = (key: string): string | undefined => {
+    const raw = input[key];
+    if (raw === undefined) return undefined;
+    if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw new Error(`Invalid ${key}`);
+    const parsed = new Date(`${raw}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== raw) throw new Error(`Invalid ${key}`);
+    return raw;
+  };
+  const startDate = date('startDate');
+  const endDate = date('endDate');
+  if ((startDate && !endDate) || (!startDate && endDate)) throw new Error('startDate and endDate must be provided together');
+  if (startDate && endDate && startDate > endDate) throw new Error('startDate must be on or before endDate');
   if (input.sameDomainOnly !== undefined && typeof input.sameDomainOnly !== 'boolean') throw new Error('Invalid sameDomainOnly');
   return {
     startUrl: input.startUrl, cityName: input.cityName,
     maxDepth: number('maxDepth', 2, 0, 10), maxPages: number('maxPages', 200, 1, 2000),
     lookbackDays: number('lookbackDays', 14, 0, 3650), sameDomainOnly: input.sameDomainOnly ?? true,
+    ...(startDate ? { startDate, endDate } : {}),
   };
 }
 
@@ -116,7 +131,7 @@ export async function scrape(input: Input, fetchPage: Fetcher, emit: (item: Agen
   const visited = new Set<string>();
   const emitted = new Set<string>();
   const robots = new Map<string, string>();
-  const cutoff = cutoffDate(now, input.lookbackDays);
+  const cutoff = input.startDate ?? cutoffDate(now, input.lookbackDays);
   let requests = 0;
   let errors = 0;
   while (queue.length && requests < input.maxPages) {
@@ -146,7 +161,7 @@ export async function scrape(input: Input, fetchPage: Fetcher, emit: (item: Agen
         const date = meetingDate(`${candidate.context} ${decodeURI(new URL(finalUrl).pathname)}`) ?? candidate.date;
         if (!candidate.agenda || /\b(minutes|attachment|staff report)\b/i.test(candidate.label)) continue;
         if (!date) { log(`Skipping missing or ambiguous meeting date: ${finalUrl}`); continue; }
-        if (date < cutoff) continue;
+        if (date < cutoff || (input.endDate && date > input.endDate)) continue;
         const key = `${date}|${finalUrl}`;
         if (!emitted.has(key)) {
           await emit({ pdf_url: finalUrl, meeting_date: date, city_name: input.cityName, source_page_url: candidate.source, document_title: candidate.label });

@@ -73,13 +73,13 @@ export function meta() { return [{ title: "Official | FAIR Investigations" }]; }
 export default function PoliticianDetail() {
   const { id } = useParams();
   const { data: politician, loading, error, retry } = useApiData<Dossier>(`/api/politicians/${encodeURIComponent(id ?? "")}`);
-  if (loading) return <main className="page-shell"><div className="surface p-8 text-slate-600" role="status">Loading official…</div></main>;
-  if (error || !politician) return <main className="page-shell"><RequestError message={error || "Record not found."} onRetry={retry} /></main>;
+  if (loading) return <div className="page-shell"><div className="surface p-8 text-slate-600" role="status">Loading official…</div></div>;
+  if (error || !politician) return <div className="page-shell"><RequestError message={error || "Record not found."} onRetry={retry} /></div>;
   const conflicts = politician.conflicts ?? [];
   const disclosures = politician.summary?.disclosures ?? {};
   const disclosureTotal = Object.values(disclosures).reduce((sum, value) => sum + value, 0);
 
-  return <main className="page-shell">
+  return <div className="page-shell">
     <Link to="/politicians" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700"><ArrowLeft size={16} /> Officials</Link>
     <header className="mt-7 border-b border-slate-200 pb-8">
       <div className="flex flex-wrap items-center gap-2"><IdentityBadge verified={politician.identityVerified} />{politician.identityVerified === false && <Link to="/admin/politicians" className="text-xs font-semibold text-blue-700">Verify on Identity review →</Link>}</div>
@@ -125,5 +125,5 @@ export default function PoliticianDetail() {
         </section>
       </aside>
     </div>
-  </main>;
+  </div>;
 }

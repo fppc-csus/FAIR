@@ -13,6 +13,16 @@ describe('buildApifyActorInput', () => {
     });
   });
 
+  it('passes an inclusive historical date range to the Actor', () => {
+    expect(buildApifyActorInput(
+      { cityName: 'City of Calexico', startUrl: 'https://www.calexico.ca.gov/councilagendas' },
+      { startDate: '2024-01-01', endDate: '2025-12-31' },
+    )).toMatchObject({
+      startDate: '2024-01-01',
+      endDate: '2025-12-31',
+    });
+  });
+
   it('rejects a missing URL before an Actor can be invoked', () => {
     expect(() => buildApifyActorInput({ cityName: 'City of Calexico', startUrl: null }))
       .toThrow('Agenda archive URL is required for City of Calexico before running Apify.');

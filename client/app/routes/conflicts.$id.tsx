@@ -84,7 +84,7 @@ export default function ConflictDetail() {
   const profileHref = conflict ? `/politicians/${encodeURIComponent(conflict.politician.slug ?? conflict.politician.id)}` : "#";
   const evidence = conflict?.agendaItem.evidence;
 
-  return <main className="page-shell">
+  return <div className="page-shell">
     <Link to={back} className="text-sm font-semibold text-blue-700 hover:underline">← Back to conflicts</Link>
     {loading && <p className="mt-12" role="status">Loading conflict…</p>}
     {error && <RequestError message={error} onRetry={retry} />}
@@ -151,5 +151,5 @@ export default function ConflictDetail() {
         </aside>
       </div>
     </>}
-  </main>;
+  </div>;
 }

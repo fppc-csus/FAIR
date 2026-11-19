@@ -9,5 +9,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",
     "apify-client": "^2.23.0"
+  },
+  "overrides": {
+    "basic-ftp": "6.2.1",
+    "get-uri": {
+      "basic-ftp": "6.2.1"
+    },
+    "proxy-agent": "^8.0.2"
   }
 }
