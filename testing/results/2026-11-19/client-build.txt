@@ -1,0 +1,77 @@
+
+> build
+> react-router build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 1794 modules transformed.
+rendering chunks...
+computing gzip size...
+build/client/.vite/manifest.json                    12.33 kB │ gzip:  1.39 kB
+build/client/assets/root-B7z81OjC.css               42.71 kB │ gzip:  8.00 kB
+build/client/assets/x-DrkppWJ_.js                    0.17 kB │ gzip:  0.16 kB
+build/client/assets/search-CVrPJWv6.js               0.18 kB │ gzip:  0.17 kB
+build/client/assets/not-found-DmqUV-Cr.js            0.20 kB │ gzip:  0.19 kB
+build/client/assets/rotate-ccw-Bsl-zMkC.js           0.21 kB │ gzip:  0.19 kB
+build/client/assets/chevron-right-CDR3CRQi.js        0.22 kB │ gzip:  0.19 kB
+build/client/assets/download-DBpsUeWD.js             0.24 kB │ gzip:  0.20 kB
+build/client/assets/external-link-CkXBFjar.js        0.26 kB │ gzip:  0.21 kB
+build/client/assets/shield-check-B1aJGqiQ.js         0.33 kB │ gzip:  0.26 kB
+build/client/assets/vote-BPM_R_dH.js                 0.36 kB │ gzip:  0.26 kB
+build/client/assets/jsx-runtime-u17CrQMm.js          0.48 kB │ gzip:  0.31 kB
+build/client/assets/trash-2-CEXNtb-7.js              0.67 kB │ gzip:  0.38 kB
+build/client/assets/useApiData-a7WsFxio.js           1.25 kB │ gzip:  0.68 kB
+build/client/assets/createLucideIcon-CTGvs64w.js     1.39 kB │ gzip:  0.79 kB
+build/client/assets/admin.account-zbaQ9czo.js        2.00 kB │ gzip:  0.98 kB
+build/client/assets/adminComponents-DLwqLfOb.js      3.42 kB │ gzip:  1.52 kB
+build/client/assets/politicians-DSbapeiO.js          4.48 kB │ gzip:  1.76 kB
+build/client/assets/admin.login-DjYjZPs8.js          4.88 kB │ gzip:  2.13 kB
+build/client/assets/admin.users-CB845Cj3.js          5.12 kB │ gzip:  1.95 kB
+build/client/assets/RequestError-Cp3srO4i.js         6.20 kB │ gzip:  2.54 kB
+build/client/assets/agenda-detail-TSjYqnM2.js        6.29 kB │ gzip:  2.19 kB
+build/client/assets/home-DQQ3xWUH.js                 6.50 kB │ gzip:  2.23 kB
+build/client/assets/admin.reports-CzZ9T4Vy.js        6.87 kB │ gzip:  2.51 kB
+build/client/assets/admin.history-BSL7BZzi.js        7.36 kB │ gzip:  2.70 kB
+build/client/assets/conflicts-BG9QmbpV.js            8.44 kB │ gzip:  3.05 kB
+build/client/assets/adminAuth-Dnu3Y5mL.js            9.47 kB │ gzip:  3.64 kB
+build/client/assets/root-Dn4xv2O_.js                 9.59 kB │ gzip:  3.63 kB
+build/client/assets/admin.politicians-B33D_20R.js    9.97 kB │ gzip:  3.25 kB
+build/client/assets/about-CMyeYzNZ.js               10.64 kB │ gzip:  3.39 kB
+build/client/assets/admin.health-DUWyu2Tz.js        11.18 kB │ gzip:  2.94 kB
+build/client/assets/politician-detail-BNRDZ39M.js   11.54 kB │ gzip:  3.95 kB
+build/client/assets/index-BO_Vv_92.js               11.92 kB │ gzip:  4.80 kB
+build/client/assets/conflicts._id-dZG4muLC.js       11.99 kB │ gzip:  3.99 kB
+build/client/assets/admin.upload-CcjqOhqd.js        17.11 kB │ gzip:  5.73 kB
+build/client/assets/admin.sources-yNTnx8qK.js       19.44 kB │ gzip:  6.23 kB
+build/client/assets/chunk-6KYCQHYJ-BXRkrG2J.js     130.77 kB │ gzip: 44.12 kB
+build/client/assets/entry.client-Bv-hFIJc.js       190.07 kB │ gzip: 59.87 kB
+✓ built in 1.50s
+  ⚠️  Future Flag Warning: Route middleware support is changing in React Router v8.
+     You can use the `future.v8_middleware` flag to opt in early.
+     -> https://reactrouter.com/v7/upgrading/future#futurev8_middleware
+  ⚠️  Future Flag Warning: Route module splitting behavior is changing in React Router v8.
+     You can use the `future.v8_splitRouteModules` flag to opt in early.
+     -> https://reactrouter.com/v7/upgrading/future#futurev8_splitroutemodules
+  ⚠️  Future Flag Warning: Vite Environment API usage is changing in React Router v8.
+     You can use the `future.v8_viteEnvironmentApi` flag to opt in early.
+     -> https://reactrouter.com/v7/upgrading/future#futurev8_viteenvironmentapi
+  ⚠️  Future Flag Warning: Request handling behavior is changing in React Router v8.
+     You can use the `future.v8_passThroughRequests` flag to opt in early.
+     -> https://reactrouter.com/v7/upgrading/future#futurev8_passthroughrequests
+  ⚠️  Future Flag Warning: Data request URL formats are changing in React Router v8.
+     You can use the `future.v8_trailingSlashAwareDataRequests` flag to opt in early.
+     -> https://reactrouter.com/v7/upgrading/future#futurev8_trailingslashawaredatarequests
+vite v7.3.7 building ssr environment for production...
+transforming...
+✓ 13 modules transformed.
+rendering chunks...
+build/server/.vite/manifest.json                0.23 kB
+build/server/assets/server-build-B7z81OjC.css  42.71 kB
+build/server/index.js                          48.08 kB
+
+✓ 1 asset cleaned from React Router server build.
+build/server/assets/server-build-B7z81OjC.css
+
+SPA Mode: Generated build/client/index.html
+Removing the server build in /Users/bina/Repos/Senior-Project/client/build/server due to ssr:false
+✓ built in 150ms

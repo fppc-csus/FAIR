@@ -1,0 +1,4 @@
+
+> typecheck
+> react-router typegen && tsc
+

@@ -1,0 +1,1722 @@
+
+ RUN  v5.0.5 /Users/bina/Repos/Senior-Project/client
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=20', elapsedMs: 0 }
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/filters', elapsedMs: 0 }
+[request:fair-mwnai9sj-t1a60dam] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  timeoutMs: 20000
+}
+[request:fair-mwnai9sj-y6cu1gkb] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  timeoutMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[request:fair-mwnai9sj-t1a60dam] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[request:fair-mwnai9sj-y6cu1gkb] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/filters', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[request:fair-mwnaip83-2dq2fgfo] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0
+[request:fair-mwnaip83-2dq2fgfo] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  stage: 'waiting-for-headers',
+  elapsedMs: -18682
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians?limit=500',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[admin-auth] session ready { method: 'GET', path: '/api/politicians?limit=500', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[request:fair-mwnai9xu-g30snraf] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians?limit=500',
+  timeoutMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[request:fair-mwnai9xu-g30snraf] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians?limit=500',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+ ✓ app/adminComponents.test.tsx > waits for backend authorization before displaying protected content 114ms
+ ✓ app/adminComponents.test.tsx > shows retry instead of protected content during verification outages 72ms
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians?limit=500',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[admin-auth] session ready { method: 'GET', path: '/api/politicians?limit=500', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[request:fair-mwnaipde-y023qhal] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians?limit=500',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1
+[request:fair-mwnaipde-y023qhal] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians?limit=500',
+  stage: 'waiting-for-headers',
+  elapsedMs: -18650
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[request:fair-mwnai9yn-jq7hdlka] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/',
+  timeoutMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[request:fair-mwnai9yn-jq7hdlka] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[request:fair-mwnaipe7-p1phcfbz] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2
+[request:fair-mwnaipe7-p1phcfbz] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/',
+  stage: 'waiting-for-headers',
+  elapsedMs: -18630
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians/',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[admin-auth] session ready { method: 'GET', path: '/api/politicians/', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[request:fair-mwnai9z7-oex484nb] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians/',
+  timeoutMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[request:fair-mwnai9z7-oex484nb] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians/',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians/',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[admin-auth] session ready { method: 'GET', path: '/api/politicians/', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[request:fair-mwnaiper-vbpbze6f] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians/',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3
+[request:fair-mwnaiper-vbpbze6f] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians/',
+  stage: 'waiting-for-headers',
+  elapsedMs: -18621
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/agenda/',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[admin-auth] session ready { method: 'GET', path: '/api/agenda/', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[request:fair-mwnai9zg-bzuvi7lv] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/agenda/',
+  timeoutMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[request:fair-mwnai9zg-bzuvi7lv] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/agenda/',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/search?q=Jordan',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[admin-auth] session ready { method: 'GET', path: '/api/search?q=Jordan', elapsedMs: 0 }
+
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[request:fair-mwnaia6z-vma7hs7g] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/search?q=Jordan',
+  timeoutMs: 20000
+}
+
+stderr | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[request:fair-mwnaia6z-vma7hs7g] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/search?q=Jordan',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stderr | app/routes/admin.sources.test.tsx > keeps the failed sync job message visible after refreshing sources
+Sync failed Error: Agenda service rejected the API key.
+    at handleSync (/Users/bina/Repos/Senior-Project/client/app/routes/admin.sources.tsx:135:45)
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/agenda/',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[admin-auth] session ready { method: 'GET', path: '/api/agenda/', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[request:fair-mwnaipf0-z09ult32] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/agenda/',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4
+[request:fair-mwnaipf0-z09ult32] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/agenda/',
+  stage: 'waiting-for-headers',
+  elapsedMs: -18601
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?reviewStatus=pending&severities=HIGH&pageSize=1',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=1',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians?limit=500',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/sources',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  elapsedMs: 0
+}
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?reviewStatus=pending&severities=HIGH&pageSize=1',
+  elapsedMs: 0
+}
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=1', elapsedMs: 0 }
+[admin-auth] session ready { method: 'GET', path: '/api/politicians?limit=500', elapsedMs: 0 }
+[admin-auth] session ready { method: 'GET', path: '/api/admin/sources', elapsedMs: 0 }
+[request:fair-mwnaia00-7mr8srgf] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia00-mm6euli1] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?reviewStatus=pending&severities=HIGH&pageSize=1',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia00-2llm4edx] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=1',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia00-c25y7nfs] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians?limit=500',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia00-c2ebzii6] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/sources',
+  timeoutMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaia00-7mr8srgf] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaia00-mm6euli1] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?reviewStatus=pending&severities=HIGH&pageSize=1',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaia00-2llm4edx] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=1',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaia00-c25y7nfs] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians?limit=500',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+stderr | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaia00-c2ebzii6] timeout {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/sources',
+  stage: 'waiting-for-headers',
+  timeoutMs: 20000,
+  elapsedMs: 20000
+}
+
+ ✓ app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 0 192ms
+ ✓ app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 1 29ms
+ ✓ app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 2 20ms
+ ✓ app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 3 9ms
+ ✓ app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 4 20ms
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/search?q=Jordan',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[admin-auth] session ready { method: 'GET', path: '/api/search?q=Jordan', elapsedMs: 0 }
+
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[request:fair-mwnaipuv-by7a0yup] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/search?q=Jordan',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  elapsedMs: 0
+}
+
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaipfk-ned6fib5] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  timeoutMs: 20000
+}
+
+stdout | app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search
+[request:fair-mwnaipuv-by7a0yup] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/search?q=Jordan',
+  stage: 'waiting-for-headers',
+  elapsedMs: -19170
+}
+
+ ✓ app/components/SiteHeader.test.tsx > keeps the full brand and search available alongside collapsible navigation 217ms
+ ✓ app/components/SiteHeader.test.tsx > opens mobile navigation and retries a timed-out search 82ms
+stdout | app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5
+[request:fair-mwnaipfk-ned6fib5] cancelled {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?reviewStatus=pending&sort=severity&pageSize=10',
+  stage: 'waiting-for-headers',
+  elapsedMs: -18562
+}
+
+ ✓ app/components/Form700BulkUpload.test.tsx > offers a prominent file-picker button and displays the chosen workbook 205ms
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=20', elapsedMs: 21 }
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/filters', elapsedMs: 21 }
+[request:fair-mwnaia1s-f42mextn] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia1t-sbtfu8w8] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia1s-f42mextn] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+[request:fair-mwnaia1t-sbtfu8w8] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia1s-f42mextn] complete { status: 200, elapsedMs: 2 }
+[request:fair-mwnaia1t-sbtfu8w8] complete { status: 200, elapsedMs: 1 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  status: 200,
+  elapsedMs: 24,
+  requestId: null
+}
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  status: 200,
+  elapsedMs: 24,
+  requestId: null
+}
+
+ ✓ app/adminComponents.test.tsx > links to the warnings and history page 42ms
+ ✓ app/routes/admin.upload.test.tsx > shows a specific validation failure and retry upload 268ms
+ ✓ app/routes/admin.politicians.test.tsx > approves a needs-review politician 270ms
+ ✓ app/adminComponents.test.tsx > shows user management navigation to owners 123ms
+ ✓ app/adminComponents.test.tsx > redirects denied visitors without rendering protected content: Error: missing 13ms
+ ✓ app/adminComponents.test.tsx > redirects denied visitors without rendering protected content: Error: expired 18ms
+ ✓ app/adminComponents.test.tsx > redirects denied visitors without rendering protected content: Error: Disabled membership 7ms
+ ✓ app/routes/admin.sources.test.tsx > keeps the failed sync job message visible after refreshing sources 291ms
+ ✓ app/components/Form700BulkUpload.test.tsx > requires a preview and warning acknowledgement before importing 155ms
+ ✓ app/components/Form700BulkUpload.test.tsx > explains eligibility when all-skipped is true 30ms
+ ✓ app/components/Form700BulkUpload.test.tsx > explains eligibility when all-skipped is false 40ms
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?severities=LOW&pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?severities=LOW&pageSize=20',
+  elapsedMs: 4
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia4w-m2wg0rxf] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?severities=LOW&pageSize=20',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia4w-m2wg0rxf] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia4w-m2wg0rxf] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?severities=LOW&pageSize=20',
+  status: 200,
+  elapsedMs: 4,
+  requestId: null
+}
+
+ ✓ app/routes/admin.politicians.test.tsx > submits a selected surviving profile for reconciliation 165ms
+ ✓ app/routes/investigatorPages.test.tsx > investigator request recovery > provides a timeout and retry on route 5 39ms
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=20', elapsedMs: 7 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia5x-2q0hrg3m] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia5x-2q0hrg3m] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[request:fair-mwnaia5x-2q0hrg3m] complete { status: 200, elapsedMs: 1 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  status: 200,
+  elapsedMs: 10,
+  requestId: null
+}
+
+ ✓ app/routes/admin.upload.test.tsx > shows a specific timeout failure and retry upload 85ms
+ ✓ app/routes/admin.upload.test.tsx > uploads a PDF via select and displays parser warnings 76ms
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=20', elapsedMs: 2 }
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/filters', elapsedMs: 2 }
+[request:fair-mwnaia7c-cst3z1nt] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia7d-dnven154] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia7c-cst3z1nt] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+[request:fair-mwnaia7d-dnven154] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[request:fair-mwnaia7c-cst3z1nt] complete { status: 200, elapsedMs: 1 }
+[request:fair-mwnaia7d-dnven154] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  status: 200,
+  elapsedMs: 2,
+  requestId: null
+}
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  status: 200,
+  elapsedMs: 2,
+  requestId: null
+}
+
+ ✓ app/routes/admin.sources.test.tsx > loads and submits the agenda archive URL when editing an Apify source 182ms
+ ✓ app/components/Form700BulkUpload.test.tsx > can replace existing filings after an explicit opt-in and sends that choice 97ms
+ ✓ app/components/Form700BulkUpload.test.tsx > rejects invalid files and displays backend failures 28ms
+ ✓ app/components/Form700BulkUpload.test.tsx > invalidates preview when the selected file changes 42ms
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/export?',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/export?', elapsedMs: 2 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[request:fair-mwnaia8c-uqoo6hhg] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/export?',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[request:fair-mwnaia8c-uqoo6hhg] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[request:fair-mwnaia8c-uqoo6hhg] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/export?',
+  status: 200,
+  elapsedMs: 2,
+  requestId: null
+}
+
+Not implemented: navigation to another Document
+ ✓ app/routes/admin.upload.test.tsx > uploads a PDF via drop and displays parser warnings 82ms
+ ✓ app/routes/admin.upload.test.tsx > rejects invalid or oversized filing.txt files 20ms
+ ✓ app/routes/admin.upload.test.tsx > rejects invalid or oversized filing.pdf files 34ms
+ ✓ app/routes/admin.upload.test.tsx > distinguishes bulk and individual uploads in a responsive two-panel layout 28ms
+ ✓ app/routes/investigatorPages.test.tsx > conflict list > shows what an investigator triages on and clears an empty filter 204ms
+ ✓ app/routes/admin.sources.test.tsx > disables an enabled source 34ms
+ ✓ app/routes/admin.sources.test.tsx > separates Legistar and scraped jurisdictions and opens the correct add form 76ms
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=20', elapsedMs: 3 }
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/filters', elapsedMs: 3 }
+[request:fair-mwnaia9z-fxojq8s5] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia9z-hrzqaask] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  timeoutMs: 20000
+}
+[request:fair-mwnaia9z-fxojq8s5] headers { status: 500, elapsedMs: 1, serverRequestId: null }
+[request:fair-mwnaia9z-hrzqaask] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[request:fair-mwnaia9z-fxojq8s5] complete { status: 500, elapsedMs: 4 }
+[request:fair-mwnaia9z-hrzqaask] complete { status: 200, elapsedMs: 4 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  status: 500,
+  elapsedMs: 8,
+  requestId: null
+}
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  status: 200,
+  elapsedMs: 8,
+  requestId: null
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts?pageSize=20', elapsedMs: 11 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[request:fair-mwnaiaar-7j4kiv6h] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?pageSize=20',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[request:fair-mwnaiaar-7j4kiv6h] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[request:fair-mwnaiaar-7j4kiv6h] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?pageSize=20',
+  status: 200,
+  elapsedMs: 11,
+  requestId: null
+}
+
+stdout | app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians/lynda-hopkins',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status
+[admin-auth] session ready { method: 'GET', path: '/api/politicians/lynda-hopkins', elapsedMs: 1 }
+
+stdout | app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status
+[request:fair-mwnaiab9-4uzbyzd6] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians/lynda-hopkins',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status
+[request:fair-mwnaiab9-4uzbyzd6] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status
+[request:fair-mwnaiab9-4uzbyzd6] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/politicians/lynda-hopkins',
+  status: 200,
+  elapsedMs: 1,
+  requestId: null
+}
+
+stdout | app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/agenda/a',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments
+[admin-auth] session ready { method: 'GET', path: '/api/agenda/a', elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments
+[request:fair-mwnaiacv-wes2j544] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/agenda/a',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments
+[request:fair-mwnaiacv-wes2j544] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments
+[request:fair-mwnaiacv-wes2j544] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/agenda/a',
+  status: 200,
+  elapsedMs: 1,
+  requestId: null
+}
+
+ ✓ app/routes/investigatorPages.test.tsx > conflict list > downloads the CSV with the session instead of an unauthenticated link 107ms
+ ✓ app/routes/investigatorPages.test.tsx > conflict list > recovers from a server failure 48ms
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  elapsedMs: 2
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiae7-egqn0u2d] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiae7-egqn0u2d] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiae7-egqn0u2d] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  status: 200,
+  elapsedMs: 2,
+  requestId: null
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] session start {
+  method: 'POST',
+  path: '/api/admin/conflicts/e62f84af-4b46-4b75-a286-25720a30a453/review',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] session ready {
+  method: 'POST',
+  path: '/api/admin/conflicts/e62f84af-4b46-4b75-a286-25720a30a453/review',
+  elapsedMs: 13
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiagd-olgxi67n] start {
+  method: 'POST',
+  url: 'http://localhost:3001/api/admin/conflicts/e62f84af-4b46-4b75-a286-25720a30a453/review',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiagd-olgxi67n] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiagd-olgxi67n] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] API response {
+  method: 'POST',
+  path: '/api/admin/conflicts/e62f84af-4b46-4b75-a286-25720a30a453/review',
+  status: 200,
+  elapsedMs: 15,
+  requestId: null
+}
+
+ ✓ app/routes/investigatorPages.test.tsx > official dossier > shows every schedule, the full original columns, flags and identity status 62ms
+ ✓ app/routes/investigatorPages.test.tsx > agenda item > shows the roll call with links to filers and the matter attachments 47ms
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  elapsedMs: 0
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiagr-wftae13q] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiagr-wftae13q] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[request:fair-mwnaiagr-wftae13q] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/e62f84af-4b46-4b75-a286-25720a30a453',
+  status: 200,
+  elapsedMs: 0,
+  requestId: null
+}
+
+ ✓ app/routes/investigatorPages.test.tsx > conflict investigation > highlights the agenda passage and records a review decision with a note 116ms
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&page=2&fromDate=2026-10-01&pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&page=2&fromDate=2026-10-01&pageSize=20',
+  elapsedMs: 18
+}
+[admin-auth] session ready { method: 'GET', path: '/api/conflicts/filters', elapsedMs: 17 }
+[request:fair-mwnaiaos-da37wi9w] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?city=Davis&page=2&fromDate=2026-10-01&pageSize=20',
+  timeoutMs: 20000
+}
+[request:fair-mwnaiaot-u7l7vvjx] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts/filters',
+  timeoutMs: 20000
+}
+[request:fair-mwnaiaos-da37wi9w] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+[request:fair-mwnaiaot-u7l7vvjx] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiaos-da37wi9w] complete { status: 200, elapsedMs: 4 }
+[request:fair-mwnaiaot-u7l7vvjx] complete { status: 200, elapsedMs: 4 }
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&page=2&fromDate=2026-10-01&pageSize=20',
+  status: 200,
+  elapsedMs: 23,
+  requestId: null
+}
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts/filters',
+  status: 200,
+  elapsedMs: 22,
+  requestId: null
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&page=3&fromDate=2026-10-01&pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&page=3&fromDate=2026-10-01&pageSize=20',
+  elapsedMs: 3
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiasl-lbwtji6q] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?city=Davis&page=3&fromDate=2026-10-01&pageSize=20',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiasl-lbwtji6q] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiasl-lbwtji6q] complete { status: 200, elapsedMs: 1 }
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&page=3&fromDate=2026-10-01&pageSize=20',
+  status: 200,
+  elapsedMs: 4,
+  requestId: null
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&fromDate=2026-10-01&severities=HIGH&pageSize=20',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] session ready {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&fromDate=2026-10-01&severities=HIGH&pageSize=20',
+  elapsedMs: 6
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiatj-2nszfm8m] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/conflicts?city=Davis&fromDate=2026-10-01&severities=HIGH&pageSize=20',
+  timeoutMs: 20000
+}
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiatj-2nszfm8m] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[request:fair-mwnaiatj-2nszfm8m] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/conflicts?city=Davis&fromDate=2026-10-01&severities=HIGH&pageSize=20',
+  status: 200,
+  elapsedMs: 6,
+  requestId: null
+}
+
+ ✓ app/routes/conflicts.pagination.test.tsx > restores URL filters, requests the next page, and resets page on filter changes 227ms
+ ✓ app/routes/admin.health.test.tsx > AdminHealthPage > displays sync and detection status information 280ms
+ ✓ app/routes/admin.health.test.tsx > AdminHealthPage > supports manual refresh 95ms
+ ✓ app/routes/admin.health.test.tsx > AdminHealthPage > retries an eligible failed run 43ms
+ ✓ app/routes/admin.history.test.tsx > renders recorded warnings and filer history 257ms
+ ✓ app/routes/admin.history.test.tsx > sends warning and search filters and supports retry 130ms
+ ✓ app/rootAccess.test.tsx > investigator-only access > only the sign-in and account-link pages are reachable without a session 1ms
+stdout | app/rootAccess.test.tsx > investigator-only access > shows records with the investigator header once the session is verified
+[request:fair-mwnaib1q-vcvae74j] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/session',
+  timeoutMs: 20000
+}
+
+stdout | app/rootAccess.test.tsx > investigator-only access > shows records with the investigator header once the session is verified
+[request:fair-mwnaib1q-vcvae74j] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/rootAccess.test.tsx > investigator-only access > shows records with the investigator header once the session is verified
+[request:fair-mwnaib1q-vcvae74j] complete { status: 200, elapsedMs: 1 }
+
+ ✓ app/rootAccess.test.tsx > investigator-only access > sends a visitor without a session from / to sign in 111ms
+ ✓ app/rootAccess.test.tsx > investigator-only access > sends a visitor without a session from /conflicts to sign in 18ms
+ ✓ app/rootAccess.test.tsx > investigator-only access > shows records with the investigator header once the session is verified 51ms
+ ✓ app/routes/admin.login.test.tsx > verifies backend authorization before completing login 204ms
+ ✓ app/routes/admin.login.test.tsx > shows a clear reason after an authorization redirect 16ms
+ ✓ app/routes/admin.login.test.tsx > requests password recovery without revealing account existence 37ms
+ ✓ app/routes/admin.reports.test.tsx > offers all conflict scopes and the matching filter controls 252ms
+ ✓ app/routes/admin.reports.test.tsx > posts the selected scope and triggers a named browser download 89ms
+ ✓ app/components/SyntheticConflictCheck.test.tsx > runs and removes the fictional fixture through authenticated admin requests 217ms
+ ✓ app/components/SyntheticConflictCheck.test.tsx > shows a failed request without claiming a successful check 17ms
+stdout | app/hooks/useApiData.test.tsx > sends the investigator session with every data request
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/politicians',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/hooks/useApiData.test.tsx > sends the investigator session with every data request
+[admin-auth] session ready { method: 'GET', path: '/api/politicians', elapsedMs: 2 }
+
+stdout | app/hooks/useApiData.test.tsx > sends the investigator session with every data request
+[request:fair-mwnaibii-jbkszd6o] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/politicians',
+  timeoutMs: 20000
+}
+
+stdout | app/hooks/useApiData.test.tsx > sends the investigator session with every data request
+[request:fair-mwnaibii-jbkszd6o] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/hooks/useApiData.test.tsx > sends the investigator session with every data request
+[request:fair-mwnaibii-jbkszd6o] complete { status: 200, elapsedMs: 3 }
+
+stdout | app/hooks/useApiData.test.tsx > sends the investigator session with every data request
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/politicians',
+  status: 200,
+  elapsedMs: 5,
+  requestId: null
+}
+
+stdout | app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract
+[admin-auth] session start {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/filters',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract
+[admin-auth] session ready {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/filters',
+  elapsedMs: 0
+}
+
+stdout | app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract
+[request:fair-mwnaibk7-hv4mt3z6] start {
+  method: 'GET',
+  url: 'http://localhost:3001https://api.example.gov/api/conflicts/filters',
+  timeoutMs: 20000
+}
+
+stdout | app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract
+[request:fair-mwnaibk7-hv4mt3z6] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract
+[request:fair-mwnaibk7-hv4mt3z6] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract
+[admin-auth] API response {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/filters',
+  status: 200,
+  elapsedMs: 1,
+  requestId: null
+}
+
+ ✓ app/hooks/useApiData.test.tsx > sends the investigator session with every data request 72ms
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+[admin-auth] session start {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+[admin-auth] session ready {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  elapsedMs: 6
+}
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+[request:fair-mwnaibm9-2c0rww4n] start {
+  method: 'GET',
+  url: 'http://localhost:3001https://api.example.gov/api/conflicts/id',
+  timeoutMs: 20000
+}
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+[request:fair-mwnaibm9-2c0rww4n] headers { status: 404, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+[request:fair-mwnaibm9-2c0rww4n] complete { status: 404, elapsedMs: 4 }
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+[admin-auth] API response {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  status: 404,
+  elapsedMs: 10,
+  requestId: null
+}
+
+stderr | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404)
+Response {
+  status: 404,
+  statusText: 'Not Found',
+  headers: Headers {},
+  body: null,
+  bodyUsed: false,
+  ok: false,
+  redirected: false,
+  type: 'default',
+  url: ''
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary.
+
+React Router caught the following error during render Response {
+  status: 404,
+  statusText: 'Not Found',
+  headers: Headers {},
+  body: null,
+  bodyUsed: false,
+  ok: false,
+  redirected: false,
+  type: 'default',
+  url: ''
+}
+
+ ✓ app/hooks/useApiData.test.tsx > identifies the endpoint when an API response lacks the data contract 58ms
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+[admin-auth] session start {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+[admin-auth] session ready {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  elapsedMs: 1
+}
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+[request:fair-mwnaibov-fjqvwyfd] start {
+  method: 'GET',
+  url: 'http://localhost:3001https://api.example.gov/api/conflicts/id',
+  timeoutMs: 20000
+}
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+[request:fair-mwnaibov-fjqvwyfd] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+[request:fair-mwnaibov-fjqvwyfd] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+[admin-auth] API response {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  status: 200,
+  elapsedMs: 1,
+  requestId: null
+}
+
+stderr | app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200)
+Response {
+  status: 404,
+  statusText: 'Not Found',
+  headers: Headers {},
+  body: null,
+  bodyUsed: false,
+  ok: false,
+  redirected: false,
+  type: 'default',
+  url: ''
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary.
+
+React Router caught the following error during render Response {
+  status: 404,
+  statusText: 'Not Found',
+  headers: Headers {},
+  body: null,
+  bodyUsed: false,
+  ok: false,
+  redirected: false,
+  type: 'default',
+  url: ''
+}
+
+stdout | app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404
+[admin-auth] session start {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404
+[admin-auth] session ready {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  elapsedMs: 0
+}
+
+stdout | app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404
+[request:fair-mwnaibp8-u1gqzcpb] start {
+  method: 'GET',
+  url: 'http://localhost:3001https://api.example.gov/api/conflicts/id',
+  timeoutMs: 20000
+}
+
+stdout | app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404
+[request:fair-mwnaibp8-u1gqzcpb] headers { status: 503, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404
+[request:fair-mwnaibp8-u1gqzcpb] complete { status: 503, elapsedMs: 0 }
+
+stdout | app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404
+[admin-auth] API response {
+  method: 'GET',
+  path: 'https://api.example.gov/api/conflicts/id',
+  status: 503,
+  elapsedMs: 1,
+  requestId: null
+}
+
+ ✓ app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 404) 110ms
+ ✓ app/hooks/useApiData.test.tsx > renders the 404 screen for missing records (HTTP 200) 11ms
+ ✓ app/hooks/useApiData.test.tsx > keeps server outages retryable rather than showing a 404 58ms
+ ✓ app/routes/admin.account.test.tsx > requires matching passwords before finishing an invitation 237ms
+ ✓ app/routes/admin.account.test.tsx > displays expired-link errors without exposing a password form 17ms
+stdout | app/root.test.tsx > provides a focusable main landmark for the skip link once signed in
+[request:fair-mwnaibs6-x2by9zfc] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/session',
+  timeoutMs: 20000
+}
+
+stdout | app/root.test.tsx > provides a focusable main landmark for the skip link once signed in
+[request:fair-mwnaibs6-x2by9zfc] headers { status: 200, elapsedMs: 23, serverRequestId: null }
+
+stdout | app/root.test.tsx > provides a focusable main landmark for the skip link once signed in
+[request:fair-mwnaibs6-x2by9zfc] complete { status: 200, elapsedMs: 24 }
+
+ ✓ app/components/RequestError.test.tsx > announces a safe message and retries only when requested 105ms
+ ✓ app/routes/admin.users.test.tsx > lets an owner invite staff and see email delivery errors 225ms
+ ✓ app/routes/admin.users.test.tsx > does not load user lists or expose invitation controls to ordinary admins 33ms
+ ✓ app/routes/admin.users.test.tsx > shows server failures and keeps the invitation available to retry 37ms
+ ✓ app/components/SiteFooter.test.tsx > states the restricted, non-legal-finding nature of FAIR and links the investigator pages 245ms
+ ✓ app/root.test.tsx > provides a focusable main landmark for the skip link once signed in 255ms
+ ✓ app/root.test.tsx > never renders exception messages or stacks 42ms
+ ✓ app/root.test.tsx > shows the dedicated 404 page without a retry action 18ms
+ ✓ app/root.test.tsx > redirects route authorization errors (401) to admin login 5ms
+ ✓ app/root.test.tsx > redirects route authorization errors (403) to admin login 10ms
+ ✓ app/routes/not-found.test.tsx > handles unknown URL /missing with a 404 response and page 135ms
+ ✓ app/routes/not-found.test.tsx > handles unknown URL /admin/unknown with a 404 response and page 13ms
+ ✓ app/routes/not-found.test.tsx > handles unknown URL /404 with a 404 response and page 23ms
+stdout | app/lib/request.test.ts > request > preserves response status and JSON
+[request:fair-mwnaicat-rqo2a4si] start { method: 'GET', url: '/upload', timeoutMs: 20000 }
+
+stdout | app/lib/request.test.ts > request > preserves response status and JSON
+[request:fair-mwnaicat-rqo2a4si] headers { status: 409, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/lib/request.test.ts > request > preserves response status and JSON
+[request:fair-mwnaicat-rqo2a4si] complete { status: 409, elapsedMs: 2 }
+
+stdout | app/lib/request.test.ts > request > uses the caller's deadline even if fetch never settles
+[request:fair-mwnaicay-mh4kzrqp] start { method: 'GET', url: '/records', timeoutMs: 1000 }
+
+stdout | app/lib/request.test.ts > request > preserves cancellation instead of reporting a timeout
+[request:fair-mwnaicb2-chs78lqw] start { method: 'GET', url: '/records', timeoutMs: 20000 }
+
+stdout | app/lib/request.test.ts > request > preserves cancellation instead of reporting a timeout
+[request:fair-mwnaicb2-chs78lqw] cancelled {
+  method: 'GET',
+  url: '/records',
+  stage: 'waiting-for-headers',
+  elapsedMs: 0
+}
+
+stdout | app/lib/request.test.ts > request > normalizes network errors without exposing internals
+[request:fair-mwnaicb2-qldoc6uc] start { method: 'GET', url: '/records', timeoutMs: 20000 }
+
+stderr | app/lib/request.test.ts > request > normalizes network errors without exposing internals
+[request:fair-mwnaicb2-qldoc6uc] network-error {
+  method: 'GET',
+  url: '/records',
+  stage: 'waiting-for-headers',
+  elapsedMs: 0,
+  errorName: 'TypeError'
+}
+
+ ✓ app/lib/request.test.ts > request > preserves response status and JSON 6ms
+ ✓ app/lib/request.test.ts > request > uses the caller's deadline even if fetch never settles 4ms
+ ✓ app/lib/request.test.ts > request > preserves cancellation instead of reporting a timeout 1ms
+ ✓ app/lib/request.test.ts > request > normalizes network errors without exposing internals 1ms
+ ✓ app/lib/request.test.ts > safeMessage > preserves validation errors and strips stacks and HTML 0ms
+ ✓ app/components/NotFound.test.tsx > explains missing content and offers a home link 102ms
+stdout | app/adminAuth.test.ts > adminAuth > stores the complete Supabase session used by the admin guard
+[request:fair-mwnaicb8-wv4qbgb7] start {
+  method: 'POST',
+  url: 'https://fair-test.supabase.co/auth/v1/token?grant_type=password',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > stores the complete Supabase session used by the admin guard
+[request:fair-mwnaicb8-wv4qbgb7] headers { status: 200, elapsedMs: 1, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > stores the complete Supabase session used by the admin guard
+[request:fair-mwnaicb8-wv4qbgb7] complete { status: 200, elapsedMs: 2 }
+
+stdout | app/adminAuth.test.ts > adminAuth > coordinates concurrent refreshes so only one refresh token request runs
+[request:fair-mwnaicbf-7far8wzz] start {
+  method: 'POST',
+  url: 'https://fair-test.supabase.co/auth/v1/token?grant_type=refresh_token',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > coordinates concurrent refreshes so only one refresh token request runs
+[request:fair-mwnaicbf-7far8wzz] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > coordinates concurrent refreshes so only one refresh token request runs
+[request:fair-mwnaicbf-7far8wzz] complete { status: 200, elapsedMs: 1 }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/history',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[admin-auth] session ready { method: 'GET', path: '/api/admin/history', elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbh-o8h7s6iq] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/history',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbh-o8h7s6iq] headers { status: 401, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbh-o8h7s6iq] complete { status: 401, elapsedMs: 1 }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbi-blmfc527] start {
+  method: 'POST',
+  url: 'https://fair-test.supabase.co/auth/v1/token?grant_type=refresh_token',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbi-blmfc527] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbi-blmfc527] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbi-orpusjs8] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/history',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbi-orpusjs8] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[request:fair-mwnaicbi-orpusjs8] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/admin/history',
+  status: 200,
+  elapsedMs: 2,
+  requestId: null
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > does not clear a valid session when verification is temporarily unavailable
+[request:fair-mwnaicbj-i9pavtao] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/session',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > does not clear a valid session when verification is temporarily unavailable
+[request:fair-mwnaicbj-i9pavtao] headers { status: 503, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > does not clear a valid session when verification is temporarily unavailable
+[request:fair-mwnaicbj-i9pavtao] complete { status: 503, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/history',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[admin-auth] session ready { method: 'GET', path: '/api/admin/history', elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[request:fair-mwnaicbl-4mt13c3x] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/history',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[request:fair-mwnaicbl-4mt13c3x] headers { status: 401, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[request:fair-mwnaicbl-4mt13c3x] complete { status: 401, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[request:fair-mwnaicbl-2mep9ye7] start {
+  method: 'POST',
+  url: 'https://fair-test.supabase.co/auth/v1/token?grant_type=refresh_token',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[request:fair-mwnaicbl-2mep9ye7] headers { status: 503, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure
+[request:fair-mwnaicbl-2mep9ye7] complete { status: 503, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/users',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden
+[admin-auth] session ready { method: 'GET', path: '/api/admin/users', elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden
+[request:fair-mwnaicbm-o48bob16] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/users',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden
+[request:fair-mwnaicbm-o48bob16] headers { status: 403, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden
+[request:fair-mwnaicbm-o48bob16] complete { status: 403, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/admin/users',
+  status: 403,
+  elapsedMs: 0,
+  requestId: null
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > redirects a missing session to login before making an API request
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/history',
+  apiUrl: 'http://localhost:3001'
+}
+
+stderr | app/adminAuth.test.ts > adminAuth > redirects a missing session to login before making an API request
+[admin-auth] session failed {
+  method: 'GET',
+  path: '/api/admin/history',
+  elapsedMs: 0,
+  errorName: 'Error'
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/history',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login
+[admin-auth] session ready { method: 'GET', path: '/api/admin/history', elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login
+[request:fair-mwnaicbo-cfqynz5w] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/history',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login
+[request:fair-mwnaicbo-cfqynz5w] headers { status: 403, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login
+[request:fair-mwnaicbo-cfqynz5w] complete { status: 403, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/admin/history',
+  status: 403,
+  elapsedMs: 0,
+  requestId: null
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out
+[admin-auth] session start {
+  method: 'GET',
+  path: '/api/admin/history/missing',
+  apiUrl: 'http://localhost:3001'
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out
+[admin-auth] session ready { method: 'GET', path: '/api/admin/history/missing', elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out
+[request:fair-mwnaicbp-v2b7t224] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/history/missing',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out
+[request:fair-mwnaicbp-v2b7t224] headers { status: 404, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out
+[request:fair-mwnaicbp-v2b7t224] complete { status: 404, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out
+[admin-auth] API response {
+  method: 'GET',
+  path: '/api/admin/history/missing',
+  status: 404,
+  elapsedMs: 0,
+  requestId: null
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-mu91xt8w] start {
+  method: 'PUT',
+  url: 'https://fair-test.supabase.co/auth/v1/user',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-mu91xt8w] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-mu91xt8w] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-ca1mfaiy] start {
+  method: 'POST',
+  url: 'http://localhost:3001/api/admin/users/accept',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-ca1mfaiy] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-ca1mfaiy] complete { status: 200, elapsedMs: 0 }
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-l7o3m36g] start {
+  method: 'GET',
+  url: 'http://localhost:3001/api/admin/session',
+  timeoutMs: 20000
+}
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-l7o3m36g] headers { status: 200, elapsedMs: 0, serverRequestId: null }
+
+stdout | app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership
+[request:fair-mwnaicbw-l7o3m36g] complete { status: 200, elapsedMs: 0 }
+
+ ✓ app/adminAuth.test.ts > adminAuth > stores the complete Supabase session used by the admin guard 10ms
+ ✓ app/adminAuth.test.ts > adminAuth > reports placeholder configuration as unavailable 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > coordinates concurrent refreshes so only one refresh token request runs 2ms
+ ✓ app/adminAuth.test.ts > adminAuth > refreshes and retries one unauthorized API response without clearing the session 3ms
+ ✓ app/adminAuth.test.ts > adminAuth > does not clear a valid session when verification is temporarily unavailable 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > retains the session if the refresh after a 401 has a temporary failure 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > keeps an admin session when an owner-only endpoint is forbidden 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > redirects a missing session to login before making an API request 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > clears denied membership and redirects to login 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > sends missing admin resources to the 404 page without signing out 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > scrubs invitation credentials from the URL after receiving a valid account link 5ms
+ ✓ app/adminAuth.test.ts > adminAuth > rejects expired account links and scrubs their URL 1ms
+ ✓ app/adminAuth.test.ts > adminAuth > does not reuse an ordinary logged-in session to authorize password recovery 0ms
+ ✓ app/adminAuth.test.ts > adminAuth > saves the password, accepts the matching invitation, then verifies membership 1ms
+ ✓ app/components/cityDiscoveryUi.test.tsx > renders city-only input and an optional URL fallback 6ms
+ ✓ app/components/cityDiscoveryUi.test.tsx > renders failure, status and safe document links 1ms
+ ✓ app/accessibility.test.tsx > has no automated accessibility violations in the shared public layout 73ms
+
+ Test Files  26 passed (26)
+      Tests  101 passed (101)
+   Start at  00:30:14
+   Duration  4.73s (environment 53%, tests 28%, import 9%, setup 8%, transform 2%)
+
+Environment  jsdom was created 26 times · 14.79s total, 53% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
