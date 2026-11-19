@@ -1,3 +1,4 @@
+import { businessActivityOf } from "./entityContext.js";
 import {
   CONFLICT_TYPES,
   RULE_REFERENCE,
@@ -29,7 +30,7 @@ export async function detectBusinessPositions(positions, agendaItem, deps = {}) 
     const entityName = pickField(row, "entity_name", "entityName");
     if (!politicianId || !entityName) continue;
 
-    const result = await match(entityName, agendaText, deps);
+    const result = await match(entityName, agendaText, { ...deps, businessActivity: businessActivityOf(row) });
     if (!result.matched) continue;
 
     flags.push({

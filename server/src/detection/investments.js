@@ -1,3 +1,4 @@
+import { businessActivityOf } from "./entityContext.js";
 import {
   CONFLICT_TYPES,
   RULE_REFERENCE,
@@ -60,11 +61,7 @@ export async function detectInvestments(investments, agendaItem, deps = {}) {
       continue;
     }
 
-    const result = await match(
-      entityName,
-      agendaText,
-      deps
-    );
+    const result = await match(entityName, agendaText, { ...deps, businessActivity: businessActivityOf(row) });
 
     if (!result.matched) {
       continue;

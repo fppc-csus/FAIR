@@ -3,6 +3,7 @@ import { parseConflictQuery, conflictSql } from '../utils/conflictQuery.js';
 import express from "express";
 import { prisma } from "../lib/prisma.js";
 import { normalizeEntityName } from "../utils/entityNorm.js";
+import { findEntityMentions } from "../detection/entityContext.js";
 import {
   conflictInclude,
   dashboardRow,
@@ -123,14 +124,18 @@ export function evidenceExcerpt(text, entityName, radius = 220) {
   const source = String(text ?? "");
   const name = String(entityName ?? "").replace(/\s*\(.*\)\s*$/, "").trim();
   if (!source || !name) return null;
-  const index = source.toLowerCase().indexOf(name.toLowerCase());
-  if (index < 0) return null;
+  // Same mention finder as detection, so aliases and acronyms highlight too.
+  const mention = findEntityMentions(name, source)[0]
+    ?? (() => { const index = source.toLowerCase().indexOf(name.toLowerCase()); return index < 0 ? null : { index, text: source.slice(index, index + name.length) }; })();
+  if (!mention) return null;
+  const { index } = mention;
+  const length = mention.text.length;
   const start = Math.max(0, index - radius);
-  const end = Math.min(source.length, index + name.length + radius);
+  const end = Math.min(source.length, index + length + radius);
   return {
     before: `${start > 0 ? "…" : ""}${source.slice(start, index)}`,
-    match: source.slice(index, index + name.length),
-    after: `${source.slice(index + name.length, end)}${end < source.length ? "…" : ""}`,
+    match: source.slice(index, index + length),
+    after: `${source.slice(index + length, end)}${end < source.length ? "…" : ""}`,
   };
 }
 
@@ -291,6 +296,12 @@ router.get("/:id", async (req, res, next) => {
 
     const scheduleEntry = await findScheduleEntry(conflict);
     const agendaItem = conflict.agendaItem;
+    const officialVote = prisma.voteRecord?.findUnique
+      ? await prisma.voteRecord.findUnique({
+        where: { agendaItemId_politicianId: { agendaItemId: conflict.agendaItemId, politicianId: conflict.politicianId } },
+        select: { vote: true, voteDate: true },
+      })
+      : null;
 
     return res.status(200).json({
       data: {
@@ -319,6 +330,9 @@ router.get("/:id", async (req, res, next) => {
         filingYear: conflict.filingYear ?? null,
         supportingSource: conflict.supportingSource ?? null,
         scheduleEntry,
+        // How the official voted on this item per the Legistar roll call
+        // (null when no roll call was recorded or the name did not match).
+        officialVote: officialVote ?? null,
         agendaItem: {
           id: conflict.agendaItemId,
           title: agendaItem.title,
@@ -330,6 +344,7 @@ router.get("/:id", async (req, res, next) => {
           sourceUrl: agendaItem.sourceUrl ?? null,
           sourceType: agendaItem.sourceType ?? null,
           legistarMatterId: agendaItem.legistarMatterId ?? null,
+          attachments: agendaItem.legistarItemPayload?.FairAttachments ?? [],
           evidence: evidenceExcerpt(agendaItem.itemText ?? agendaItem.description ?? agendaItem.title, conflict.entityName),
         },
       },

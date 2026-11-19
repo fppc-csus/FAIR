@@ -22,10 +22,12 @@ export type ConflictDetailData = {
   reviewedAt?: string | null;
   reviews?: Review[];
   scheduleEntry: { scheduleType: string; entityName: string | null; dollarValue: string | null; natureOfInterest: string | null; details?: DetailPair[] } | null;
+  officialVote?: { vote: string; voteDate: string | null } | null;
   agendaItem: {
     id?: string; title: string | null; text: string | null; meetingDate: string | null; city: string | null;
     bodyName?: string | null; agendaNumber?: string | null; sourceUrl?: string | null; legistarMatterId?: string | null;
     evidence?: { before: string; match: string; after: string } | null;
+    attachments?: { name: string; url: string | null }[];
   };
 };
 
@@ -34,6 +36,14 @@ const REVIEW_OPTIONS = [
   ["confirmed_conflict", "Confirmed conflict — refer for enforcement"],
   ["not_applicable", "Not applicable — no disqualifying interest"],
 ] as const;
+
+/** Participation matters: an "Aye" or "Nay" vote is participation; "Recused" is not. */
+function voteTone(vote: string | null | undefined) {
+  if (!vote) return "text-slate-500";
+  if (/recus|abstain/i.test(vote)) return "text-emerald-700";
+  if (/aye|yes|nay|no/i.test(vote)) return "text-red-700";
+  return "text-slate-700";
+}
 
 function severityExplanation(conflict: ConflictDetailData) {
   const amount = conflict.scheduleEntry?.dollarValue;
@@ -93,11 +103,12 @@ export default function ConflictDetail() {
         <div className="flex flex-wrap items-center gap-2"><SeverityBadge severity={conflict.severity} /><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">{titleCase(conflict.conflictType)}</span><ReviewBadge status={conflict.reviewStatus} /><IdentityBadge verified={conflict.politician.identityVerified} /></div>
         <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl"><Link to={profileHref} className="hover:text-blue-800">{conflict.politician.name}</Link></h1>
         <p className="mt-2 text-slate-600">{[conflict.politician.officeTitle, conflict.politician.jurisdiction, conflict.politician.district && `District ${conflict.politician.district}`].filter(Boolean).join(" · ") || "Office not recorded"}</p>
-        <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-4">
+        <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-5">
           <div><dt className="text-slate-500">Matched entity</dt><dd className="font-semibold">{conflict.entityName ?? "Not recorded"}</dd></div>
           <div><dt className="text-slate-500">Meeting</dt><dd className="font-semibold">{formatDate(conflict.agendaItem.meetingDate, { year: "numeric", month: "long", day: "numeric" })}</dd></div>
           <div><dt className="text-slate-500">Form 700 year</dt><dd className="font-semibold">{conflict.filingYear ?? "Not recorded"}</dd></div>
           <div><dt className="text-slate-500">Detected</dt><dd className="font-semibold">{formatDate(conflict.detectedAt)}</dd></div>
+          <div><dt className="text-slate-500">Official's vote</dt><dd className={`font-semibold ${voteTone(conflict.officialVote?.vote)}`}>{conflict.officialVote?.vote ?? "No roll call recorded"}</dd></div>
         </dl>
       </header>
 
@@ -111,8 +122,9 @@ export default function ConflictDetail() {
               : <p className="mt-4 text-sm text-slate-600">The matched name was not found verbatim in the stored text (fuzzy or AI-assisted match). Read the full text below.</p>}
             <div className="mt-4 flex flex-wrap gap-4 text-sm">
               {conflict.agendaItem.sourceUrl && <a className="inline-flex items-center gap-1 font-semibold text-blue-700" href={conflict.agendaItem.sourceUrl} target="_blank" rel="noreferrer">Original agenda <ExternalLink size={14} /></a>}
-              {conflict.agendaItem.id && <Link className="font-semibold text-blue-700" to={`/agenda/${conflict.agendaItem.id}`}>All flags on this item →</Link>}
+              {conflict.agendaItem.id && <Link className="font-semibold text-blue-700" to={`/agenda/${conflict.agendaItem.id}`}>Roll call and all flags on this item →</Link>}
             </div>
+            {(conflict.agendaItem.attachments?.length ?? 0) > 0 && <div className="mt-4"><h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Attachments</h3><ul className="mt-2 space-y-1 text-sm">{conflict.agendaItem.attachments!.map((attachment, index) => <li key={`${attachment.name}-${index}`}>{attachment.url ? <a className="inline-flex items-center gap-1 font-semibold text-blue-700" href={attachment.url} target="_blank" rel="noreferrer">{attachment.name} <ExternalLink size={13} /></a> : attachment.name}</li>)}</ul></div>}
             <details className="mt-5"><summary className="cursor-pointer text-sm font-semibold text-slate-700">Full agenda text</summary><p className="mt-3 max-h-[32rem] overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-7 text-slate-700">{conflict.agendaItem.text ?? "No text stored."}</p></details>
           </section>
 

@@ -108,8 +108,25 @@ const conflictDetail = {
   politician: { id: dossier.id, slug: "lynda-hopkins", name: "Lynda Hopkins", officeTitle: "Supervisor", district: null, jurisdiction: "County of Sonoma", identityVerified: false },
   conflictType: "INCOME", severity: "HIGH", ruleReference: "Cal. Gov. Code §87100, §87103(c)", entityName: "LandPaths", filingYear: 2019, reviewStatus: "pending", reviews: [],
   scheduleEntry: { scheduleType: "C", entityName: "LandPaths", dollarValue: "$10,001 - $100,000", natureOfInterest: null, details: [{ label: "YOUR BUSINESS POSITION", value: "Spouse" }] },
-  agendaItem: { id: "a", title: "Tourism Impact Fund Awards", text: "…", meetingDate: "2019-12-17", city: "Sonoma County", sourceUrl: "https://sonoma-county.legistar.com/x", evidence: { before: "Sonoma Ecology Center, $10,000; ", match: "LandPaths", after: ", $20,000;" } },
+  officialVote: { vote: "Aye", voteDate: "2019-12-17" },
+  agendaItem: { id: "a", title: "Tourism Impact Fund Awards", text: "…", meetingDate: "2019-12-17", city: "Sonoma County", sourceUrl: "https://sonoma-county.legistar.com/x", attachments: [{ name: "Summary Report", url: "https://sonoma-county.legistar1.com/s.pdf" }], evidence: { before: "Sonoma Ecology Center, $10,000; ", match: "LandPaths", after: ", $20,000;" } },
 };
+
+describe("agenda item", () => {
+  it("shows the roll call with links to filers and the matter attachments", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: {
+      id: "a", title: "Fiscal Year 2019-2020 Tourism Impact Fund Awards", description: null, itemText: "LandPaths, $20,000", itemNumber: null, agendaNumber: "15.",
+      meetingDate: "2019-12-17", cityName: "Sonoma County", sourceType: "legistar", bodyName: "Board of Supervisors", conflicts: [],
+      rollCall: [{ personName: "Lynda Hopkins", value: "Aye" }, { personName: "David Rabbitt", value: "Absent" }],
+      votes: [{ vote: "Aye", politician: { id: "h", slug: "lynda-hopkins", fullName: "Lynda Hopkins" } }],
+      attachments: [{ name: "Attachment A", url: "https://sonoma-county.legistar1.com/a.pdf" }],
+    } }));
+    render(<MemoryRouter initialEntries={["/agenda/a"]}><Routes><Route path="/agenda/:id" element={<AgendaDetail />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole("link", { name: "Lynda Hopkins" })).toHaveAttribute("href", "/politicians/lynda-hopkins");
+    expect(screen.getByText("Absent")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Attachment A/ })).toHaveAttribute("href", "https://sonoma-county.legistar1.com/a.pdf");
+  });
+});
 
 describe("conflict investigation", () => {
   it("highlights the agenda passage and records a review decision with a note", async () => {
@@ -122,6 +139,8 @@ describe("conflict investigation", () => {
     expect(await screen.findByText("LandPaths", { selector: "mark" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lynda Hopkins" })).toHaveAttribute("href", "/politicians/lynda-hopkins");
     expect(screen.getByRole("link", { name: /Original agenda/ })).toHaveAttribute("href", "https://sonoma-county.legistar.com/x");
+    expect(screen.getByText("Aye")).toHaveClass("text-red-700");
+    expect(screen.getByRole("link", { name: /Summary Report/ })).toHaveAttribute("href", "https://sonoma-county.legistar1.com/s.pdf");
     expect(screen.getByRole("button", { name: "Save review" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Decision"), { target: { value: "confirmed_conflict" } });
     fireEvent.change(screen.getByLabelText("Investigator note"), { target: { value: "Voted 12/17/2019 without recusal; spouse employed by LandPaths." } });

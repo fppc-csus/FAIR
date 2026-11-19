@@ -22,7 +22,21 @@ Entity names are normalized before matching. Exact phrases anywhere in the
 agenda text (including Legistar matter text) score 1.0. Multi-word names may
 also match approximately: scores of 0.90 or above are accepted automatically and
 scores from 0.70 through 0.899 are sent to Gemini for a constrained yes/no
-resolution. One-word names must match exactly. Every stored conflict retains its entity,
+resolution. One-word names must match exactly.
+
+**Aliases and acronyms (deterministic, no AI).** A disclosed name also matches
+its known aliases (`server/src/config/entityAliases.js`, e.g. Southern California
+Edison ↔ SCE) and its acronym in either direction: "PG&E", "PGE", "P.G.&E." and
+the capitalised phrase "Pacific Gas and Electric" are the same entity. Spelled-out
+phrases may not cross sentence punctuation, and acronym tokens must be upper case.
+
+**Ordinary-word company names.** A one-word name that is also a common English
+word ("Apple", "Scoop", "Shell" — curated in `COMMON_WORD_NAMES`), or that the
+agenda uses as a lower-case word, is accepted only when the mention is
+corroborated: a corporate suffix right after it ("Apple Inc.") or vocabulary
+from the filer's reported business activity within ~200 characters (Technology →
+software, computer, iPhone, network…). "Apple Blossom Festival" and "Gravenstein
+Apple Fair" are rejected for an Apple Inc. investment; "Apple iPads" is accepted. Every stored conflict retains its entity,
 rule reference, severity, and source key for auditability.
 
 ## Approval status

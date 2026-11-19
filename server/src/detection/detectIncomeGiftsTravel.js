@@ -1,3 +1,4 @@
+import { businessActivityOf } from "./entityContext.js";
 import {
   RULE_REFERENCE,
   calculateSeverity,
@@ -39,7 +40,7 @@ export async function detectIncomeGiftsTravel(sources, agendaItem, deps = {}) {
     const decisionYear = new Date(pickField(agendaItem, "meetingDate", "meeting_date") ?? NaN).getUTCFullYear();
     if (!meetsAmountThreshold(scheduleType, row.aggregate_amount ?? amount, { year: decisionYear })) continue;
 
-    const result = await match(sourceName, agendaText, deps);
+    const result = await match(sourceName, agendaText, { ...deps, businessActivity: businessActivityOf(row) });
     if (!result.matched) continue;
 
     flags.push({

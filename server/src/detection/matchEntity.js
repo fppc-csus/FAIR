@@ -9,6 +9,7 @@ import {
   areSameEntity,
   normalizeEntityName,
 } from "../utils/entityNorm.js";
+import { findEntityMentions, isAmbiguousName, isCorroborated } from "./entityContext.js";
 
 export { normalizeEntityName } from "../utils/entityNorm.js";
 
@@ -52,6 +53,8 @@ export function scoreEntityInText(name, agendaText) {
   if (!needle || !haystack) return 0;
 
   if (containsPhrase(haystack, needle)) return 1;
+  // Aliases and acronyms: "PG&E" ↔ "PGE" ↔ "Pacific Gas and Electric".
+  if (findEntityMentions(name, agendaText).length) return 1;
 
   const needleWords = needle.split(" ");
   // One-word names ("Cisco", "Apple", "LandPaths") fuzzy-match unrelated words
@@ -182,6 +185,12 @@ export async function matchNamedEntity(name, agendaText, deps = {}) {
   const result = { matched: false, score, usedGemini: false };
 
   if (score >= MATCH_BANDS.AUTO_MATCH) {
+    // "Apple" the company vs "Apple Blossom Festival": an ordinary-word name
+    // needs a corporate suffix or the filer's line of business nearby.
+    if (isAmbiguousName(name, agendaText)
+      && !isCorroborated(findEntityMentions(name, agendaText), agendaText, deps.businessActivity)) {
+      return { ...result, ambiguous: true };
+    }
     result.matched = true;
     return result;
   }

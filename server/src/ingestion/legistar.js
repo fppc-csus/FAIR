@@ -1,4 +1,4 @@
-import { getAgendaItems, getMatterText, getMatterVersions, getMeetings } from "./legistarApi.js";
+import { getAgendaItems, getMatterAttachments, getMatterText, getMatterVersions, getMeetings, getVotes } from "./legistarApi.js";
 
 function sourceBaseUrl(source = {}) {
   return source.legistar_base_url ?? source.legistarBaseUrl ?? source.baseUrl ?? null;
@@ -67,15 +67,61 @@ export async function fetchLegistarAgendaItemsForDataSource(source, options = {}
       getText: window.getMatterText ?? getMatterText,
     });
 
+  const matterIds = allItems.map(({ item }) => item.EventItemMatterId ?? item.MatterId);
+  const attachments = window.includeAttachments === false
+    ? { byKey: new Map(), failures: 0 }
+    : await fetchEach(matterIds, (id) => (window.getMatterAttachments ?? getMatterAttachments)(baseUrl, id), concurrency);
+  const votes = window.includeVotes === false
+    ? { byKey: new Map(), failures: 0 }
+    : await fetchEach(allItems.map(({ item }) => item.EventItemId), (id) => (window.getVotes ?? getVotes)(baseUrl, id), concurrency);
+
   return {
     baseUrl,
     meetings: includedMeetings,
-    allItems: allItems.map((entry) => ({
-      ...entry,
-      matterText: matterText.texts.get(String(entry.item.EventItemMatterId ?? entry.item.MatterId)) ?? null,
-    })),
+    allItems: allItems.map((entry) => {
+      const matterKey = String(entry.item.EventItemMatterId ?? entry.item.MatterId);
+      return {
+        ...entry,
+        matterText: matterText.texts.get(matterKey) ?? null,
+        attachments: (attachments.byKey.get(matterKey) ?? []).map(normalizeAttachment).filter(Boolean),
+        votes: (votes.byKey.get(String(entry.item.EventItemId)) ?? []).map(normalizeVote).filter(Boolean),
+      };
+    }),
     matterTextFailures: matterText.failures,
+    attachmentFailures: attachments.failures,
+    voteFailures: votes.failures,
   };
+}
+
+function normalizeAttachment(attachment = {}) {
+  const url = attachment.MatterAttachmentHyperlink ?? attachment.hyperlink;
+  const name = attachment.MatterAttachmentName ?? attachment.name;
+  return url || name ? { name: name ?? "Attachment", url: url ?? null } : null;
+}
+
+/** Roll-call vote of one member: "Aye", "Nay", "Absent", "Recused", "Abstain"… */
+function normalizeVote(vote = {}) {
+  const personName = vote.VotePersonName ?? vote.personName;
+  const value = vote.VoteValueName ?? vote.voteValueName;
+  return personName && value ? { personName, value, legistarPersonId: vote.VotePersonId ?? null } : null;
+}
+
+/** Fetch one resource per distinct key with bounded concurrency; failures are counted, not thrown. */
+async function fetchEach(keys, fetchOne, concurrency) {
+  const ids = [...new Set(keys.filter((key) => key != null && String(key).trim() !== "").map(String))];
+  const byKey = new Map();
+  let failures = 0;
+  for (let index = 0; index < ids.length; index += concurrency) {
+    await Promise.all(ids.slice(index, index + concurrency).map(async (id) => {
+      try {
+        const result = await fetchOne(id);
+        if (Array.isArray(result) && result.length) byKey.set(id, result);
+      } catch {
+        failures += 1;
+      }
+    }));
+  }
+  return { byKey, failures };
 }
 
 /**

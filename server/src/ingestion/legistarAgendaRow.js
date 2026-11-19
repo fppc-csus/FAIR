@@ -37,13 +37,15 @@ export function cleanMatterText(value) {
  * frequently appear only there — e.g. Sonoma County 2019-1709 lists
  * "LandPaths, $20,000" only in its recommended action, not in the title.
  */
-export function buildLegistarItemText({ title, description, item = {}, matterText = null }) {
+export function buildLegistarItemText({ title, description, item = {}, matterText = null, attachments = [] }) {
+  const attachmentNames = attachments.map((attachment) => attachment.name).filter(present);
   return [
     title,
     description,
     item.EventItemMinutesNote ?? item.MinutesNote,
     item.EventItemActionText,
     cleanMatterText(matterText),
+    attachmentNames.length ? `Attachments: ${attachmentNames.join('; ')}` : null,
   ].filter(present).join('\n') || null;
 }
 
@@ -52,7 +54,7 @@ export function buildLegistarItemText({ title, description, item = {}, matterTex
  * agenda_items row (camelCase Prisma field names). Used by the nightly sync and
  * the admin "sync now" path so both store identical text.
  */
-export function buildLegistarAgendaRow({ source, meeting = {}, meetingId, item, matterText = null }) {
+export function buildLegistarAgendaRow({ source, meeting = {}, meetingId, item, matterText = null, attachments = [], votes = [] }) {
   const baseUrl = source.legistarBaseUrl ?? source.legistar_base_url ?? source.baseUrl;
   const title = item.EventItemTitle ?? item.EventItemMatterName ?? item.MatterName ?? item.Title ?? item.title ?? 'Untitled agenda item';
   const description = item.EventItemAgendaNote ?? item.AgendaNote ?? null;
@@ -66,12 +68,15 @@ export function buildLegistarAgendaRow({ source, meeting = {}, meetingId, item, 
     cityId: source.id ?? null,
     title,
     description,
-    itemText: buildLegistarItemText({ title, description, item, matterText }),
+    itemText: buildLegistarItemText({ title, description, item, matterText, attachments }),
     sourceUrl: meeting.EventInSiteURL ?? meeting.EventAgendaFile ?? null,
     agendaNumber: item.EventItemAgendaNumber ?? item.AgendaNumber ?? null,
     bodyName: meeting.EventBodyName ?? meeting.bodyName ?? null,
     meetingDate: parseDate(meeting.EventDate ?? meeting.event_date ?? meeting.date),
     eventItemPassedFlag: item.EventItemPassedFlag == null ? null : Boolean(item.EventItemPassedFlag),
-    legistarItemPayload: item,
+    // Attachments (staff reports, agreements) and the roll call are kept with
+    // the item for investigators; votes are also linked to officials in
+    // vote_records by legistarVotes.js.
+    legistarItemPayload: { ...item, FairAttachments: attachments, FairVotes: votes },
   };
 }

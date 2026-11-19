@@ -65,6 +65,13 @@ router.get("/:id", async (req, res) => {
         cityName: true,
         sourceType: true,
         bodyName: true,
+        agendaNumber: true,
+        sourceUrl: true,
+        legistarItemPayload: true,
+        votes: {
+          select: { vote: true, politician: { select: { id: true, slug: true, fullName: true } } },
+          orderBy: { politician: { fullName: "asc" } },
+        },
         conflicts: {
           where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
           select: {
@@ -95,8 +102,15 @@ router.get("/:id", async (req, res) => {
       });
     }
 
+    const { legistarItemPayload, ...item } = agendaItem;
     res.status(200).json({
-      data: agendaItem,
+      data: {
+        ...item,
+        // Full Legistar roll call (including members without a FAIR profile)
+        // and the matter's attachments; the raw payload stays server-side.
+        rollCall: legistarItemPayload?.FairVotes ?? [],
+        attachments: legistarItemPayload?.FairAttachments ?? [],
+      },
     });
   } catch (error) {
     console.error("Failed to fetch agenda item:", error);

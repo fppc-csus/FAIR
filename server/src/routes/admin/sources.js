@@ -6,6 +6,7 @@ import { prisma } from '../../lib/prisma.js';
 import { executeSourceSync as executeSharedSourceSync } from "../../services/sourceSync.js";
 import { fetchLegistarAgendaItemsForDataSource } from '../../ingestion/legistar.js';
 import { buildLegistarAgendaRow } from '../../ingestion/legistarAgendaRow.js';
+import { persistLegistarVotes } from '../../ingestion/legistarVotes.js';
 import { findJurisdictionsByName, jurisdictionKey } from '../../utils/jurisdictionName.js';
 import { getSyntheticConflictStatus, runSyntheticConflictCheck, removeSyntheticConflictCheck } from '../../detection/syntheticConflictCheck.js';
 import { ingestApifyAgendaItems } from '../../ingestion/apifyAgenda.js';
@@ -164,6 +165,13 @@ async function runLegistarSource(source, options = {}) {
     rows,
     (row) => ({ legistarItemId: row.legistarItemId }),
   );
+  const votes = await persistLegistarVotes(prisma, {
+    jurisdictionId: source.jurisdictionId ?? null,
+    items: rows.map((row) => ({ legistarItemId: row.legistarItemId, meetingDate: row.meetingDate, votes: row.legistarItemPayload?.FairVotes ?? [] })),
+  }).catch((error) => {
+    console.error('[admin/sources] vote storage failed', error.message);
+    return { votesStored: 0, votesUnmatched: 0 };
+  });
   const detection = await detectAgendaConflictsSafely(
     result.changedIds,
     detectConflictsForAgendaItems,
@@ -171,6 +179,7 @@ async function runLegistarSource(source, options = {}) {
   );
   return {
     itemsFound: rows.length,
+    ...votes,
     itemsInserted: result.inserted,
     itemsSkipped: result.skipped,
     ...detection,

@@ -1,5 +1,6 @@
 import postgres from 'postgres';
 import { buildLegistarAgendaRow } from '../ingestion/legistarAgendaRow.js';
+import { persistLegistarVotes } from '../ingestion/legistarVotes.js';
 import { fetchLegistarAgendaItemsForDataSource } from '../ingestion/legistar.js';
 import { detectConflictsForAgendaItems } from '../detection/detectConflicts.js';
 import { detectAgendaConflictsSafely } from '../detection/detectAgendaConflictsSafely.js';
@@ -34,8 +35,8 @@ const SNAKE_COLUMNS = {
   legistarItemPayload: 'legistar_item_payload',
 };
 
-function toItemInsertRow({ source, meeting, meetingId, item, matterText }) {
-  const row = buildLegistarAgendaRow({ source: { ...source, cityName: getCityName(source) }, meeting, meetingId, item, matterText });
+function toItemInsertRow({ source, meeting, meetingId, item, matterText, attachments, votes }) {
+  const row = buildLegistarAgendaRow({ source: { ...source, cityName: getCityName(source) }, meeting, meetingId, item, matterText, attachments, votes });
   return Object.fromEntries(Object.entries(SNAKE_COLUMNS).map(([field, column]) => [column, row[field]]));
 }
 
@@ -194,6 +195,23 @@ async function countAgendaItemsForSource(sql, source, startDate, endDate) {
   return Number(result[0]?.count ?? 0);
 }
 
+/** Roll-call votes never fail a sync; a failure is logged and counted. */
+async function storeVotes(prismaClient, source, rows) {
+  try {
+    return await persistLegistarVotes(prismaClient, {
+      jurisdictionId: source.jurisdiction_id ?? source.jurisdictionId ?? null,
+      items: rows.map((row) => ({
+        legistarItemId: row.legistar_item_id,
+        meetingDate: row.meeting_date,
+        votes: row.legistar_item_payload?.FairVotes ?? [],
+      })),
+    });
+  } catch (error) {
+    console.error(`[cron][legistar] city="${getCityName(source)}" vote storage failed:`, error.message);
+    return { votesStored: 0, votesUnmatched: 0, voteError: error.message };
+  }
+}
+
 async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns, options = {}) {
   const cityName = getCityName(dataSource);
 
@@ -203,6 +221,7 @@ async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns,
   });
   const rows = buildInsertRows(dataSource, allItems);
   const saved = await insertAgendaItemRows(sql, rows, agendaItemColumns);
+  const voteResult = await storeVotes(options.prisma ?? prisma, dataSource, rows);
   const insertedAgendaItemIds = saved.inserted;
   const inserted = insertedAgendaItemIds.length;
   const skipped = rows.length - inserted;
@@ -228,6 +247,7 @@ async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns,
     meetingsFound: meetings.length,
     meetingFetched: meetings.length,
     itemsFound: rows.length,
+    ...voteResult,
     inserted,
     itemsInserted: inserted,
     skipped,
