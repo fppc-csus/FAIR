@@ -13,7 +13,7 @@
  *   nature_of_investment ← NATURE OF INVESTMENT
  *   gross_income_range   ← INCLUDE YOUR PRO RATA SHARE OF GROSS INCOME TO ENTITY/TRUST
  */
-import { cleanText, getField, readScheduleRows } from "./parserUtils.js";
+import { cleanText, getField, readScheduleRows, rowDetails } from "./parserUtils.js";
 
 const SHEET_KEYWORDS = ["schedule a-2", "schedule a2", "schedule a 2", "a-2", "business position"];
 const HEADER_KEYWORDS = ["name of business entity or trust", "name of business entity"];
@@ -46,6 +46,7 @@ function mapRow(row, filingId) {
     nature_of_investment: cleanText(getField(row, NATURE_KEYS)),
     gross_income_range: cleanText(getField(row, GROSS_INCOME_KEYS)),
     filing_id: filingId ?? null,
+    details: rowDetails(row),
   };
 }
 

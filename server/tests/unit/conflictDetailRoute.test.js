@@ -28,13 +28,14 @@ describe('public conflict detail', () => {
     expect((await request(app).get(`/api/conflicts/${id}`)).status).toBe(404);
   });
 
-  it('returns the disclosure and full agenda without authentication', async () => {
+  it('returns the disclosure, the matching agenda passage and review state', async () => {
     db.conflict.findUnique.mockResolvedValue({
       id, politicianId, conflictType: 'INVESTMENT', severity: 'HIGH',
       ruleReference: 'Cal. Gov. Code §87103(a)', entityName: 'Acme', sourceKey: 'INVESTMENT:acme',
-      politician: { fullName: 'Alex Rivera', district: '4' },
+      politician: { fullName: 'Alex Rivera', district: '4', needsReview: true, jurisdiction: { name: 'Sacramento' } },
+      reviewStatus: 'pending', reviews: [{ id: 'r1', newStatus: 'pending', note: 'Opened' }],
       agendaItem: {
-        title: 'Contract', itemText: 'Full text about Acme', description: 'Short summary',
+        title: 'Contract', itemText: 'Full text about Acme', description: 'Short summary', sourceUrl: 'https://example.legistar.com/x',
         meetingDate: null, cityName: null,
         meeting: { meetingDate: new Date('2026-09-15T00:00:00Z'), jurisdiction: { name: 'Sacramento' } },
       },
@@ -45,11 +46,15 @@ describe('public conflict detail', () => {
 
     const response = await request(app).get(`/api/conflicts/${id}`);
     expect(response.status).toBe(200);
-    expect(response.body.data.politician).toEqual({ id: politicianId, name: 'Alex Rivera', district: '4' });
+    expect(response.body.data.politician).toEqual({ id: politicianId, slug: null, name: 'Alex Rivera', officeTitle: null, district: '4', jurisdiction: 'Sacramento', identityVerified: false });
     expect(response.body.data.scheduleEntry).toEqual({
-      scheduleType: 'A', entityName: 'Acme, Inc.', dollarValue: '$10,000 - $100,000', natureOfInterest: 'Stock',
+      scheduleType: 'A', entityName: 'Acme, Inc.', dollarValue: '$10,000 - $100,000', natureOfInterest: 'Stock', details: [],
     });
-    expect(response.body.data.agendaItem).toMatchObject({ text: 'Full text about Acme', city: 'Sacramento' });
+    expect(response.body.data.agendaItem).toMatchObject({
+      text: 'Full text about Acme', city: 'Sacramento', sourceUrl: 'https://example.legistar.com/x',
+      evidence: { before: 'Full text about ', match: 'Acme', after: '' },
+    });
+    expect(response.body.data).toMatchObject({ reviewStatus: 'pending', reviews: [{ note: 'Opened' }] });
     expect(db.scheduleAInvestment.findMany.mock.calls[0][0].where.OR[1].filing.politicianId).toBe(politicianId);
   });
 
@@ -70,11 +75,26 @@ describe('public conflict detail', () => {
       filingId: id, disclosureId: politicianId, filingYear: 2025, supportingSource: 'private/file.xlsx', eligibilityStatus: 'inactive',
       politician: { fullName: 'Alex Rivera' }, agendaItem: { title: 'Contract', meeting: null },
     });
-    db.scheduleAInvestment.findFirst = vi.fn().mockResolvedValue({ entityName: 'Acme', fairMarketValue: '$10,000' });
+    db.scheduleAInvestment.findFirst = vi.fn().mockResolvedValue({ entityName: 'Acme', fairMarketValue: '$10,000', details: [{ label: 'GENERAL DESCRIPTION OF THIS BUSINESS ACTIVITY', value: 'Paving' }] });
     const response = await request(app).get(`/api/conflicts/${id}`);
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({ eligibilityStatus: 'inactive', filingId: id, disclosureId: politicianId, supportingSource: 'private/file.xlsx' });
     expect(db.scheduleAInvestment.findFirst).toHaveBeenCalledWith({ where: { id: politicianId, filingId: id, filing: { politicianId } } });
     expect(db.scheduleAInvestment.findMany).not.toHaveBeenCalled();
+    expect(response.body.data.scheduleEntry.details).toEqual([{ label: 'GENERAL DESCRIPTION OF THIS BUSINESS ACTIVITY', value: 'Paving' }]);
+  });
+
+  it('finds the parent disclosure of a related-party candidate on another schedule', async () => {
+    db.conflict.findUnique.mockResolvedValue({
+      id, politicianId, conflictType: 'INCOME', sourceKey: 'related:INCOME:sonoma ecology center:disclosure:x',
+      entityName: 'Sonoma Ecology Center (list single sources of income of $10,000 or more on disclosure for Foggy River Farm)',
+      filingId: id, disclosureId: politicianId,
+      politician: { fullName: 'Lynda Hopkins' }, agendaItem: { title: 'Grant', itemText: 'Award to Sonoma Ecology Center', meeting: null },
+    });
+    db.scheduleCdeIncome.findFirst = vi.fn().mockResolvedValue(null);
+    db.scheduleA2BusinessPosition.findFirst = vi.fn().mockResolvedValue({ entityName: 'Foggy River Farm', businessPosition: 'Partner' });
+    const response = await request(app).get(`/api/conflicts/${id}`);
+    expect(response.body.data.scheduleEntry).toMatchObject({ scheduleType: 'A-2', entityName: 'Foggy River Farm' });
+    expect(response.body.data.agendaItem.evidence.match).toBe('Sonoma Ecology Center');
   });
 });

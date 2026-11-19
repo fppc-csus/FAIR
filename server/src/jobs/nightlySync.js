@@ -1,5 +1,5 @@
 import postgres from 'postgres';
-import { legistarItemKey } from '../ingestion/legistarIdentity.js';
+import { buildLegistarAgendaRow } from '../ingestion/legistarAgendaRow.js';
 import { fetchLegistarAgendaItemsForDataSource } from '../ingestion/legistar.js';
 import { detectConflictsForAgendaItems } from '../detection/detectConflicts.js';
 import { detectAgendaConflictsSafely } from '../detection/detectAgendaConflictsSafely.js';
@@ -16,47 +16,27 @@ function getCityName(source) {
   return source.city_name ?? source.name ?? source.id ?? 'unknown-city';
 }
 
-function parseDate(value) {
-  if (!value) {
-    return null;
-  }
+const SNAKE_COLUMNS = {
+  legistarItemId: 'legistar_item_id',
+  sourceType: 'source_type',
+  legistarEventId: 'legistar_event_id',
+  legistarMatterId: 'legistar_matter_id',
+  cityName: 'city_name',
+  cityId: 'city_id',
+  title: 'title',
+  description: 'description',
+  itemText: 'item_text',
+  sourceUrl: 'source_url',
+  agendaNumber: 'agenda_number',
+  bodyName: 'body_name',
+  meetingDate: 'meeting_date',
+  eventItemPassedFlag: 'event_item_passed_flag',
+  legistarItemPayload: 'legistar_item_payload',
+};
 
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.valueOf()) ? null : parsed;
-}
-
-function toItemInsertRow({ source, meeting, meetingId, item }) {
-  const title = item.EventItemTitle ?? item.EventItemMatterName ?? item.MatterName ?? item.Title ?? 'Untitled Agenda Item';
-  const description = item.EventItemAgendaNote ?? item.AgendaNote ?? null;
-  const itemText = [
-    title,
-    description,
-    item.EventItemMinutesNote ?? item.MinutesNote,
-    item.EventItemActionText,
-  ].filter((value) => value != null && String(value).trim() !== '').join('\n');
-  return {
-    legistar_item_id: legistarItemKey(
-      source.legistar_base_url ?? source.legistarBaseUrl ?? source.baseUrl,
-      item.EventItemId ?? item.event_item_id,
-    ),
-    city_id: source.id ?? null,
-    source_type: 'legistar',
-    legistar_event_id: String(meetingId),
-    legistar_matter_id: item.EventItemMatterId != null
-      ? String(item.EventItemMatterId)
-      : item.MatterId != null ? String(item.MatterId) : null,
-    city_name: getCityName(source),
-    title,
-    description,
-    item_text: itemText || null,
-    source_url: meeting.EventInSiteURL ?? meeting.EventAgendaFile ?? null,
-    agenda_number: item.EventItemAgendaNumber ?? item.EventItemAgendaSequence ?? null,
-    body_name: meeting.EventBodyName ?? meeting.EventBodyId ?? null,
-    meeting_date: parseDate(meeting.EventDate ?? meeting.event_date),
-    event_item_passed_flag:
-      item.EventItemPassedFlag == null ? null : Boolean(item.EventItemPassedFlag),
-    legistar_item_payload: item,
-  };
+function toItemInsertRow({ source, meeting, meetingId, item, matterText }) {
+  const row = buildLegistarAgendaRow({ source: { ...source, cityName: getCityName(source) }, meeting, meetingId, item, matterText });
+  return Object.fromEntries(Object.entries(SNAKE_COLUMNS).map(([field, column]) => [column, row[field]]));
 }
 
 function buildInsertRows(source, fetchedItems) {
@@ -144,7 +124,7 @@ function rowSubsetByColumns(row, insertColumns) {
 
 async function insertAgendaItemRows(sql, rows, agendaItemColumns) {
   if (rows.length === 0) {
-    return [];
+    return { inserted: [], updated: [] };
   }
 
   if (!agendaItemColumns.has('legistar_item_id')) {
@@ -153,39 +133,36 @@ async function insertAgendaItemRows(sql, rows, agendaItemColumns) {
 
   // Column names match the snake_case @map()s on the AgendaItem model in
   // server/prisma/schema.prisma (table: agenda_items).
-  const insertColumns = [
-    'legistar_item_id',
-    'source_type',
-    'legistar_event_id',
-    'legistar_matter_id',
-    'city_name',
-    'city_id',
-    'title',
-    'description',
-    'item_text',
-    'source_url',
-    'agenda_number',
-    'body_name',
-    'meeting_date',
-    'event_item_passed_flag',
-    'legistar_item_payload',
-  ].filter((column) => agendaItemColumns.has(column));
+  const insertColumns = Object.values(SNAKE_COLUMNS).filter((column) => agendaItemColumns.has(column));
+  // Refresh text columns on re-sync so items first stored with only a title
+  // gain their matter text (and get re-checked for conflicts).
+  const refreshColumns = ['title', 'description', 'item_text', 'event_item_passed_flag', 'legistar_item_payload']
+    .filter((column) => insertColumns.includes(column));
 
-  const insertedIds = [];
+  const inserted = [];
+  const updated = [];
   const rowChunks = chunk(rows, 100);
 
   for (const rowChunk of rowChunks) {
     const values = rowChunk.map((row) => rowSubsetByColumns(row, insertColumns));
-    const result = await sql`
-      INSERT INTO agenda_items ${sql(values)}
-      ON CONFLICT (legistar_item_id) DO NOTHING
-      RETURNING id
-    `;
+    const result = refreshColumns.includes('item_text')
+      ? await sql`
+        INSERT INTO agenda_items ${sql(values)}
+        ON CONFLICT (legistar_item_id) DO UPDATE SET ${sql.unsafe(refreshColumns.map((column) => `${column} = EXCLUDED.${column}`).join(', '))}
+        WHERE agenda_items.item_text IS DISTINCT FROM EXCLUDED.item_text
+          OR agenda_items.title IS DISTINCT FROM EXCLUDED.title
+        RETURNING id, (xmax = 0) AS inserted
+      `
+      : await sql`
+        INSERT INTO agenda_items ${sql(values)}
+        ON CONFLICT (legistar_item_id) DO NOTHING
+        RETURNING id
+      `;
 
-    insertedIds.push(...result.map((row) => row.id));
+    for (const row of result) (row.inserted === false ? updated : inserted).push(row.id);
   }
 
-  return insertedIds;
+  return { inserted, updated };
 }
 
 async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns, options = {}) {
@@ -196,12 +173,13 @@ async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns,
     lookbackDays: options.lookbackDays ?? DEFAULT_LOOKBACK_DAYS,
   });
   const rows = buildInsertRows(dataSource, allItems);
-  const insertedAgendaItemIds = await insertAgendaItemRows(sql, rows, agendaItemColumns);
+  const saved = await insertAgendaItemRows(sql, rows, agendaItemColumns);
+  const insertedAgendaItemIds = saved.inserted;
   const inserted = insertedAgendaItemIds.length;
   const skipped = rows.length - inserted;
   const detect = options.detectConflictsForAgendaItems ?? detectConflictsForAgendaItems;
   const detection = await detectAgendaConflictsSafely(
-    insertedAgendaItemIds,
+    [...insertedAgendaItemIds, ...saved.updated],
     detect,
     options.detectionDependencies,
   );
@@ -220,6 +198,7 @@ async function runLegistarSyncForCityWithSql(sql, dataSource, agendaItemColumns,
     skipped,
     itemsSkipped: skipped,
     insertedAgendaItemIds,
+    updatedAgendaItemIds: saved.updated,
     ...detection,
   };
 }

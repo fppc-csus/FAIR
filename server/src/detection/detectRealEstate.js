@@ -64,14 +64,30 @@ export function preciseLocationInText(propertyDescription, agendaText) {
   return false;
 }
 
+/**
+ * The part of an item that states the decision: title, agenda note and the
+ * Legistar "Recommended Action" section (or the opening of the text). Full
+ * staff reports mention "development", parcels and place names incidentally.
+ */
+export function decisionText(agendaItem = {}) {
+  const full = String(agendaItem.itemText ?? agendaItem.item_text ?? "");
+  const action = full.match(/recommended action:?\s*([\s\S]*?)(?:\n\s*(?:executive summary|discussion|background|prior board actions?|fiscal summary)\s*:|$)/i)?.[1];
+  return [agendaItem.title, agendaItem.description, action ?? full.slice(0, 1200)]
+    .filter((value) => value != null && String(value).trim() !== "").join("\n");
+}
+
+// "Sonoma County" / "County of Sonoma" name the jurisdiction itself, not the
+// city of Sonoma; remove them before looking for the property's city.
+function withoutCountyNames(text) {
+  return text.replace(/\bcounty of [a-z]+(?: [a-z]+)?\b|\b[a-z]+(?: [a-z]+)? county\b/g, " ");
+}
+
 function cityOrCountyInText(row, agendaText) {
-  const text = canonicalizeLocation(agendaText);
+  const text = withoutCountyNames(canonicalizeLocation(agendaText));
   const city = canonicalizeLocation(pickField(row, "city"));
   const county = canonicalizeLocation(pickField(row, "county"));
 
   if (containsPhrase(text, city)) return city;
-  if (containsPhrase(text, county)) return county;
-  if (county && containsPhrase(text, `${county} county`)) return county;
   return null;
 }
 
@@ -80,7 +96,7 @@ function sourceKey(label) {
   return `${CONFLICT_TYPES.REAL_ESTATE}:${norm || "property"}`;
 }
 
-export async function detectRealEstate(properties, agendaItem) {
+export async function detectRealEstate(properties, agendaItem, options = {}) {
   const itemText = getAgendaText(agendaItem);
   const agendaItemId = pickField(agendaItem, "id");
   if (!agendaItemId || !Array.isArray(properties) || properties.length === 0) {
@@ -88,7 +104,8 @@ export async function detectRealEstate(properties, agendaItem) {
   }
 
   const flags = [];
-  const landUse = hasLandUseKeyword(itemText);
+  const decision = decisionText(agendaItem);
+  const landUse = hasLandUseKeyword(decision);
 
   for (const row of properties) {
     const politicianId = pickField(row, "politician_id", "politicianId");
@@ -106,10 +123,13 @@ export async function detectRealEstate(properties, agendaItem) {
     );
     let matchedLabel = null;
 
+    // Only the disclosed address or APN identifies the property. A city-name
+    // match fired on every land-use item in the filer's own city, so it is
+    // available solely behind the explicit `matchCity` option for research.
     if (preciseLocationInText(propertyDescription, itemText)) {
       matchedLabel = propertyDescription;
-    } else if (landUse) {
-      matchedLabel = cityOrCountyInText(row, itemText);
+    } else if (options.matchCity && landUse) {
+      matchedLabel = cityOrCountyInText(row, decision);
     }
 
     if (!matchedLabel) continue;

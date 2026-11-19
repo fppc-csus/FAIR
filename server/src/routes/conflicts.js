@@ -96,10 +96,31 @@ function formatScheduleEntry(row, scheduleType) {
 
   return {
     id: row.id,
-    scheduleType,
+    scheduleType: row.scheduleType ?? scheduleType,
     entityName: row.entityName ?? row.sourceName ?? row.propertyDescription ?? null,
     dollarValue: row.fairMarketValue ?? row.amount ?? row.grossIncomeRange ?? null,
     natureOfInterest: row.natureOfInvestment ?? row.natureOfInterest ?? row.businessPosition ?? null,
+    details: Array.isArray(row.details) ? row.details : [],
+  };
+}
+
+/**
+ * The agenda passage that produced the match, so investigators can verify it
+ * without reading a whole staff report. Related-party labels such as
+ * "Elizabeth Gore (… on disclosure for Hello Alice)" are searched by name only.
+ */
+export function evidenceExcerpt(text, entityName, radius = 220) {
+  const source = String(text ?? "");
+  const name = String(entityName ?? "").replace(/\s*\(.*\)\s*$/, "").trim();
+  if (!source || !name) return null;
+  const index = source.toLowerCase().indexOf(name.toLowerCase());
+  if (index < 0) return null;
+  const start = Math.max(0, index - radius);
+  const end = Math.min(source.length, index + name.length + radius);
+  return {
+    before: `${start > 0 ? "…" : ""}${source.slice(start, index)}`,
+    match: source.slice(index, index + name.length),
+    after: `${source.slice(index + name.length, end)}${end < source.length ? "…" : ""}`,
   };
 }
 
@@ -113,13 +134,20 @@ async function findScheduleEntry(conflict) {
     TRAVEL: [prisma.scheduleCdeIncome, "E"],
   };
   if (conflict.disclosureId && delegates[conflict.conflictType]) {
-    const [delegate, type] = delegates[conflict.conflictType];
-    const row = await delegate.findFirst({ where: {
-      id: conflict.disclosureId,
-      filingId: conflict.filingId,
-      filing: { politicianId: conflict.politicianId },
-    } });
-    return formatScheduleEntry(row, type);
+    // Related-party candidates (e.g. an A-2 business's income source) point
+    // at the parent disclosure, which may live on a different schedule.
+    const primary = delegates[conflict.conflictType];
+    const others = [[prisma.scheduleA2BusinessPosition, "A-2"], [prisma.scheduleBRealEstate, "B"], [prisma.scheduleCdeIncome, "C"], [prisma.scheduleAInvestment, "A"]]
+      .filter(([delegate]) => delegate !== primary[0]);
+    for (const [delegate, type] of [primary, ...others]) {
+      const row = await delegate?.findFirst?.({ where: {
+        id: conflict.disclosureId,
+        filingId: conflict.filingId,
+        filing: { politicianId: conflict.politicianId },
+      } });
+      if (row) return formatScheduleEntry(row, type);
+    }
+    return null;
   }
   const politicianWhere = {
     OR: [
@@ -241,8 +269,9 @@ router.get("/:id", async (req, res, next) => {
     const conflict = await prisma.conflict.findUnique({
       where: { id: req.params.id, politician: { isDemo: false }, agendaItem: { isDemo: false }, OR: [{ eligibilityStatus: null }, { eligibilityStatus: "active" }] },
       include: {
-        politician: true,
+        politician: { include: { jurisdiction: { select: { name: true } } } },
         agendaItem: { include: { meeting: { include: { jurisdiction: true } } } },
+        reviews: { orderBy: { reviewedAt: "desc" }, select: { id: true, adminUserId: true, reviewedAt: true, oldStatus: true, newStatus: true, note: true } },
       },
     });
 
@@ -258,9 +287,18 @@ router.get("/:id", async (req, res, next) => {
         id: conflict.id,
         politician: {
           id: conflict.politicianId,
+          slug: conflict.politician.slug ?? null,
           name: conflict.politician.fullName,
+          officeTitle: conflict.politician.officeTitle ?? null,
           district: conflict.politician.district,
+          jurisdiction: conflict.politician.jurisdiction?.name ?? null,
+          identityVerified: conflict.politician.needsReview == null ? null : !conflict.politician.needsReview,
         },
+        reviewStatus: conflict.reviewStatus ?? "pending",
+        reviewNote: conflict.reviewNote ?? null,
+        reviewedAt: conflict.reviewedAt ?? null,
+        reviews: conflict.reviews ?? [],
+        detectedAt: conflict.detectedAt ?? null,
         conflictType: conflict.conflictType,
         severity: conflict.severity,
         ruleReference: conflict.ruleReference,
@@ -277,6 +315,12 @@ router.get("/:id", async (req, res, next) => {
           text: agendaItem.itemText ?? agendaItem.description ?? agendaItem.title,
           meetingDate: agendaItem.meetingDate ?? agendaItem.meeting?.meetingDate ?? null,
           city: agendaItem.cityName ?? agendaItem.meeting?.jurisdiction?.name ?? null,
+          bodyName: agendaItem.bodyName ?? null,
+          agendaNumber: agendaItem.agendaNumber ?? agendaItem.itemNumber ?? null,
+          sourceUrl: agendaItem.sourceUrl ?? null,
+          sourceType: agendaItem.sourceType ?? null,
+          legistarMatterId: agendaItem.legistarMatterId ?? null,
+          evidence: evidenceExcerpt(agendaItem.itemText ?? agendaItem.description ?? agendaItem.title, conflict.entityName),
         },
       },
     });

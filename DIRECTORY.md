@@ -6,18 +6,18 @@ Use this index to load the **smallest useful context set**. Paths are relative t
 
 | Task | Read first | Main implementation | Tests / validation | Usually skip |
 |---|---|---|---|---|
-| Public page, route, or styling | `client/CONTEXT.md`, `client/app/CONTEXT.md` | `client/app/routes.ts`, relevant `client/app/routes/*.tsx`, `client/app/components/`, `client/app/app.css` | colocated `*.test.tsx`; `cd client && npm test && npm run typecheck` | server internals unless the response shape changes |
-| Client requests, loading, errors | `client/CONTEXT.md` | `client/app/lib/request.ts`, `client/app/hooks/usePublicData.ts`, `client/app/hooks/useCityDiscovery.ts` | colocated tests plus `server/tests/unit/useCityDiscovery.test.ts` | parsers and migrations |
+| Investigator page, route, or styling | `client/CONTEXT.md`, `client/app/CONTEXT.md` | `client/app/routes.ts`, relevant `client/app/routes/*.tsx`, `client/app/components/`, `client/app/app.css` | colocated `*.test.tsx`; `cd client && npm test && npm run typecheck` | server internals unless the response shape changes |
+| Client requests, loading, errors | `client/CONTEXT.md` | `client/app/lib/request.ts`, `client/app/hooks/useApiData.ts`, `client/app/hooks/useCityDiscovery.ts` | colocated tests plus `server/tests/unit/useCityDiscovery.test.ts` | parsers and migrations |
 | Admin login/session/guard | `client/CONTEXT.md`, `server/CONTEXT.md` | `client/app/adminAuth.ts`, `client/app/adminComponents.tsx`, `server/src/lib/auth.js` | `client/app/adminAuth.test.ts`, `server/tests/unit/auth.test.js` | ingestion logic |
 | Express route or API contract | `server/CONTEXT.md` | `server/src/app.js`, matching file in `server/src/routes/` | matching `server/tests/unit/*Routes*.test.js` or feature test | Apify Actor and Python experiments |
-| Public search | `server/CONTEXT.md` | `server/src/routes/search.js`, search indexes in `server/prisma/migrations/20260927160000_add_search_tsvector_indexes/` | `server/scripts/benchmark-search.mjs`, public UI tests | Form 700 parsers |
+| Search (authenticated) | `server/CONTEXT.md` | `server/src/routes/search.js`, search indexes in `server/prisma/migrations/20260927160000_add_search_tsvector_indexes/` | `server/scripts/benchmark-search.mjs`, public UI tests | Form 700 parsers |
 | Form 700 upload/parsing | `docs/fair/form700-ingestion/CONTEXT.md` | `server/src/routes/admin/upload.js`, `server/src/parsers/`, `server/src/lib/storage.js`, `server/src/utils/findOrCreatePolitician.js` | `server/tests/unit/upload.test.js`, parser and politician tests | agenda-only code |
 | Conflict detection/rules | `docs/fair/entity-resolution/CONTEXT.md`, `docs/conflict_rules.md` | `server/src/config/conflictRules.js`, `server/src/detection/`, `server/src/utils/entityNorm.js`, `server/src/utils/findOrCreatePolitician.js` | detection/matching tests in `server/tests/unit/` | UI unless output changes |
 | Conflict review/export/report | `server/CONTEXT.md` | `server/src/routes/conflicts.js`, `server/src/routes/admin/reports.js`, `server/src/utils/conflictExport.js`, `server/src/utils/conflictReportTemplate.js` | conflict detail/export/report tests | ingestion parsers |
 | Legistar ingestion/sync | `docs/fair/agenda-ingestion/CONTEXT.md`, `docs/fair/cron-jobs/CONTEXT.md` | `server/src/ingestion/legistar*.js`, `server/src/jobs/nightlySync.js`, `server/src/jobs/runNightlyLegistarSync.js` | `server/tests/unit/nightlySync.test.js`, `runNightlyLegistarSync.test.js`; opt-in integration test | `APIs/` unless comparing legacy behavior |
 | Apify Actor scraping | `apify/CONTEXT.md` | `apify/src/` and `apify/.actor/` | `cd apify && npm test && npm run build` | `server/src/jobs/` unless changing ingestion contract |
 | Apify result ingestion | `docs/fair/agenda-ingestion/CONTEXT.md`, `apify/CONTEXT.md` | `server/src/jobs/runApifyAgendaScrape.js`, `server/src/ingestion/pdfParser.js`, `server/services/apifyscraper.js` | `runApifyAgendaScrape.test.js`, `pdfParser.test.js` | legacy Python helper |
-| Scheduling/manual sync | `docs/fair/cron-jobs/CONTEXT.md` | `server/src/jobs/scheduleCronJobs.js`, `server/src/routes/adminSync.js`, `.github/workflows/` | nightly/Apify job tests; inspect workflow status | `server/src/queues/` and `server/src/workers/` (legacy/unwired) |
+| Scheduling/manual sync | `docs/fair/cron-jobs/CONTEXT.md` | `server/src/jobs/scheduleCronJobs.js`, `server/src/routes/adminSync.js`, `.github/workflows/` | nightly/Apify job tests; inspect workflow status | disabled `scheduled-*.yml` workflow files |
 | Prisma schema/application migration | `supabase/CONTEXT.md` | `server/prisma/schema.prisma`, `server/prisma/migrations/` | `cd server && npx prisma validate && npm test` | `supabase/migrations/` unless Storage/RLS/auth changes |
 | Supabase Storage/RLS/auth SQL | `supabase/CONTEXT.md`, `supabase/migrations/CONTEXT.md` | `supabase/migrations/` | inspect SQL and relevant server auth/storage tests | Prisma migrations unless app schema changes |
 | CI/deployment | `.github/workflows/CONTEXT.md`, relevant package scripts | `.github/workflows/ci.yml`, Dockerfiles, package manifests | `npm run docs:check` plus package checks | disabled schedule files unless enabling them |
@@ -57,8 +57,8 @@ Use this index to load the **smallest useful context set**. Paths are relative t
 - Read: the nearest context guide, relevant source, direct imports, and matching tests.
 - Search before reading broad folders: filenames → exported symbol/route → callers.
 - Do not load: node_modules/, package lock bodies, build output, `client/.react-router/`, binary XLSX/ICO files, `.DS_Store`, or Jira CSV bodies unless specifically needed.
-- Empty placeholders (`docs/architecture.md`, `docs/client_operations_manual.md`, `docs/credentials.md`, `server/src/queues/syncQueue.js`, and `server/test_scheduleCDE.js`) are not implementation evidence.
-- Potentially stale/unwired files include `server/src/routes/adminRoutes.js`, `server/src/workers/syncWorker.js`, and old root-level `server/test_*.js`; verify imports before relying on them.
+- Empty placeholders (`docs/architecture.md`, `docs/client_operations_manual.md`, `docs/credentials.md`) are not implementation evidence.
+- One-off data repair scripts live in `server/scripts/` (`repair-jurisdictions.mjs`, `reparse-form700-filings.mjs`); both dry-run by default.
 
 ## Required final validation
 

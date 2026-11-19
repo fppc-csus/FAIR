@@ -49,9 +49,21 @@ export function isExcludedEntity(entityName) {
 export const AMOUNT_THRESHOLDS = {
   INVESTMENT: 2000,
   INCOME: 500,
+  // Form 700 reporting thresholds; disqualification uses giftLimitForYear().
   GIFT: 50,
   TRAVEL: 50,
 };
+
+/**
+ * Salary, per diem and expense reimbursement from a government agency are not
+ * "income" (Gov. Code §82030(b)(2)), so a government source of income cannot
+ * create a §87103(c) interest. Gifts from agencies are still evaluated.
+ */
+const GOVERNMENT_SOURCE = /\b(county of|city of|town of|city and county|state of california|commission|authority|district|unified school|department of|board of supervisors|council of governments|association of bay area governments|rail transit|transit district|joint powers|university of california|california state university|superior court|united states)\b/i;
+
+export function isGovernmentSource(name) {
+  return GOVERNMENT_SOURCE.test(String(name ?? ""));
+}
 
 export const SEVERITY_AMOUNT = {
   HIGH: 10000,
@@ -110,15 +122,44 @@ export function conflictTypeForSchedule(scheduleType) {
   return null;
 }
 
-export function meetsAmountThreshold(scheduleType, amount) {
+/**
+ * Gift limit by first calendar year of each two-year period (Gov. Code
+ * §89503(f), 2 CCR §18940.2). A donor of gifts totalling at least this amount
+ * in the 12 months before a decision is a disqualifying interest
+ * (§87103(e)). $520 (2022), $590 (2023-24) and $630 (2025-26) are confirmed
+ * against FPPC guidance; earlier periods are from FPPC historical limits.
+ */
+export const GIFT_LIMITS = [
+  [2015, 460],
+  [2017, 470],
+  [2019, 500],
+  [2021, 520],
+  [2023, 590],
+  [2025, 630],
+];
+
+export function giftLimitForYear(year) {
+  const numeric = Number(year);
+  if (!Number.isInteger(numeric)) return GIFT_LIMITS.at(-1)[1];
+  let limit = GIFT_LIMITS[0][1];
+  for (const [start, amount] of GIFT_LIMITS) if (numeric >= start) limit = amount;
+  return limit;
+}
+
+/**
+ * Disqualification thresholds (not the lower Form 700 *reporting* thresholds):
+ * income $500 (§87103(c)); gifts and gift-type travel at the gift limit for
+ * the decision year (§87103(e)). Pass the aggregate from one source when known.
+ */
+export function meetsAmountThreshold(scheduleType, amount, { year } = {}) {
   const type = String(scheduleType || "").toUpperCase();
   const threshold =
     type === "C"
       ? AMOUNT_THRESHOLDS.INCOME
       : type === "D"
-        ? AMOUNT_THRESHOLDS.GIFT
+        ? giftLimitForYear(year)
         : type === "E"
-          ? AMOUNT_THRESHOLDS.TRAVEL
+          ? Math.min(AMOUNT_THRESHOLDS.INCOME, giftLimitForYear(year))
           : null;
   if (threshold == null) return false;
   const dollars = parseAmount(amount);

@@ -1,27 +1,34 @@
 import { describe, expect, it, vi } from 'vitest';
-import { redetectDisclosureAgendaItems } from '../../src/detection/redetectDisclosure.js';
+import { filingDecisionRange, redetectDisclosureAgendaItems } from '../../src/detection/redetectDisclosure.js';
 
 describe('redetectDisclosureAgendaItems', () => {
-  it('detects only agenda items in the politician jurisdiction and filing year', async () => {
+  it('scans the jurisdiction\'s items for the filing year and the following year, including linked sources', async () => {
     const prisma = {
-      politician: { findUnique: vi.fn().mockResolvedValue({ jurisdictionId: 'jurisdiction-1', jurisdiction: { name: 'Test City' } }) },
+      politician: { findUnique: vi.fn().mockResolvedValue({ jurisdictionId: 'jurisdiction-1', jurisdiction: { name: 'County of Sonoma' } }) },
+      dataSource: { findMany: vi.fn().mockResolvedValue([{ id: 'source-1', cityName: 'Sonoma County' }]) },
       agendaItem: { findMany: vi.fn().mockResolvedValue([{ id: 'agenda-1' }, { id: 'agenda-2' }]) },
     };
     const detect = vi.fn().mockResolvedValue({ inserted: 1, skipped: 1, totalCandidates: 2 });
 
-    const result = await redetectDisclosureAgendaItems({ politicianId: 'politician-1', filingYear: 2026, prisma, detect });
+    const result = await redetectDisclosureAgendaItems({ politicianId: 'politician-1', filingYear: 2019, prisma, detect });
 
+    const range = { gte: new Date('2019-01-01T00:00:00.000Z'), lt: new Date('2021-01-01T00:00:00.000Z') };
     expect(prisma.agendaItem.findMany).toHaveBeenCalledWith({
       where: {
         OR: [
-          { meetingDate: { gte: new Date('2026-01-01T00:00:00.000Z'), lt: new Date('2027-01-01T00:00:00.000Z') }, cityName: 'Test City' },
-          { meeting: { is: { jurisdictionId: 'jurisdiction-1', meetingDate: { gte: new Date('2026-01-01T00:00:00.000Z'), lt: new Date('2027-01-01T00:00:00.000Z') } } } },
+          { meetingDate: range, cityName: { in: ['County of Sonoma', 'Sonoma County'] } },
+          { meetingDate: range, cityId: { in: ['source-1'] } },
+          { meeting: { is: { jurisdictionId: 'jurisdiction-1', meetingDate: range } } },
         ],
       },
       select: { id: true },
     });
     expect(detect).toHaveBeenCalledWith(['agenda-1', 'agenda-2'], { prisma });
     expect(result).toMatchObject({ agendaItemsProcessed: 2, conflictCandidates: 2, conflictsDetected: 1, conflictsSkipped: 1 });
+  });
+
+  it('honours a same-year-only policy', () => {
+    expect(filingDecisionRange(2019, { period: 'YEAR_OFFSETS', offsets: [0] })).toEqual({ gte: new Date('2019-01-01T00:00:00.000Z'), lt: new Date('2020-01-01T00:00:00.000Z') });
   });
 
   it('does not scan agenda data when jurisdiction is unresolved', async () => {

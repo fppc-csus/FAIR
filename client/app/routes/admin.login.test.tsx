@@ -20,7 +20,7 @@ it('verifies backend authorization before completing login', async () => {
 it('shows a clear reason after an authorization redirect', () => {
   mocks.getSession.mockRejectedValue(new Error('missing'));
   render(<MemoryRouter initialEntries={['/admin/login?reason=forbidden']}><Login /></MemoryRouter>);
-  expect(screen.getByRole('alert')).toHaveTextContent('does not have permission');
+  expect(screen.getByRole('alert')).toHaveTextContent('not authorized for FAIR');
   expect(mocks.getSession).not.toHaveBeenCalled();
 });
 it('requests password recovery without revealing account existence', async () => {

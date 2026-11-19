@@ -7,8 +7,9 @@ const scope = { jurisdictionId: "city-a", meetingDate: new Date("2026-01-01T00:0
 const row = { filingId: "filing", disclosureId: "disclosure", filing: { filingYear: 2025, politician: { jurisdictionId: "city-a" } } };
 
 describe("provisional eligibility", () => {
-  it("fails closed by default and validates offsets", () => {
-    expect(eligibilityPolicy({}).period).toBe("PENDING");
+  it("defaults to the 12-month income look-back and validates offsets", () => {
+    expect(eligibilityPolicy({})).toEqual({ period: "YEAR_OFFSETS", offsets: [0, 1] });
+    expect(eligibilityPolicy({ FAIR_FILING_PERIOD_OFFSETS: "pending" }).period).toBe("PENDING");
     expect(eligibilityPolicy({ FAIR_FILING_PERIOD_OFFSETS: "0, 1" }).offsets).toEqual([0, 1]);
     expect(() => eligibilityPolicy({ FAIR_FILING_PERIOD_OFFSETS: "-1" })).toThrow();
     expect(() => eligibilityPolicy({ FAIR_FILING_PERIOD_OFFSETS: " " })).toThrow();
@@ -39,6 +40,9 @@ describe("provisional eligibility", () => {
     expect(disclosureEligibility(scope, { ...row, disclosureId: null }, policy).reason).toBe("MISSING_DISCLOSURE_ID");
     expect(disclosureEligibility(scope, { ...row, filingId: null, filing: { ...row.filing, id: null } }, policy).reason).toBe("MISSING_FILING_ID");
     expect(disclosureEligibility(scope, { ...row, schedulePoliticianId: "other", filing: { ...row.filing, politicianId: "owner" } }, policy).reason).toBe("CONFLICTING_POLITICIAN_ID");
-    expect(disclosureEligibility(scope, { ...row, filing: { ...row.filing, politician: { jurisdictionId: "city-a", needsReview: true } } }, policy).reason).toBe("POLITICIAN_IDENTITY_REVIEW");
+  });
+  it("still evaluates filers whose identity is awaiting review", () => {
+    const policy = { period: "YEAR_OFFSETS", offsets: [1] };
+    expect(disclosureEligibility(scope, { ...row, filing: { ...row.filing, politician: { jurisdictionId: "city-a", needsReview: true } } }, policy).status).toBe("ELIGIBLE");
   });
 });

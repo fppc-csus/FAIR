@@ -4,7 +4,8 @@ import { syncErrorMessage } from '../../utils/syncErrorMessage.js';
 import { ApifyClient } from 'apify-client';
 import { prisma } from '../../lib/prisma.js';
 import { fetchLegistarAgendaItemsForDataSource } from '../../ingestion/legistar.js';
-import { legistarItemKey } from '../../ingestion/legistarIdentity.js';
+import { buildLegistarAgendaRow } from '../../ingestion/legistarAgendaRow.js';
+import { findJurisdictionsByName, jurisdictionKey } from '../../utils/jurisdictionName.js';
 import { getSyntheticConflictStatus, runSyntheticConflictCheck, removeSyntheticConflictCheck } from '../../detection/syntheticConflictCheck.js';
 import { ingestApifyAgendaItems } from '../../ingestion/apifyAgenda.js';
 import { upsertAgendaItems } from '../../ingestion/upsertAgendaItems.js';
@@ -18,16 +19,26 @@ import { runSyncJob } from '../../jobs/syncJobRun.js';
 
 const router = express.Router();
 
-function parseLegistarBaseUrl(value) {
+/**
+ * Accept either the Legistar Web API URL or the public InSite address an
+ * investigator copies from a browser (https://oakland.legistar.com/Calendar.aspx)
+ * and convert the latter to https://webapi.legistar.com/v1/<client>.
+ */
+export function parseLegistarBaseUrl(value) {
   let url;
   try {
-    url = new URL(value);
+    url = new URL(String(value ?? '').trim());
   } catch {
     throw new Error('Enter a valid Legistar API base URL.');
   }
 
+  const insite = url.hostname.toLowerCase().match(/^([a-z0-9-]+)\.legistar1?\.com$/);
+  if (insite && insite[1] !== 'webapi' && url.protocol === 'https:') {
+    return `https://webapi.legistar.com/v1/${insite[1]}`;
+  }
+
   if (url.protocol !== 'https:' || url.hostname !== 'webapi.legistar.com' || !/^\/v1\/[a-z0-9-]+\/?$/i.test(url.pathname)) {
-    throw new Error('Use a Legistar API URL such as https://webapi.legistar.com/v1/sacramento.');
+    throw new Error('Use a Legistar URL such as https://webapi.legistar.com/v1/oakland or https://oakland.legistar.com.');
   }
 
   return url.toString().replace(/\/$/, '');
@@ -105,7 +116,37 @@ function validateStartUrl(value, { required = false } = {}) {
   if (url.protocol !== 'https:' || url.username || url.password || url.hostname === 'localhost') {
     throw new Error('Use a public HTTPS council agenda URL.');
   }
+  if (/(^|\.)legistar1?\.com$/i.test(url.hostname)) {
+    throw new Error('This is a Legistar site. Choose the Legistar source type instead of Apify.');
+  }
   return url.href;
+}
+
+/**
+ * Link a source to the jurisdiction its agenda items belong to so conflict
+ * detection can compare them with that jurisdiction's Form 700 filers.
+ * "Sonoma County" reuses an existing "County of Sonoma"; a new name creates one.
+ */
+async function linkJurisdiction(cityName) {
+  const key = jurisdictionKey(cityName);
+  const matches = findJurisdictionsByName(
+    await prisma.jurisdiction.findMany({ select: { id: true, name: true } }),
+    cityName,
+  );
+  if (matches.length === 1) return matches[0].id;
+  if (matches.length > 1) {
+    throw new Error(`More than one jurisdiction matches "${cityName}". Merge the duplicates before adding this source.`);
+  }
+  const created = await prisma.jurisdiction.create({
+    data: { name: cityName, type: key.split(':')[0] },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+async function sourceData(body) {
+  const data = await validateSourceInput(body);
+  return { ...data, jurisdictionId: await linkJurisdiction(data.cityName) };
 }
 
 function sendValidationError(res, error) {
@@ -114,39 +155,9 @@ function sendValidationError(res, error) {
 
 async function runLegistarSource(source, options = {}) {
   const { allItems } = await fetchLegistarAgendaItemsForDataSource(source, { lookbackDays: 30, ...options });
-  const rows = allItems.flatMap(({ item, meeting, meetingId }) => {
-    const itemId = item.EventItemId ?? item.id;
-    if (itemId == null) return [];
-    const rawMeetingDate = meeting.EventDate ?? meeting.date ?? null;
-    const meetingDate = rawMeetingDate && !Number.isNaN(Date.parse(rawMeetingDate))
-      ? new Date(rawMeetingDate)
-      : null;
-    const title = item.EventItemTitle ?? item.EventItemMatterName ?? item.MatterName ?? item.Title ?? item.title ?? 'Untitled agenda item';
-    const description = item.EventItemAgendaNote ?? item.AgendaNote ?? null;
-    const itemText = [title, description, item.EventItemMinutesNote ?? item.MinutesNote, item.EventItemActionText]
-      .filter((value) => value != null && String(value).trim() !== '')
-      .join('\n');
-
-    return [{
-      sourceType: 'legistar',
-      legistarItemId: legistarItemKey(source.legistarBaseUrl, itemId),
-      legistarEventId: String(meetingId),
-      legistarMatterId: item.EventItemMatterId != null
-        ? String(item.EventItemMatterId)
-        : item.MatterId != null ? String(item.MatterId) : null,
-      cityName: source.cityName,
-      cityId: source.id,
-      title,
-      description,
-      itemText: itemText || null,
-      sourceUrl: meeting.EventInSiteURL ?? meeting.EventAgendaFile ?? null,
-      agendaNumber: item.EventItemAgendaNumber ?? item.AgendaNumber ?? null,
-      bodyName: meeting.EventBodyName ?? meeting.bodyName ?? null,
-      meetingDate,
-      eventItemPassedFlag: item.EventItemPassedFlag == null ? null : Boolean(item.EventItemPassedFlag),
-      legistarItemPayload: item,
-    }];
-  });
+  const rows = allItems
+    .filter(({ item }) => (item.EventItemId ?? item.id) != null)
+    .map((entry) => buildLegistarAgendaRow({ ...entry, source }));
   const result = await upsertAgendaItems(
     prisma,
     rows,
@@ -375,7 +386,7 @@ router.post('/discover', async (req, res) => {
   try {
     const cityName = typeof req.body.cityName === 'string' ? req.body.cityName.trim() : '';
     if (!cityName || cityName.length > 100) return res.status(400).json({ error: 'Enter a California city name (1–100 characters).' });
-    const data = await validateSourceInput({ cityName, sourceType: 'Apify', startUrl: req.body.startUrl });
+    const data = await sourceData({ cityName, sourceType: 'Apify', startUrl: req.body.startUrl });
     const existing = await prisma.dataSource.findFirst({ where: { cityName: { equals: cityName, mode: 'insensitive' }, sourceType: 'apify' } });
     if (existing) {
       const active = await prisma.syncLog.findFirst({ where: { dataSourceId: existing.id, status: 'running' } });
@@ -415,7 +426,7 @@ router.get('/:id/documents', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const source = await prisma.dataSource.create({ data: await validateSourceInput(req.body) });
+    const source = await prisma.dataSource.create({ data: await sourceData(req.body) });
     return res.status(201).json(source);
   } catch (error) {
     return sendValidationError(res, error);
@@ -431,7 +442,7 @@ router.put('/:id', async (req, res) => {
       : req.body;
     const source = await prisma.dataSource.update({
       where: { id: req.params.id },
-      data: await validateSourceInput(body),
+      data: await sourceData(body),
     });
     return res.json(source);
   } catch (error) {

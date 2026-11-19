@@ -25,7 +25,7 @@ export const belowThresholdIncomeSource = {
 export const matchingGiftSource = {
   politician_id: 1,
   source_name: "Downtown Business Association",
-  amount: 100,
+  amount: 700,
   schedule_type: "D",
 };
 
@@ -37,7 +37,7 @@ export const matchingGiftAgendaItem = {
 export const matchingTravelSource = {
   politician_id: 1,
   source_name: "Regional Planning Council",
-  amount: 250,
+  amount: 750,
   schedule_type: "E",
 };
 

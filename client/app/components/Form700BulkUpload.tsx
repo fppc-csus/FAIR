@@ -5,7 +5,7 @@ import { safeMessage } from '../lib/request';
 
 type Filing = { filer_name: string; agency: string; filing_year: number; filing_type: string; filed_at: string; status: string; versions: unknown[]; schedules_parsed: Record<string, number> };
 type Preview = { digest: string; filings: Filing[]; warnings: string[] };
-type Result = { imported: number; skipped: number; failed: number; results: { filer_name: string; status: string; slug?: string; error?: string; detection?: { skippedReason?: string } }[] };
+type Result = { imported: number; replaced?: number; skipped: number; failed: number; results: { filer_name: string; status: string; slug?: string; error?: string; detection?: { skippedReason?: string } }[] };
 
 export default function Form700BulkUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -14,8 +14,10 @@ export default function Form700BulkUpload() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [replaceExisting, setReplaceExisting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const readyCount = preview?.filings.filter(filing => filing.status === 'ready').length ?? 0;
+  const existingCount = preview?.filings.filter(filing => filing.status === 'skipped').length ?? 0;
+  const readyCount = (preview?.filings.filter(filing => filing.status === 'ready').length ?? 0) + (replaceExisting ? existingCount : 0);
 
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
     const candidate = event.target.files?.[0];
@@ -34,6 +36,7 @@ export default function Form700BulkUpload() {
     try {
       const body = new FormData(); body.append('file', file);
       if (action === 'import' && preview) body.append('digest', preview.digest);
+      if (action === 'import' && replaceExisting) body.append('replace_existing', 'true');
       const response = await adminFetch(`/api/admin/upload/form700/bulk/${action}`, { method: 'POST', body });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Could not process workbook.');
@@ -71,23 +74,24 @@ export default function Form700BulkUpload() {
     <button className="button-primary mt-3 min-h-12 w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700" type="button" disabled={!file || busy} onClick={() => submit('preview')}>{busy ? 'Processing workbook…' : 'Preview bulk workbook'}</button>
     {error && <p className="mt-4 text-red-800" role="alert">{error}</p>}
     {preview && <div className="mt-5 space-y-4">
-      <p>{preview.filings.length} filer/year groups found. Existing filings are skipped, never overwritten. New profiles are flagged for review.</p>
-      <p className="text-sm font-medium">Only the latest submission for each filer/year becomes active. Older versions remain in the original archive. Missing amendment schedules are not carried forward.</p>
+      <p>{preview.filings.length} filer/year groups found. New profiles are flagged for identity review.</p>
+      <p className="text-sm font-medium">Amendments are applied per schedule: each schedule comes from the newest submission that contains it, so schedules an amendment did not re-file are carried forward. Every column of every row is kept.</p>
+      {existingCount > 0 && <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm"><input type="checkbox" checked={replaceExisting} disabled={busy} onChange={event => { setReplaceExisting(event.target.checked); setConfirmed(false); }} /><span><strong>Replace {existingCount} existing filing(s)</strong> with this workbook (corrected export or re-parse). Filing IDs and conflict review history are kept; conflicts are re-checked.</span></label>}
       {preview.warnings.length > 0 && <ul className="list-disc pl-5 text-sm text-amber-900">{preview.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Filer / agency', 'Year / submission', 'Schedule records', 'Status'].map(label => <th className="p-2" key={label}>{label}</th>)}</tr></thead>
         <tbody>{preview.filings.map((filing, index) => <tr className="border-t" key={index}>
           <td className="p-2">{filing.filer_name}<br />{filing.agency}</td>
           <td className="p-2">{filing.filing_year} · {filing.filing_type}<br />{filing.filed_at.slice(0, 10)} · {filing.versions.length} version(s)</td>
           <td className="p-2">{Object.entries(filing.schedules_parsed).map(([schedule, count]) => `${schedule}: ${count}`).join(' · ')}</td>
-          <td className="p-2">{filing.status === 'skipped' ? 'Existing filing — skip' : 'Ready'}</td>
+          <td className="p-2">{filing.status === 'skipped' ? (replaceExisting ? 'Existing filing — replace' : 'Existing filing — skip') : 'Ready'}</td>
         </tr>)}</tbody></table></div>
-      <p role="status">{readyCount > 0 ? `${readyCount} filing(s) ready to import. Warnings do not block import after acknowledgement.` : 'Nothing to import: all filings already exist or no ready filings were found. Existing filings are never overwritten.'}</p>
+      <p role="status">{readyCount > 0 ? `${readyCount} filing(s) ready to import. Warnings do not block import after acknowledgement.` : 'Nothing to import: all filings already exist. Tick “Replace existing filings” to re-import them.'}</p>
       {readyCount > 0 && <label className="flex items-start gap-2"><input type="checkbox" checked={confirmed} disabled={busy} onChange={event => setConfirmed(event.target.checked)} /><span>I reviewed the selected submissions and completeness warnings.</span></label>}
       {readyCount > 0 && !confirmed && <p id="bulk-confirm-help" className="text-sm text-slate-600">Check the review acknowledgement above to enable Confirm bulk import.</p>}
       <button className="button-primary" type="button" aria-describedby={readyCount > 0 && !confirmed ? 'bulk-confirm-help' : undefined} disabled={busy || !confirmed || readyCount === 0} onClick={() => submit('import')}>Confirm bulk import</button>
     </div>}
     {result && <div className="mt-5" aria-live="polite"><h3 className="font-semibold">Import results</h3>
-      <p>{result.imported} imported · {result.skipped} skipped · {result.failed} failed</p>
+      <p>{result.imported} imported · {result.replaced ?? 0} replaced · {result.skipped} skipped · {result.failed} failed</p>
       <ul className="mt-3 space-y-2">{result.results.map((item, index) => <li key={index}>{item.filer_name}: {item.status}{item.error && ` — ${item.error}`}{item.slug && <> · <a className="underline" href={`/politicians/${encodeURIComponent(item.slug)}`}>View profile</a></>}{item.detection?.skippedReason && ` · Detection: ${item.detection.skippedReason}`}</li>)}</ul>
       {result.failed > 0 && <p className="mt-3">Resolve reported failures, then preview again. Successful imports will be skipped on retry.</p>}
     </div>}

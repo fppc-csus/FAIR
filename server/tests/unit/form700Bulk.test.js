@@ -17,7 +17,7 @@ function fixture(rows = [
 
 function dependencies() {
   const prisma = {
-    jurisdiction: { findMany: vi.fn().mockResolvedValue([{ id: 'county' }]), findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 'new-county' }) },
+    jurisdiction: { findMany: vi.fn().mockResolvedValue([{ id: 'county', name: 'County Test' }]), create: vi.fn().mockResolvedValue({ id: 'new-county' }) },
     politician: { findMany: vi.fn().mockResolvedValue([]), create: vi.fn().mockImplementation(async ({ data }) => data), findUnique: vi.fn().mockResolvedValue({ id: 'person', slug: 'alice' }) },
     form700Filing: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({}) },
     scheduleAInvestment: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
@@ -33,8 +33,24 @@ describe('bulk Form 700 parser', () => {
     expect(parsed.filings[0].schedules.A.map(row => row.entity_name)).toEqual(['New Corp']);
     expect(parsed.filings[1].schedules.A.map(row => row.entity_name)).toEqual(['Bob Corp']);
     expect(parsed.filings[0].versions).toHaveLength(2);
-    expect(parsed.warnings.join(' ')).toContain('Missing schedules');
+    expect(parsed.warnings.join(' ')).toContain('2 submissions');
+    expect(parsed.filings[0].schedule_sources).toEqual([{ sheet: 'Schedule A1', filed_serial: 44001, filing_type: 'Amendment - Annual' }]);
     expect(parseForm700Bulk(fixture()).digest).toBe(parsed.digest);
+  });
+  it('carries forward schedules an amendment does not re-file', () => {
+    const book = XLSX.utils.book_new();
+    const head = ['Last Name', 'First Name', 'Agency', 'Position', 'Filing Year', 'Filed Date', 'Filing Type'];
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([[...head, 'NAME OF BUSINESS ENTITY'],
+      ['One', 'Alice', 'County Test', 'Supervisor', 2019, 44001, 'Amendment - Annual', 'Amended Corp']]), 'Schedule A1');
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([[...head, 'NAME OF SOURCE', 'ADDRESS OF SOURCE', 'YOUR BUSINESS POSITION', 'GROSS INCOME RECEIVED'],
+      ['One', 'Alice', 'County Test', 'Supervisor', 2019, 44000, 'Annual', 'LandPaths', 'PO Box 1', 'Spouse', '$10,001 - $100,000']]), 'Schedule C - Income Section');
+    const [filing] = parseForm700Bulk(XLSX.write(book, { type: 'buffer', bookType: 'xlsx' })).filings;
+    expect(filing.schedules.A.map(row => row.entity_name)).toEqual(['Amended Corp']);
+    expect(filing.schedules.CDE).toMatchObject([{ source_name: 'LandPaths', schedule_type: 'C' }]);
+    expect(filing.schedules.CDE[0].details).toEqual(expect.arrayContaining([
+      { label: 'ADDRESS OF SOURCE', value: 'PO Box 1' }, { label: 'YOUR BUSINESS POSITION', value: 'Spouse' },
+    ]));
+    expect(filing.filing_type).toBe('Amendment - Annual');
   });
   it('rejects malformed identity metadata and unreadable or unsupported input', () => {
     expect(() => parseForm700Bulk(fixture([['One', 'Alice', '', '', 2019, 44000, 'Annual', 'Corp']]))).toThrow('missing or invalid');
@@ -78,9 +94,9 @@ describe('bulk Form 700 persistence', () => {
   });
   it('rejects ambiguous jurisdictions and duplicate exact identities', async () => {
     const deps = dependencies();
-    deps.prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'a' }, { id: 'b' }]);
+    deps.prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'a', name: 'County Test' }, { id: 'b', name: 'county test' }]);
     await expect(previewForm700Bulk(fixture(), deps.prisma)).rejects.toThrow('Multiple jurisdictions');
-    deps.prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'a' }]);
+    deps.prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'a', name: 'County Test' }]);
     deps.prisma.politician.findMany.mockResolvedValue([{ fullName: 'Alice One' }, { fullName: 'Alice One' }]);
     await expect(previewForm700Bulk(fixture(), deps.prisma)).rejects.toThrow('multiple exact');
   });

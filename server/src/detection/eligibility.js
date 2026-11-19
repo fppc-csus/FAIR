@@ -1,8 +1,21 @@
-export function resolveAgendaScope(item, jurisdictions = []) {
+import { jurisdictionKey } from "../utils/jurisdictionName.js";
+
+/**
+ * @param dataSources rows `{ id, jurisdictionId }`. When an agenda item's
+ *   cityId is a data source that an administrator linked to a jurisdiction,
+ *   that explicit link is authoritative over name matching.
+ */
+export function resolveAgendaScope(item, jurisdictions = [], dataSources = []) {
   const meeting = item.meeting;
-  const meetingId = meeting?.jurisdictionId ?? meeting?.jurisdiction?.id;
+  const sourceJurisdictionId = item.cityId
+    ? dataSources.find((source) => source.id === item.cityId)?.jurisdictionId ?? null
+    : null;
+  const meetingId = meeting?.jurisdictionId ?? meeting?.jurisdiction?.id ?? sourceJurisdictionId;
+  if (sourceJurisdictionId && (!meeting?.jurisdictionId || meeting.jurisdictionId === sourceJurisdictionId)) {
+    return withMeetingDate(item, sourceJurisdictionId);
+  }
   const known = [item.cityName, item.cityId].filter(Boolean).map((name) => jurisdictions.filter((city) =>
-    city.id === name || city.name.toLowerCase() === String(name).trim().toLowerCase(),
+    city.id === name || (jurisdictionKey(city.name) && jurisdictionKey(city.name) === jurisdictionKey(name)),
   ));
   if (known.some((matches) => matches.length > 1)) {
     return { jurisdictionId: null, meetingDate: null, reason: "AMBIGUOUS_JURISDICTION" };
@@ -24,6 +37,11 @@ export function resolveAgendaScope(item, jurisdictions = []) {
     return { jurisdictionId: null, meetingDate: null, reason: "UNRESOLVED_JURISDICTION" };
   }
   const jurisdictionId = meetingId ?? (ids.size === 1 ? [...ids][0] : null);
+  return withMeetingDate(item, jurisdictionId);
+}
+
+function withMeetingDate(item, jurisdictionId) {
+  const meeting = item.meeting;
   const date = item.meetingDate ?? meeting?.meetingDate;
   const itemDate = item.meetingDate ? new Date(item.meetingDate) : null;
   const linkedDate = meeting?.meetingDate ? new Date(meeting.meetingDate) : null;
@@ -46,7 +64,8 @@ export function disclosureEligibility(scope, row, policy) {
   const jurisdictionId = row.filing?.politician?.jurisdictionId ?? row.politicianJurisdictionId;
   if (!jurisdictionId) return { status: "REVIEW_REQUIRED", reason: "UNRESOLVED_POLITICIAN_JURISDICTION" };
   if (jurisdictionId !== scope.jurisdictionId) return { status: "INELIGIBLE", reason: "CROSS_JURISDICTION" };
-  if (row.filing?.politician?.needsReview) return { status: "REVIEW_REQUIRED", reason: "POLITICIAN_IDENTITY_REVIEW" };
+  // An unverified filer identity does not suppress a candidate: investigators
+  // see it with an "identity unverified" badge (politician.needsReview) instead.
   if (!scope.meetingDate) return { status: "REVIEW_REQUIRED", reason: "MISSING_MEETING_DATE" };
   const year = row.filing?.filingYear ?? row.filingYear;
   if (row.filing?.politicianId && row.schedulePoliticianId && row.filing.politicianId !== row.schedulePoliticianId) {

@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 
+// Data routes require an investigator session; auth itself is covered in
+// auth.test.js and investigatorAccess.test.js.
+vi.mock("../../src/lib/auth.js", () => ({
+  requireAdmin: vi.fn((_req, _res, next) => next()),
+  requireAuthenticated: vi.fn((_req, _res, next) => next()),
+  requireOwner: vi.fn((_req, _res, next) => next()),
+}));
+
 vi.mock("../../src/lib/prisma.js", () => {
   const prisma = {
     agendaItem: {

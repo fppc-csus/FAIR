@@ -1,6 +1,6 @@
 # React routes and UI (`client/app/`)
 
-Start at `routes.ts`; it is the authoritative route manifest. Public routes cover home, conflicts, politicians, agendas, and about. Admin routes cover login, upload, politicians, sources, and reports.
+Start at `routes.ts`; it is the authoritative route manifest. Investigator routes (all signed-in) cover the dashboard (`home.tsx`), conflicts, politician dossiers, agenda items and methodology (`about.tsx`). Admin routes cover login, upload, identity review, sources, reports, history and users. Shared badges, labels and navigation live in `components/investigator.tsx`.
 
 ## Placement
 
@@ -10,8 +10,7 @@ Start at `routes.ts`; it is the authoritative route manifest. Public routes cove
 - Transport and external-service helpers: `lib/`.
 - Global layout/styles: `root.tsx` and `app.css`.
 
-Use functional TypeScript components and hooks. Keep tests next to the source when practical. Verify keyboard-visible behavior, loading/error states, and public/admin boundaries rather than implementation details.
+Use functional TypeScript components and hooks. Keep tests next to the source when practical; seed a session with `test/session.ts` for data pages. Verify keyboard-visible behavior, loading/error states, and the signed-in boundary rather than implementation details.
 
-`routes/politician.profile.tsx` exists but is not registered in `routes.ts`; do not treat it as a live page without confirming intent.
 
 Parent guide: `../CONTEXT.md`.

@@ -5,7 +5,7 @@
  * `schedule_cde_income` with `schedule_type` = "C" | "D" | "E" and performs no
  * DB writes. Missing sheets simply contribute no rows; unreadable input → [].
  */
-import { cleanText, getField, readScheduleRows } from "./parserUtils.js";
+import { cleanText, getField, readScheduleRows, rowDetails } from "./parserUtils.js";
 
 const SOURCE_KEYS = [
   "NAME OF SOURCE",
@@ -45,6 +45,7 @@ function mapRow(row, scheduleType, filingId) {
     amount: cleanText(getField(row, AMOUNT_KEYS)),
     schedule_type: scheduleType,
     filing_id: filingId ?? null,
+    details: rowDetails(row),
   };
 }
 

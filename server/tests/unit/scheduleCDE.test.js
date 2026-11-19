@@ -23,7 +23,7 @@ describe("parseScheduleCDE", () => {
     expect(result.length).toBeGreaterThan(0);
 
     for (const row of result) {
-      expect(Object.keys(row).sort()).toEqual(
+      expect(Object.keys(row).filter((key) => key !== "details").sort()).toEqual(
         ["source_name", "amount", "schedule_type", "filing_id"].sort(),
       );
       expect(row).not.toHaveProperty("sourceName");
@@ -40,7 +40,7 @@ describe("parseScheduleCDE", () => {
     const result = parseScheduleCDE(validBuffer, "f");
 
     const c = result.find((r) => r.schedule_type === "C");
-    expect(c).toEqual({
+    expect(c).toMatchObject({
       source_name: "Sonoma Ecology Center",
       amount: "$10,001 - $100,000",
       schedule_type: "C",
@@ -64,7 +64,7 @@ describe("parseScheduleCDE", () => {
       ],
     });
 
-    expect(parseScheduleCDE(buffer, "f")).toEqual([
+    expect(parseScheduleCDE(buffer, "f")).toMatchObject([
       { source_name: "Farm Bureau", amount: "125", schedule_type: "D", filing_id: "f" },
     ]);
   });

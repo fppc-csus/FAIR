@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/ingestion/legistarApi.js', () => ({
   getMeetings: vi.fn(),
   getAgendaItems: vi.fn(),
+  getMatterVersions: vi.fn().mockResolvedValue([]),
+  getMatterText: vi.fn(),
 }));
 
 import { getAgendaItems, getMeetings } from '../../src/ingestion/legistarApi.js';

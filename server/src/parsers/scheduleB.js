@@ -9,7 +9,7 @@
  * column for most filers, so `county` is null unless a COUNTY column exists
  * (the filer's "Agency" column is NOT the property county and is ignored).
  */
-import { cleanText, getField, readScheduleRows, toTitleCase } from "./parserUtils.js";
+import { cleanText, getField, readScheduleRows, rowDetails, toTitleCase } from "./parserUtils.js";
 
 const SHEET_KEYWORDS = ["schedule b", "real property"];
 const HEADER_KEYWORDS = ["street address or precise location", "property description", "parcel"];
@@ -54,6 +54,7 @@ function mapRow(row, filingId) {
     fair_market_value: cleanText(getField(row, FMV_KEYS)),
     nature_of_interest: cleanText(getField(row, NATURE_KEYS)),
     filing_id: filingId ?? null,
+    details: rowDetails(row),
   };
 }
 

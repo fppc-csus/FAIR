@@ -77,13 +77,13 @@ describe("detectIncomeGiftsTravel", () => {
     };
 
     const gift = await detectIncomeGiftsTravel(
-      [{ ...acmeIncome, schedule_type: "D", amount: "$75" }],
+      [{ ...acmeIncome, schedule_type: "D", amount: "$700" }],
       item,
     );
     expect(gift[0].conflict_type).toBe(CONFLICT_TYPES.GIFT);
 
     const travel = await detectIncomeGiftsTravel(
-      [{ ...acmeIncome, schedule_type: "E", amount: "$200" }],
+      [{ ...acmeIncome, schedule_type: "E", amount: "$650" }],
       item,
     );
     expect(travel[0].conflict_type).toBe(CONFLICT_TYPES.TRAVEL);

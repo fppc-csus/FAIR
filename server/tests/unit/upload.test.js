@@ -209,7 +209,7 @@ describe("POST /api/admin/upload/form700", () => {
     const buffer = fs.readFileSync(path.resolve('../docs/County of Sonoma -- Form 700 (2019).xlsx'));
     prisma.form700Filing.findUnique.mockResolvedValue({ id: 'existing' });
     prisma.politician.findMany = vi.fn().mockResolvedValue([{ id: POLITICIAN_ID, fullName: 'James M Gore' }]);
-    prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'jurisdiction' }]);
+    prisma.jurisdiction.findMany.mockResolvedValue([{ id: 'jurisdiction', name: 'Sonoma County' }]);
     const preview = await request(app).post('/api/admin/upload/form700/bulk/preview').attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
     const response = await request(app).post('/api/admin/upload/form700/bulk/import').field('digest', preview.body.digest).attach('file', buffer, { filename: 'county.xlsx', contentType: XLSX_MIME });
     expect(response.status).toBe(200);
@@ -291,6 +291,9 @@ describe("POST /api/admin/upload/form700", () => {
       entityName: "Scoop",
       fairMarketValue: "$2,000 - $10,000",
       natureOfInvestment: "Advisory Shares",
+      details: expect.arrayContaining([
+        { label: "GENERAL DESCRIPTION OF THIS BUSINESS ACTIVITY", value: "Technology" },
+      ]),
     });
     expect(aRows[0]).not.toHaveProperty("entity_name");
 

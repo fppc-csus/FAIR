@@ -3,6 +3,7 @@ export const conflictInclude = {
   politician: {
     select: {
       fullName: true,
+      needsReview: true,
       jurisdiction: {
         select: { name: true },
       },
@@ -14,6 +15,7 @@ export const conflictInclude = {
       description: true,
       itemText: true,
       cityName: true,
+      meetingDate: true,
     },
   },
 };
@@ -37,6 +39,10 @@ export function dashboardRow(conflict) {
       "Agenda item unavailable",
     detectedAt: new Date(conflict.detectedAt).toISOString(),
     eligibilityStatus: conflict.eligibilityStatus ?? "unknown",
+    politicianId: conflict.politicianId ?? null,
+    entityName: conflict.entityName ?? null,
+    meetingDate: conflict.agendaItem.meetingDate ? new Date(conflict.agendaItem.meetingDate).toISOString() : null,
+    identityVerified: conflict.politician.needsReview == null ? null : !conflict.politician.needsReview,
   };
 }
 

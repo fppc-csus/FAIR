@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
+    jurisdiction: { findMany: vi.fn(async () => [{ id: 'county-sonoma', name: 'County of Sonoma' }]), create: vi.fn(async ({ data }) => ({ id: `new-${data.name}` })) },
     dataSource: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
     agendaItem: { count: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), upsert: vi.fn(), createMany: vi.fn() },
     syncLog: { create: vi.fn(), update: vi.fn(), updateMany: vi.fn(), findFirst: vi.fn() },
@@ -16,6 +17,8 @@ vi.mock('apify-client', () => ({ ApifyClient: vi.fn() }));
 vi.mock('../../src/ingestion/legistarApi.js', () => ({
   getMeetings: vi.fn(),
   getAgendaItems: vi.fn(),
+  getMatterVersions: vi.fn().mockResolvedValue([]),
+  getMatterText: vi.fn(),
   getVotes: vi.fn(),
 }));
 vi.mock('../../src/ingestion/apifyAgenda.js', () => ({
@@ -122,8 +125,32 @@ describe('Legistar source validation on save', () => {
         cityName: 'Sacramento',
         sourceType: 'legistar',
         legistarBaseUrl: 'https://webapi.legistar.com/v1/sacramento',
+        jurisdictionId: 'new-Sacramento',
       }),
     });
+  });
+
+  it('links a "Sonoma County" source to the existing "County of Sonoma" jurisdiction', async () => {
+    fetch.mockResolvedValue({ ok: true, json: async () => [] });
+    const response = await request(app).post('/api/admin/sources')
+      .send({ ...validSource, cityName: 'Sonoma County', legistarBaseUrl: 'https://webapi.legistar.com/v1/sonoma-county' });
+    expect(response.status).toBe(201);
+    expect(prisma.dataSource.create).toHaveBeenCalledWith({ data: expect.objectContaining({ jurisdictionId: 'county-sonoma' }) });
+  });
+
+  it('converts a public Legistar site address to its Web API URL and links the jurisdiction', async () => {
+    const { parseLegistarBaseUrl } = await import('../../src/routes/admin/sources.js');
+    expect(parseLegistarBaseUrl('https://oakland.legistar.com/Calendar.aspx')).toBe('https://webapi.legistar.com/v1/oakland');
+    expect(parseLegistarBaseUrl('https://sonoma-county.legistar.com/LegislationDetail.aspx?ID=4283189')).toBe('https://webapi.legistar.com/v1/sonoma-county');
+    expect(parseLegistarBaseUrl('https://webapi.legistar.com/v1/oakland/')).toBe('https://webapi.legistar.com/v1/oakland');
+  });
+
+  it('rejects a Legistar address submitted as an Apify start URL', async () => {
+    const response = await request(app)
+      .post('/api/admin/sources')
+      .send({ cityName: 'Oakland', sourceType: 'Apify', startUrl: 'https://webapi.legistar.com/v1/oakland', apifyActorId: 'actor' });
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/Choose the Legistar source type/);
   });
 
   it('rejects malformed base URLs without making a request or creating a source', async () => {
@@ -132,7 +159,7 @@ describe('Legistar source validation on save', () => {
       .send({ ...validSource, legistarBaseUrl: 'https://example.com/not-legistar' });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toMatch(/Legistar API URL/);
+    expect(response.body.error).toMatch(/Use a Legistar URL/);
     expect(fetch).not.toHaveBeenCalled();
     expect(prisma.dataSource.create).not.toHaveBeenCalled();
   });

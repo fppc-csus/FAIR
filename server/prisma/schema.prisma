@@ -41,16 +41,16 @@ model AdminAccessState {
 }
 
 model AdminInvitation {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email      String
-  role       String
-  tokenHash  String   @unique @map("token_hash")
-  status     String
-  invitedBy  String   @map("invited_by") @db.Uuid
-  expiresAt  DateTime @map("expires_at")
-  lastError  String?  @map("last_error")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  role      String
+  tokenHash String   @unique @map("token_hash")
+  status    String
+  invitedBy String   @map("invited_by") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  lastError String?  @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([email])
   @@map("admin_invitations")
@@ -79,9 +79,9 @@ model Jurisdiction {
   legistarClientId String?  @unique @map("legistar_client_id")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  politicians Politician[]
-  meetings    Meeting[]
-  dataSources DataSource[]
+  politicians   Politician[]
+  meetings      Meeting[]
+  dataSources   DataSource[]
   detectionRuns DetectionRun[]
 
   @@map("jurisdictions")
@@ -113,8 +113,8 @@ model Politician {
   scheduleBRealEstate  ScheduleBRealEstate[]
   scheduleCdeIncome    ScheduleCdeIncome[]
   scheduleA2Positions  ScheduleA2BusinessPosition[]
-  detectionRuns       DetectionRun[]
-  detectionRunItems   DetectionRunItem[]
+  detectionRuns        DetectionRun[]
+  detectionRunItems    DetectionRunItem[]
 
   @@index([jurisdictionId], map: "politicians_jurisdiction_id_idx")
   @@map("politicians")
@@ -125,13 +125,13 @@ model Politician {
 /// merge deletes that source profile; its unique value makes merge retries
 /// idempotent.
 model PoliticianReviewEvent {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  politicianId        String   @map("politician_id") @db.Uuid
-  sourcePoliticianId  String?  @unique @map("source_politician_id") @db.Uuid
-  action              String
-  adminUserId         String   @map("admin_user_id")
-  details             Json?
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  politicianId       String   @map("politician_id") @db.Uuid
+  sourcePoliticianId String?  @unique @map("source_politician_id") @db.Uuid
+  action             String
+  adminUserId        String   @map("admin_user_id")
+  details            Json?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([politicianId, createdAt], map: "politician_review_events_politician_created_idx")
   @@map("politician_review_events")
@@ -188,17 +188,17 @@ model AgendaItem {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  votes         VoteRecord[]
-  conflictFlags ConflictFlag[]
-  conflicts     Conflict[]
+  votes             VoteRecord[]
+  conflictFlags     ConflictFlag[]
+  conflicts         Conflict[]
   detectionRunItems DetectionRunItem[]
 
+  @@unique([cityId, meetingDate, itemNumber])
   @@index([meetingId], map: "agenda_items_meeting_id_idx")
   @@index([meetingDate], map: "agenda_items_meeting_date_idx")
   @@index([cityName, meetingDate], map: "agenda_items_city_name_meeting_date_idx")
   @@index([cityId, meetingDate], map: "agenda_items_city_id_meeting_date_idx")
   @@index([sourceType], map: "agenda_items_source_type_idx")
-  @@unique([cityId, meetingDate, itemNumber])
   @@map("agenda_items")
 }
 
@@ -239,7 +239,7 @@ model Form700Filing {
   scheduleBRealEstate  ScheduleBRealEstate[]
   scheduleCdeIncome    ScheduleCdeIncome[]
   scheduleA2Positions  ScheduleA2BusinessPosition[]
-  detectionRuns       DetectionRun[]
+  detectionRuns        DetectionRun[]
 
   @@unique([politicianId, filingYear])
   @@map("form700_filings")
@@ -284,30 +284,30 @@ model ConflictFlag {
 }
 
 model Conflict {
-  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  politicianId  String       @map("politician_id") @db.Uuid
-  politician    Politician   @relation(fields: [politicianId], references: [id], onDelete: Cascade)
-  agendaItemId  String       @map("agenda_item_id") @db.Uuid
-  agendaItem    AgendaItem   @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
-  conflictType  String       @map("conflict_type")
-  severity      String
-  ruleReference String       @map("rule_reference")
-  entityName    String?      @map("entity_name")
-  sourceKey     String       @map("source_key")
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  politicianId      String           @map("politician_id") @db.Uuid
+  politician        Politician       @relation(fields: [politicianId], references: [id], onDelete: Cascade)
+  agendaItemId      String           @map("agenda_item_id") @db.Uuid
+  agendaItem        AgendaItem       @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
+  conflictType      String           @map("conflict_type")
+  severity          String
+  ruleReference     String           @map("rule_reference")
+  entityName        String?          @map("entity_name")
+  sourceKey         String           @map("source_key")
   /// Null denotes unknown ownership (legacy or manually created); never reconcile those rows.
-  detectionOwner    String?   @map("detection_owner")
-  eligibilityStatus String?   @map("eligibility_status")
-  filingId          String?   @map("filing_id") @db.Uuid
-  disclosureId      String?   @map("disclosure_id") @db.Uuid
-  filingYear        Int?      @map("filing_year")
-  jurisdictionId    String?   @map("jurisdiction_id") @db.Uuid
-  meetingDate       DateTime? @map("meeting_date")
-  supportingSource  String?   @map("supporting_source")
-  detectedAt    DateTime     @default(now()) @map("detected_at") @db.Timestamptz(3)
-  reviewStatus  String       @default("pending") @map("review_status")
-  reviewNote    String?      @map("review_note")
-  reviewedAt    DateTime?    @map("reviewed_at") @db.Timestamptz(3)
-  reviews       ConflictReview[]
+  detectionOwner    String?          @map("detection_owner")
+  eligibilityStatus String?          @map("eligibility_status")
+  filingId          String?          @map("filing_id") @db.Uuid
+  disclosureId      String?          @map("disclosure_id") @db.Uuid
+  filingYear        Int?             @map("filing_year")
+  jurisdictionId    String?          @map("jurisdiction_id") @db.Uuid
+  meetingDate       DateTime?        @map("meeting_date")
+  supportingSource  String?          @map("supporting_source")
+  detectedAt        DateTime         @default(now()) @map("detected_at") @db.Timestamptz(3)
+  reviewStatus      String           @default("pending") @map("review_status")
+  reviewNote        String?          @map("review_note")
+  reviewedAt        DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  reviews           ConflictReview[]
 
   @@unique([politicianId, agendaItemId, conflictType, sourceKey], map: "conflicts_identity_key")
   @@index([politicianId], map: "conflicts_politician_id_idx")
@@ -339,30 +339,30 @@ model ConflictReview {
 }
 
 model DetectionRun {
-  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  filingId        String?      @map("filing_id") @db.Uuid
-  filing          Form700Filing? @relation(fields: [filingId], references: [id], onDelete: Cascade)
-  politicianId    String?      @map("politician_id") @db.Uuid
-  politician      Politician?  @relation(fields: [politicianId], references: [id], onDelete: SetNull)
-  jurisdictionId  String?      @map("jurisdiction_id") @db.Uuid
-  jurisdiction    Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
-  filingYear      Int           @map("filing_year")
-  trigger         String
-  triggeredBy     String?       @map("triggered_by")
-  status          String        @default("queued")
-  totalItems      Int           @default(0) @map("total_items")
-  processedItems  Int           @default(0) @map("processed_items")
-  candidateCount  Int           @default(0) @map("candidate_count")
-  insertedCount   Int           @default(0) @map("inserted_count")
-  duplicateCount  Int           @default(0) @map("duplicate_count")
-  failureCount    Int           @default(0) @map("failure_count")
-  error           String?
-  startedAt       DateTime?     @map("started_at") @db.Timestamptz(3)
-  completedAt     DateTime?     @map("completed_at") @db.Timestamptz(3)
-  lockAt          DateTime?     @map("lock_at") @db.Timestamptz(3)
-  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  items           DetectionRunItem[]
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  filingId       String?            @map("filing_id") @db.Uuid
+  filing         Form700Filing?     @relation(fields: [filingId], references: [id], onDelete: Cascade)
+  politicianId   String?            @map("politician_id") @db.Uuid
+  politician     Politician?        @relation(fields: [politicianId], references: [id], onDelete: SetNull)
+  jurisdictionId String?            @map("jurisdiction_id") @db.Uuid
+  jurisdiction   Jurisdiction?      @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
+  filingYear     Int                @map("filing_year")
+  trigger        String
+  triggeredBy    String?            @map("triggered_by")
+  status         String             @default("queued")
+  totalItems     Int                @default(0) @map("total_items")
+  processedItems Int                @default(0) @map("processed_items")
+  candidateCount Int                @default(0) @map("candidate_count")
+  insertedCount  Int                @default(0) @map("inserted_count")
+  duplicateCount Int                @default(0) @map("duplicate_count")
+  failureCount   Int                @default(0) @map("failure_count")
+  error          String?
+  startedAt      DateTime?          @map("started_at") @db.Timestamptz(3)
+  completedAt    DateTime?          @map("completed_at") @db.Timestamptz(3)
+  lockAt         DateTime?          @map("lock_at") @db.Timestamptz(3)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  items          DetectionRunItem[]
 
   @@index([status, createdAt], map: "detection_runs_status_created_at_idx")
   @@index([filingId], map: "detection_runs_filing_id_idx")
@@ -371,23 +371,23 @@ model DetectionRun {
 }
 
 model DetectionRunItem {
-  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  detectionRunId  String       @map("detection_run_id") @db.Uuid
-  detectionRun    DetectionRun @relation(fields: [detectionRunId], references: [id], onDelete: Cascade)
-  agendaItemId    String       @map("agenda_item_id") @db.Uuid
-  agendaItem      AgendaItem   @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
-  politicianId    String       @map("politician_id") @db.Uuid
-  politician      Politician   @relation(fields: [politicianId], references: [id], onDelete: Cascade)
-  status          String       @default("pending")
-  attempts        Int          @default(0)
-  candidateCount  Int          @default(0) @map("candidate_count")
-  insertedCount   Int          @default(0) @map("inserted_count")
-  duplicateCount  Int          @default(0) @map("duplicate_count")
-  error           String?
-  startedAt       DateTime?    @map("started_at") @db.Timestamptz(3)
-  completedAt     DateTime?    @map("completed_at") @db.Timestamptz(3)
-  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  detectionRunId String       @map("detection_run_id") @db.Uuid
+  detectionRun   DetectionRun @relation(fields: [detectionRunId], references: [id], onDelete: Cascade)
+  agendaItemId   String       @map("agenda_item_id") @db.Uuid
+  agendaItem     AgendaItem   @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
+  politicianId   String       @map("politician_id") @db.Uuid
+  politician     Politician   @relation(fields: [politicianId], references: [id], onDelete: Cascade)
+  status         String       @default("pending")
+  attempts       Int          @default(0)
+  candidateCount Int          @default(0) @map("candidate_count")
+  insertedCount  Int          @default(0) @map("inserted_count")
+  duplicateCount Int          @default(0) @map("duplicate_count")
+  error          String?
+  startedAt      DateTime?    @map("started_at") @db.Timestamptz(3)
+  completedAt    DateTime?    @map("completed_at") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@unique([detectionRunId, agendaItemId, politicianId], map: "detection_run_items_identity_key")
   @@index([detectionRunId, status], map: "detection_run_items_run_status_idx")
@@ -396,15 +396,17 @@ model DetectionRunItem {
 }
 
 model ScheduleAInvestment {
-  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  filingId          String          @map("filing_id") @db.Uuid
-  filing            Form700Filing   @relation(fields: [filingId], references: [id], onDelete: Cascade)
-  politicianId      String?         @map("politician_id") @db.Uuid
-  politician        Politician?     @relation(fields: [politicianId], references: [id], onDelete: Cascade)
-  entityName        String          @map("entity_name")
-  fairMarketValue   String?         @map("fair_market_value")
-  natureOfInvestment String?        @map("nature_of_investment")
-  createdAt         DateTime        @default(now()) @map("created_at")
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  filingId           String        @map("filing_id") @db.Uuid
+  filing             Form700Filing @relation(fields: [filingId], references: [id], onDelete: Cascade)
+  politicianId       String?       @map("politician_id") @db.Uuid
+  politician         Politician?   @relation(fields: [politicianId], references: [id], onDelete: Cascade)
+  entityName         String        @map("entity_name")
+  fairMarketValue    String?       @map("fair_market_value")
+  natureOfInvestment String?       @map("nature_of_investment")
+  /// Every non-empty cell of the source row as ordered [{ label, value }] pairs.
+  details            Json?
+  createdAt          DateTime      @default(now()) @map("created_at")
 
   @@index([filingId], map: "schedule_a_investments_filing_id_idx")
   @@index([politicianId], map: "schedule_a_investments_politician_id_idx")
@@ -422,6 +424,8 @@ model ScheduleBRealEstate {
   county              String?
   fairMarketValue     String?       @map("fair_market_value")
   natureOfInterest    String?       @map("nature_of_interest")
+  /// Every non-empty cell of the source row as ordered [{ label, value }] pairs.
+  details             Json?
   createdAt           DateTime      @default(now()) @map("created_at")
 
   @@index([filingId], map: "schedule_b_realestate_filing_id_idx")
@@ -438,6 +442,8 @@ model ScheduleCdeIncome {
   scheduleType String        @map("schedule_type")
   sourceName   String?       @map("source_name")
   amount       String?
+  /// Every non-empty cell of the source row as ordered [{ label, value }] pairs.
+  details      Json?
   createdAt    DateTime      @default(now()) @map("created_at")
 
   @@index([filingId], map: "schedule_cde_income_filing_id_idx")
@@ -457,6 +463,8 @@ model ScheduleA2BusinessPosition {
   fairMarketValue    String?       @map("fair_market_value")
   natureOfInvestment String?       @map("nature_of_investment")
   grossIncomeRange   String?       @map("gross_income_range")
+  /// Every non-empty cell of the source row as ordered [{ label, value }] pairs.
+  details            Json?
   createdAt          DateTime      @default(now()) @map("created_at")
 
   @@index([filingId], map: "schedule_a2_business_positions_filing_id_idx")
@@ -465,53 +473,53 @@ model ScheduleA2BusinessPosition {
 }
 
 model DataSource {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  cityName        String        @map("city_name")
-  sourceType      String        @map("source_type")
-  legistarBaseUrl String?       @map("legistar_base_url")
-  legistarClientId String?      @map("legistar_client_id")
-  apifyActorId    String?       @map("apify_actor_id")
-  startUrl        String?       @map("start_url")
-  enabled         Boolean       @default(true)
-  lastSyncedAt    DateTime?     @map("last_synced_at")
-  lastError       String?       @map("last_error")
-  lastDocumentsFound Int        @default(0) @map("last_documents_found")
-  lastPdfsFetched    Int        @default(0) @map("last_pdfs_fetched")
-  lastItemsInserted  Int        @default(0) @map("last_items_inserted")
-  lastItemsSkipped   Int        @default(0) @map("last_items_skipped")
-  lastSyncErrors     Json?      @map("last_sync_errors")
-  jurisdictionId  String?       @map("jurisdiction_id") @db.Uuid
-  jurisdiction    Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @default(now()) @map("updated_at")
-  syncLogs        SyncLog[]
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cityName           String        @map("city_name")
+  sourceType         String        @map("source_type")
+  legistarBaseUrl    String?       @map("legistar_base_url")
+  legistarClientId   String?       @map("legistar_client_id")
+  apifyActorId       String?       @map("apify_actor_id")
+  startUrl           String?       @map("start_url")
+  enabled            Boolean       @default(true)
+  lastSyncedAt       DateTime?     @map("last_synced_at")
+  lastError          String?       @map("last_error")
+  lastDocumentsFound Int           @default(0) @map("last_documents_found")
+  lastPdfsFetched    Int           @default(0) @map("last_pdfs_fetched")
+  lastItemsInserted  Int           @default(0) @map("last_items_inserted")
+  lastItemsSkipped   Int           @default(0) @map("last_items_skipped")
+  lastSyncErrors     Json?         @map("last_sync_errors")
+  jurisdictionId     String?       @map("jurisdiction_id") @db.Uuid
+  jurisdiction       Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: SetNull)
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @default(now()) @map("updated_at")
+  syncLogs           SyncLog[]
 
   @@index([sourceType, enabled], map: "data_sources_source_type_enabled_idx")
   @@map("data_sources")
 }
 
 model SyncLog {
-  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  jobRunId        String?     @map("job_run_id") @db.Uuid
-  jobRun          SyncJobRun? @relation(fields: [jobRunId], references: [id], onDelete: SetNull)
-  dataSourceId    String?     @map("data_source_id") @db.Uuid
-  dataSource      DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
-  sourceType      String?     @map("source_type")
-  status          String      @default("running")
-  startedAt       DateTime    @default(now()) @map("started_at")
-  heartbeatAt     DateTime    @default(now()) @map("heartbeat_at") @db.Timestamptz(3)
-  completedAt     DateTime?   @map("completed_at")
-  itemsFound      Int         @default(0) @map("items_found")
-  documentsFound  Int         @default(0) @map("documents_found")
-  pdfsFetched     Int         @default(0) @map("pdfs_fetched")
-  documentsSkipped Int        @default(0) @map("documents_skipped")
-  itemsInserted   Int         @default(0) @map("items_inserted")
-  itemsSkipped    Int         @default(0) @map("items_skipped")
-  conflictCandidates Int      @default(0) @map("conflict_candidates")
-  conflictsDetected Int       @default(0) @map("conflicts_detected")
-  conflictsSkipped Int        @default(0) @map("conflicts_skipped")
-  detectionErrors Json?       @map("detection_errors")
-  errors          Json?
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobRunId           String?     @map("job_run_id") @db.Uuid
+  jobRun             SyncJobRun? @relation(fields: [jobRunId], references: [id], onDelete: SetNull)
+  dataSourceId       String?     @map("data_source_id") @db.Uuid
+  dataSource         DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
+  sourceType         String?     @map("source_type")
+  status             String      @default("running")
+  startedAt          DateTime    @default(now()) @map("started_at")
+  heartbeatAt        DateTime    @default(now()) @map("heartbeat_at") @db.Timestamptz(3)
+  completedAt        DateTime?   @map("completed_at")
+  itemsFound         Int         @default(0) @map("items_found")
+  documentsFound     Int         @default(0) @map("documents_found")
+  pdfsFetched        Int         @default(0) @map("pdfs_fetched")
+  documentsSkipped   Int         @default(0) @map("documents_skipped")
+  itemsInserted      Int         @default(0) @map("items_inserted")
+  itemsSkipped       Int         @default(0) @map("items_skipped")
+  conflictCandidates Int         @default(0) @map("conflict_candidates")
+  conflictsDetected  Int         @default(0) @map("conflicts_detected")
+  conflictsSkipped   Int         @default(0) @map("conflicts_skipped")
+  detectionErrors    Json?       @map("detection_errors")
+  errors             Json?
 
   @@index([dataSourceId, startedAt], map: "sync_logs_data_source_id_started_at_idx")
   @@index([startedAt], map: "sync_logs_started_at_idx")

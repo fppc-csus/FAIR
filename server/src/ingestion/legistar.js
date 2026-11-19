@@ -1,4 +1,4 @@
-import { getAgendaItems, getMeetings } from "./legistarApi.js";
+import { getAgendaItems, getMatterText, getMatterVersions, getMeetings } from "./legistarApi.js";
 
 function sourceBaseUrl(source = {}) {
   return source.legistar_base_url ?? source.legistarBaseUrl ?? source.baseUrl ?? null;
@@ -58,19 +58,47 @@ export async function fetchLegistarAgendaItemsForDataSource(source, options = {}
     itemGroups.push(...results);
   }
 
+  const allItems = itemGroups.flat();
+  const matterText = window.includeMatterText === false
+    ? { texts: new Map(), failures: 0 }
+    : await fetchMatterTexts(baseUrl, allItems.map(({ item }) => item.EventItemMatterId ?? item.MatterId), {
+      concurrency,
+      getVersions: window.getMatterVersions ?? getMatterVersions,
+      getText: window.getMatterText ?? getMatterText,
+    });
+
   return {
     baseUrl,
     meetings: includedMeetings,
-    allItems: itemGroups.flat(),
+    allItems: allItems.map((entry) => ({
+      ...entry,
+      matterText: matterText.texts.get(String(entry.item.EventItemMatterId ?? entry.item.MatterId)) ?? null,
+    })),
+    matterTextFailures: matterText.failures,
   };
 }
 
 /**
- * Backwards-compatible entry point for older callers. The canonical pipeline is
- * now runNightlyLegistarSync, which uses the schema-v2 tables, detects only new
- * agenda items, and records per-source sync logs.
+ * Fetch the latest MatterTextPlain for each distinct matter. A failed lookup
+ * is counted but never fails the sync: the item is still stored with its title.
+ * Versions returns [{ Key: MatterTextId, Value: MatterVersion }].
  */
-export async function runLegistarIngestion(options = {}) {
-  const { runNightlyLegistarSync } = await import("../jobs/nightlySync.js");
-  return runNightlyLegistarSync(options);
+export async function fetchMatterTexts(baseUrl, matterIds, { concurrency = 5, getVersions = getMatterVersions, getText = getMatterText } = {}) {
+  const ids = [...new Set(matterIds.filter((id) => id != null && String(id).trim() !== "").map(String))];
+  const texts = new Map();
+  let failures = 0;
+  for (let index = 0; index < ids.length; index += concurrency) {
+    await Promise.all(ids.slice(index, index + concurrency).map(async (matterId) => {
+      try {
+        const versions = await getVersions(baseUrl, matterId);
+        const latest = [...versions].sort((a, b) => Number(b.Value) - Number(a.Value) || Number(b.Key) - Number(a.Key))[0];
+        if (!latest?.Key) return;
+        const text = await getText(baseUrl, matterId, latest.Key);
+        if (text?.MatterTextPlain) texts.set(matterId, text.MatterTextPlain);
+      } catch {
+        failures += 1;
+      }
+    }));
+  }
+  return { texts, failures };
 }

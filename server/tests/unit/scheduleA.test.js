@@ -25,10 +25,10 @@ describe("parseScheduleA", () => {
     expect(result.length).toBeGreaterThan(0);
 
     const row = result[0];
-    expect(Object.keys(row).sort()).toEqual(
+    expect(Object.keys(row).filter((key) => key !== "details").sort()).toEqual(
       ["entity_name", "fair_market_value", "filing_id", "nature_of_investment"].sort(),
     );
-    expect(row).toEqual({
+    expect(row).toMatchObject({
       entity_name: "Scoop",
       fair_market_value: "$2,000 - $10,000",
       nature_of_investment: "Advisory Shares",

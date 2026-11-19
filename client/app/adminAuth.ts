@@ -77,7 +77,9 @@ function redirectToLogin(reason: 'expired' | 'forbidden') {
   const url = `/admin/login?reason=${reason}`;
   if (window.location.pathname + window.location.search !== url) window.location.assign(url);
 }
-export async function adminFetch(path: string, init: RequestInit = {}) {
+type AdminFetchOptions = { redirectOnNotFound?: boolean };
+
+export async function adminFetch(path: string, init: RequestInit = {}, { redirectOnNotFound = true }: AdminFetchOptions = {}) {
   const startedAt = performance.now();
   const method = init.method ?? "GET";
   console.debug("[admin-auth] session start", { method, path, apiUrl: API_URL });
@@ -104,8 +106,30 @@ export async function adminFetch(path: string, init: RequestInit = {}) {
     if (payload.code !== 'owner_required') clearAdminSession();
     redirectToLogin('forbidden');
   }
-  if (response.status === 404 && window.location.pathname !== '/404') window.location.assign('/404');
+  if (redirectOnNotFound && response.status === 404 && window.location.pathname !== '/404') window.location.assign('/404');
   return response;
+}
+
+/**
+ * Authenticated request for investigator data. FAIR has no public data API, so
+ * every record request carries the signed-in session. Accepts an absolute API
+ * URL or a path; 404s are returned to the caller instead of redirecting.
+ */
+export function investigatorFetch(url: string, init: RequestInit = {}) {
+  const path = url.startsWith(API_URL) ? url.slice(API_URL.length) : url;
+  return adminFetch(path, init, { redirectOnNotFound: false });
+}
+
+/** Download an authenticated file (e.g. CSV export) without exposing the token in a URL. */
+export async function downloadAuthenticated(url: string, fallbackName: string) {
+  const response = await investigatorFetch(url);
+  if (!response.ok) throw new Error(await responseMessage(response, 'The export could not be generated. Please retry.'));
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = disposition.match(/filename="?([^";]+)"?/)?.[1] ?? fallbackName;
+  const href = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = href; link.download = filename; document.body.append(link); link.click(); link.remove();
+  URL.revokeObjectURL(href);
 }
 export { API_URL };
 

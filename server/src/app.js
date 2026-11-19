@@ -56,11 +56,13 @@ app.get('/health/ready', async (_req, res) => {
   }
 });
 
-// --- public API ------------------------------------------------------------
-app.use('/api/conflicts', conflictsRouter);
-app.use('/api/politicians', politiciansRouter);
-app.use('/api/agenda', agendaRouter);
-app.use('/api/search', searchRouter);
+// --- investigation API (Supabase JWT + active membership required) ----------
+// FAIR is an internal investigator tool: no disclosure or conflict data is
+// served without a verified admin/investigator session. Only /health is open.
+app.use('/api/conflicts', requireAdmin, conflictsRouter);
+app.use('/api/politicians', requireAdmin, politiciansRouter);
+app.use('/api/agenda', requireAdmin, agendaRouter);
+app.use('/api/search', requireAdmin, searchRouter);
 
 // --- admin API (Supabase JWT required) --------------------------------------
 app.get('/api/admin/session', requireAdmin, (req, res) => {

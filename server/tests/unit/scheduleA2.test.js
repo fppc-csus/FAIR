@@ -64,12 +64,12 @@ describe("parseScheduleA2", () => {
     expect(result.length).toBeGreaterThan(0);
 
     for (const row of result) {
-      expect(Object.keys(row).sort()).toEqual(A2_KEYS);
+      expect(Object.keys(row).filter((key) => key !== "details").sort()).toEqual(A2_KEYS);
       expect(row.filing_id).toBe("filing-1");
       expect(row.entity_name).toBeTruthy();
     }
 
-    expect(result[0]).toEqual({
+    expect(result[0]).toMatchObject({
       entity_name: "Gore Family Vineyards",
       business_position: "Co-Owner",
       fair_market_value: "$10,001 - $100,000", // entity-level FMV, not the section-4 column
@@ -91,7 +91,7 @@ describe("parseScheduleA2", () => {
   });
 
   it("parses a hand-built A-2 sheet and skips blank rows (fixture 3: synthetic)", () => {
-    expect(parseScheduleA2(syntheticA2(), "f")).toEqual([
+    expect(parseScheduleA2(syntheticA2(), "f")).toMatchObject([
       {
         entity_name: "Public Consulting LLC",
         business_position: "Owner",

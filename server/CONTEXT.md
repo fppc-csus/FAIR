@@ -5,7 +5,7 @@
 - `src/index.js`: loads env, starts cron, listens on the port.
 - `src/app.js`: Express middleware and authoritative route mounting; import this in HTTP tests.
 - `prisma/schema.prisma`: application data model and camelCase-to-snake_case mappings.
-- `src/routes/`: public and authenticated admin endpoints.
+- `src/routes/`: authenticated investigator and admin endpoints.
 - `src/ingestion/`, `src/parsers/`, `src/detection/`: pipeline stages.
 - `src/jobs/`: runnable synchronization and scheduler code.
 - `src/lib/`: env, Prisma, Supabase, auth, and Storage adapters.
@@ -13,11 +13,12 @@
 
 ## Active route groups
 
-Public: `/health`, `/api/conflicts` (including `/filters`), `/api/politicians`, `/api/agenda`, `/api/search`.
+Open: `/health`, `/health/ready` only.
+
+Investigator data (Supabase JWT + active membership): `/api/conflicts` (including `/filters`, `/export`), `/api/politicians` (dossier by slug or id), `/api/agenda`, `/api/search`.
 
 Admin (Supabase JWT required): `/api/admin/session`, `/api/admin/sources`, `/api/admin/reports`, `/api/admin/politicians`, `/api/admin/history`, `/api/admin/sync`, `/api/admin/upload`.
 
-`src/routes/adminRoutes.js`, `src/queues/syncQueue.js`, and `src/workers/syncWorker.js` are not mounted by `app.js`; verify before modifying them.
 
 ## Data and service boundaries
 

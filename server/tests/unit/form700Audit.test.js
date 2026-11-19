@@ -16,16 +16,20 @@ describe('independent Form 700 supported-column audit', () => {
     expect(compareScheduleRows([{ a: 1, b: 2 }], [{ b: 2, a: 1 }]).equal).toBe(true);
   });
 
-  it('reconciles all supported Sonoma columns and keeps amendment omissions visible', () => {
+  it('reconciles all supported Sonoma columns and carries un-amended schedules forward', () => {
     const audit = auditForm700Workbook(readFileSync(workbookPath));
     expect(audit.supportedFieldsReconcile).toBe(true);
     expect(audit.filings).toHaveLength(13);
-    expect(audit.filings.reduce((n, f) => n + Object.values(f.schedules).reduce((sum, s) => sum + s.expected, 0), 0)).toBe(78);
+    expect(audit.filings.reduce((n, f) => n + Object.values(f.schedules).reduce((sum, s) => sum + s.expected, 0), 0)).toBe(84);
     const gore = audit.filings.find(f => f.filer === 'James M Gore');
     expect(gore.amendmentReviewRequired).toBe(true);
-    expect(gore.olderRowsNotActive).toHaveLength(15);
-    expect(new Set(gore.olderRowsNotActive.map(r => r.schedule))).toEqual(new Set(['A2', 'B', 'CDE']));
-    expect(audit.filings.find(f => f.filer === 'Lynda Hopkins').olderRowsNotActive).toHaveLength(2);
+    // Gore's latest amendment only re-filed Schedule A1; his A-2, B, C and E come
+    // from the newest earlier submission that contained them.
+    expect(gore.selectedSourceRows.map(r => r.schedule)).toEqual(expect.arrayContaining(['A', 'A2', 'B', 'CDE']));
+    expect(gore.olderRowsNotActive).toHaveLength(10);
+    const hopkins = audit.filings.find(f => f.filer === 'Lynda Hopkins');
+    expect(hopkins.selectedSourceRows.map(r => r.schedule).sort()).toEqual(['A2', 'CDE']);
+    expect(hopkins.olderRowsNotActive).toHaveLength(1);
     expect(audit.filings.every(f => f.selectedSourceRows.every(r => r.row >= 2))).toBe(true);
   });
 

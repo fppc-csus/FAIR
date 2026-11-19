@@ -54,7 +54,11 @@ archive or database failure leaves the original filing data intact.
 | `gross_income_range` | `INCLUDE YOUR PRO RATA SHARE OF GROSS INCOME TO ENTITY/TRUST` (section 2) | range string, e.g. `$0 - $499` |
 | `filing_id` | — | passed in by the caller |
 
-Headers are matched case-insensitively after collapsing whitespace/line breaks, exact match first then prefix match, so the left-most duplicate header wins. Section 3 (sources of income ≥ $10,000) and section 4 (investments/real property held by the entity) are not ingested yet. Broader coverage is tracked separately in SH-344, “Expand Schedule A-2 entity-held asset and income coverage,” and remains optional pending confirmed requirements and conflict-rule applicability.
+Headers are matched case-insensitively after collapsing whitespace/line breaks, exact match first then prefix match, so the left-most duplicate header wins. Sections 3 (sources of income ≥ $10,000) and 4 (investments/real property held by the entity) are kept in the row's `details` and matched as related parties (see below).
+
+### Full-row capture (`details`)
+
+Every schedule row also stores `details`: an ordered `[{ label, value }]` list of every non-empty, non-filer cell. Labels combine the header with the FPPC sub-header row (e.g. `IF APPLICABLE, LIST DATE — ACQUIRED`, `INVESTMENT — BUSINESS ENTITY/NAME`) and drop form hints such as “(Select from drop down list)”. `relatedNamesFromDetails()` in `parserUtils.js` extracts A-2 income sources and holdings, Schedule B tenants and Schedule C commission sources for detection; lenders are excluded. Existing filings can be re-parsed in place with `node server/scripts/reparse-form700-filings.mjs` (dry run; `--apply` to write) after migration `20261116000000_schedule_row_details`.
 
 ## Boundaries
 
@@ -68,12 +72,16 @@ per-filer transactional imports. The admin portal offers authenticated
 import also requires the preview `digest`). The single-filing endpoint rejects
 exports containing multiple filers or submission versions.
 
-One latest-submission snapshot per filer/year is active. All submission summaries
-are stored in `Form700Filing.importMetadata`; the full original workbook is
-archived privately for each imported filing. Older submissions are not separately
-active schedule records. Missing amendment schedules are not carried forward;
-the preview warns about incomplete amendment coverage and requires admin review.
-Existing filer/year rows are skipped, not replaced. Import failures are reported
+Amendments apply per schedule: each schedule sheet is taken from the newest
+submission that contains it, so an amendment that re-files only Schedule A-1
+keeps the original A-2, B, C, D and E (`importMetadata.schedule_sources` records
+which submission supplied each sheet; `selection` is `latest_per_schedule`).
+The preview warns when schedules are carried forward so an admin can confirm no
+interest was disposed of. The full original workbook is archived privately for
+each imported filing. Existing filer/year rows are skipped unless the admin
+ticks “Replace existing filings” (`replace_existing=true`), which replaces the
+schedule rows in place, keeps the filing id and review history, and re-runs
+detection. Import failures are reported
 per filer; successful filings remain committed, and retries skip them. Detection
 failures do not undo successful disclosure imports and are shown in results.
 

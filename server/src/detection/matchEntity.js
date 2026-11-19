@@ -35,6 +35,8 @@ export function getAgendaText(item = {}) {
     .join("\n");
 }
 
+export const FUZZY_WINDOW_WORD_LIMIT = 600;
+
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -52,12 +54,18 @@ export function scoreEntityInText(name, agendaText) {
   if (containsPhrase(haystack, needle)) return 1;
 
   const needleWords = needle.split(" ");
-  const hayWords = haystack.split(" ");
+  // One-word names ("Cisco", "Apple", "LandPaths") fuzzy-match unrelated words
+  // ("Francisco"); they must appear exactly.
+  if (needleWords.length < 2) return 0;
+  // Exact phrases are searched across the whole text above. Fuzzy windows are
+  // limited to the opening words (title + recommended action) so long staff
+  // reports neither dominate runtime nor produce spurious near-matches.
+  const hayWords = haystack.split(" ").slice(0, FUZZY_WINDOW_WORD_LIMIT);
   const n = Math.max(1, needleWords.length);
   const windows = [];
 
   if (hayWords.length <= n) {
-    windows.push(haystack);
+    windows.push(hayWords.join(" "));
   } else {
     for (let i = 0; i <= hayWords.length - n; i++) {
       windows.push(hayWords.slice(i, i + n).join(" "));

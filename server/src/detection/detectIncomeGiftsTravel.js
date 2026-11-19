@@ -2,6 +2,7 @@ import {
   RULE_REFERENCE,
   calculateSeverity,
   conflictTypeForSchedule,
+  isGovernmentSource,
   meetsAmountThreshold,
 } from "../config/conflictRules.js";
 import {
@@ -33,7 +34,10 @@ export async function detectIncomeGiftsTravel(sources, agendaItem, deps = {}) {
     const conflictType = conflictTypeForSchedule(scheduleType);
 
     if (!politicianId || !sourceName || !conflictType) continue;
-    if (!meetsAmountThreshold(scheduleType, amount)) continue;
+    if (conflictType === "INCOME" && isGovernmentSource(sourceName)) continue;
+    // Gifts from one source aggregate across the statement (§87103(e)).
+    const decisionYear = new Date(pickField(agendaItem, "meetingDate", "meeting_date") ?? NaN).getUTCFullYear();
+    if (!meetsAmountThreshold(scheduleType, row.aggregate_amount ?? amount, { year: decisionYear })) continue;
 
     const result = await match(sourceName, agendaText, deps);
     if (!result.matched) continue;

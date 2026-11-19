@@ -21,7 +21,7 @@ describe("parseScheduleB", () => {
     expect(result.length).toBeGreaterThan(0);
 
     const row = result[0];
-    expect(Object.keys(row).sort()).toEqual(
+    expect(Object.keys(row).filter((key) => key !== "details").sort()).toEqual(
       [
         "property_description",
         "city",
@@ -34,7 +34,7 @@ describe("parseScheduleB", () => {
     expect(row).not.toHaveProperty("agency");
     expect(row).not.toHaveProperty("propertyDescription");
 
-    expect(row).toEqual({
+    expect(row).toMatchObject({
       property_description: "6867 Quailbrook Lane",
       city: "Penngrove", // "Penngrove, CA" → state stripped, title-cased
       county: null, // fixture has no COUNTY column
@@ -55,7 +55,7 @@ describe("parseScheduleB", () => {
       ["123 main st", "sAN JOSE, CA", "SANTA CLARA COUNTY", "$2,000 - $10,000", "Ownership/Deed of Trust"],
     ]);
 
-    expect(parseScheduleB(buffer, "f")).toEqual([
+    expect(parseScheduleB(buffer, "f")).toMatchObject([
       {
         property_description: "123 main st",
         city: "San Jose",

@@ -20,6 +20,7 @@
  *   500 archive failure / unexpected error (via next(err))
  */
 import express from "express";
+import { createScheduleRows, deleteScheduleRows } from '../../ingestion/scheduleRows.js';
 import multer from "multer";
 import * as XLSX from "xlsx";
 
@@ -97,48 +98,6 @@ function parseFilingYear(value) {
   return Number.isInteger(year) && year >= 1900 && year <= 2100 ? year : null;
 }
 
-// --- snake_case parser rows → Prisma camelCase createMany payloads ---------
-
-function toScheduleA(rows, ids) {
-  return rows.map((row) => ({
-    ...ids,
-    entityName: row.entity_name,
-    fairMarketValue: row.fair_market_value ?? null,
-    natureOfInvestment: row.nature_of_investment ?? null,
-  }));
-}
-
-function toScheduleB(rows, ids) {
-  return rows.map((row) => ({
-    ...ids,
-    propertyDescription: row.property_description ?? null,
-    city: row.city ?? null,
-    county: row.county ?? null,
-    fairMarketValue: row.fair_market_value ?? null,
-    natureOfInterest: row.nature_of_interest ?? null,
-  }));
-}
-
-function toScheduleCDE(rows, ids) {
-  return rows.map((row) => ({
-    ...ids,
-    scheduleType: row.schedule_type,
-    sourceName: row.source_name ?? null,
-    amount: row.amount ?? null,
-  }));
-}
-
-function toScheduleA2(rows, ids) {
-  return rows.map((row) => ({
-    ...ids,
-    entityName: row.entity_name,
-    businessPosition: row.business_position ?? null,
-    fairMarketValue: row.fair_market_value ?? null,
-    natureOfInvestment: row.nature_of_investment ?? null,
-    grossIncomeRange: row.gross_income_range ?? null,
-  }));
-}
-
 router.post('/form700/bulk/:action', receiveFile, async (req, res, next) => {
   try {
     if (!['preview', 'import'].includes(req.params.action)) return res.status(404).json({ error: 'Unknown upload action.' });
@@ -165,11 +124,12 @@ router.post('/form700/bulk/:action', receiveFile, async (req, res, next) => {
     } });
     const result = await importForm700Bulk(req.file.buffer, req.file.originalname, preview, {
       prisma, archiveWorkbook, deleteWorkbook, redetect: redetectDisclosureAgendaItems,
+      replaceExisting: req.body.replace_existing === 'true',
     });
-    const status = result.failed > 0 ? (result.imported > 0 || result.skipped > 0 ? 'partial' : 'failed') : 'completed';
+    const status = result.failed > 0 ? (result.imported > 0 || result.replaced > 0 || result.skipped > 0 ? 'partial' : 'failed') : 'completed';
     await prisma.form700ImportRun.update({ where: { id: run.id }, data: {
       status,
-      importedCount: result.imported,
+      importedCount: result.imported + result.replaced,
       skippedCount: result.skipped,
       failedCount: result.failed,
       warnings: result.warnings,
@@ -319,14 +279,7 @@ router.post("/form700", receiveFile, async (req, res, next) => {
               select: { id: true },
             });
 
-        if (existing) {
-          await Promise.all([
-            tx.scheduleAInvestment.deleteMany({ where: { filingId: filing.id } }),
-            tx.scheduleBRealEstate.deleteMany({ where: { filingId: filing.id } }),
-            tx.scheduleCdeIncome.deleteMany({ where: { filingId: filing.id } }),
-            tx.scheduleA2BusinessPosition.deleteMany({ where: { filingId: filing.id } }),
-          ]);
-        }
+        if (existing) await deleteScheduleRows(tx, filing.id);
 
         const ids = { filingId: filing.id, politicianId };
 
@@ -335,18 +288,7 @@ router.post("/form700", receiveFile, async (req, res, next) => {
         const rowsCDE = pdf?.schedules.CDE ?? parseScheduleCDE(workbook, filing.id);
         const rowsA2 = pdf?.schedules.A2 ?? parseScheduleA2(workbook, filing.id);
 
-        if (rowsA.length > 0) {
-          await tx.scheduleAInvestment.createMany({ data: toScheduleA(rowsA, ids) });
-        }
-        if (rowsB.length > 0) {
-          await tx.scheduleBRealEstate.createMany({ data: toScheduleB(rowsB, ids) });
-        }
-        if (rowsCDE.length > 0) {
-          await tx.scheduleCdeIncome.createMany({ data: toScheduleCDE(rowsCDE, ids) });
-        }
-        if (rowsA2.length > 0) {
-          await tx.scheduleA2BusinessPosition.createMany({ data: toScheduleA2(rowsA2, ids) });
-        }
+        await createScheduleRows(tx, { A: rowsA, B: rowsB, CDE: rowsCDE, A2: rowsA2 }, ids);
 
         const detectionRun = await tx.detectionRun.create({
           data: {

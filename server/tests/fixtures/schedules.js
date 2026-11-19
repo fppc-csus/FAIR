@@ -29,7 +29,7 @@ export const scheduleCdeFixtures = [
     politicianId: 1,
     filingYear: 2025, politicianJurisdictionId: "sac",
     sourceName: "Downtown Business Association",
-    amount: 100,
+    amount: 700,
     scheduleType: "D",
   },
   {
@@ -37,7 +37,7 @@ export const scheduleCdeFixtures = [
     politicianId: 1,
     filingYear: 2025, politicianJurisdictionId: "sac",
     sourceName: "Regional Planning Council",
-    amount: 250,
+    amount: 750,
     scheduleType: "E",
   },
 ];

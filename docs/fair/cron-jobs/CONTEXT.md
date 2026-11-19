@@ -46,6 +46,6 @@ constraint, so reruns do not duplicate data.
 
 `.github/workflows/scheduled-legistar-sync.yml` and `scheduled-apify-agendas.yml` are disabled placeholders. Active CI is `.github/workflows/ci.yml`.
 
-Do not use `server/src/queues/syncQueue.js` or `server/src/workers/syncWorker.js` as architecture references; the queue file is empty and the worker is not wired into startup. Do not introduce Redis/BullMQ without explicit approval.
+Scheduling uses `node-cron` only (the unwired Redis queue/worker stubs were removed). Do not introduce Redis/BullMQ without explicit approval.
 
 Related: `../agenda-ingestion/CONTEXT.md`, `server/CONTEXT.md`.

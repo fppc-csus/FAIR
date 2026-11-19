@@ -2,7 +2,7 @@
 
 ## Role and entry points
 
-React Router 7 application for public browsing plus authenticated admin tools.
+React Router 7 application for authenticated FPPC investigators. There is no public access.
 
 - `app/routes.ts`: URL-to-module manifest.
 - `app/root.tsx`: document shell, header/footer, global error boundary.
@@ -13,10 +13,10 @@ React Router 7 application for public browsing plus authenticated admin tools.
 
 ## API and auth boundary
 
-- Public and admin data comes from the Express API using `VITE_API_URL` (default `http://localhost:3001`).
+- All data comes from the Express API using `VITE_API_URL` (default `http://localhost:3001`) through `investigatorFetch`/`useApiData`, which attach the session token.
 - Supabase browser auth uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - Never expose database URLs or `SUPABASE_SECRET_KEY` to the client.
-- Public visitors do not log in. Admin routes use email/password sessions; do not add public registration.
+- `root.tsx` wraps every non-admin route in `AdminGuard`; only `/admin/login` and `/admin/account` render without a session. Admin routes guard themselves. Do not add public registration.
 
 ## Tests and commands
 

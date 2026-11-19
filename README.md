@@ -17,14 +17,16 @@
 
 ## Synopsis 
 
-**FAIR** (*Financial Accountability & Interest Review*) is a full-stack compliance platform built for the **California Fair Political Practices Commission (FPPC)**. It helps analysts and the public see when local officials’ **Form 700** financial disclosures may overlap with **city council agenda** items—surfacing potential conflicts of interest before votes happen.
+**FAIR** (*Financial Accountability & Interest Review*) is a full-stack compliance platform built for the **California Fair Political Practices Commission (FPPC)**. It is an internal, login-only workspace for FPPC investigators that shows when local officials’ **Form 700** financial disclosures may overlap with **city council agenda** items, surfacing potential conflicts of interest for review.
 
 The system ingests structured agenda data (**Legistar REST**), PDF-only city agendas (**Apify** + `pdf-parse`), and admin-uploaded **Form 700** spreadsheets (archived in **Supabase Storage**). Parsed entities are matched with **fuse.js**; explicit ambiguous bands can be escalated to **Gemini 1.5 Flash** (agenda entities: **0.70–0.899…**; politician deduplication: **0.70–0.849…**). A **node-cron** scheduler can keep data fresh; Resend weekly digests remain planned rather than implemented.
 
 | Audience | Experience |
 |----------|------------|
-| **Public** | Browse officials, agendas, and flagged overlaps — no login required |
-| **FPPC admins** | Upload Form 700 files, manage/enable/disable sources, review conflict flags, and approve or reconcile politician profiles — Supabase Auth (no public registration) |
+| **Investigators** (owner/admin members) | Sign in to triage the review queue, open each official's complete disclosure dossier, read the matching agenda passage, and record review decisions with notes |
+| **Owners** | Everything above, plus inviting and deactivating investigator accounts — Supabase Auth (no self-registration) |
+
+There is no public access: every page except sign-in and account-link setup, and every `/api` route except `/health`, requires an authenticated member session.
 
 ---
 
@@ -116,7 +118,7 @@ Add captures under `docs/assets/screenshots/` as the UI matures in CSC 191:
 _Current scaffold — replace with real screenshots:_
 
 ```
-client/app/routes/home.tsx          → public landing
+client/app/routes/home.tsx          → investigator dashboard
 client/app/routes/admin.login.tsx   → admin auth
 client/app/routes/admin.sources.tsx → source management
 ```
@@ -127,7 +129,7 @@ client/app/routes/admin.sources.tsx → source management
 
 ```
 Senior-Project/
-├── client/          # React Router 7 + Tailwind (public + admin UI)
+├── client/          # React Router 7 + Tailwind (login-only investigator UI)
 ├── server/          # Express API, parsers, Prisma, cron jobs
 ├── supabase/        # SQL migrations, Storage policies
 ├── APIs/            # Python / Legistar agenda helpers
@@ -515,11 +517,11 @@ _License and contribution guidelines — to be added in CSC 191_
   <sub>Built with accountability in mind — because public trust deserves more than manual spreadsheet cross-checks.</sub>
 </p>
 
-### Public conflict browsing API
+### Conflict browsing API (authenticated)
 
 The conflict dashboard uses server-side filtering and pagination.
 `GET /api/conflicts` returns data, total, page, and pageSize (default 20, max 100).
 Filters and pagination are preserved in the dashboard URL. Date filters use
-inclusive UTC detection dates. Review-state filtering is public.
+inclusive UTC detection dates. All conflict, politician, agenda and search routes require an investigator session.
 See [SH-326 validation and API contract](SH326-VALIDATION.md) for parameters,
 index deployment, local checks, and pending representative database validation.

@@ -11,7 +11,9 @@ const FIELDS = {
   CDE: { source_name: 'name of source', amount: null },
 };
 const clean = value => String(value ?? '').trim() || null;
-const canonical = row => JSON.stringify(Object.fromEntries(Object.entries(row).sort(([a], [b]) => a.localeCompare(b))));
+// `details` (the full labelled source row) is verified separately; this audit
+// independently re-derives only the structured columns.
+const canonical = row => JSON.stringify(Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'details').sort(([a], [b]) => a.localeCompare(b))));
 
 export function compareScheduleRows(expected, actual) {
   const remaining = actual.map(row => canonical(row));
@@ -64,7 +66,8 @@ export function auditForm700Workbook(buffer) {
   }
   const filings = parsed.filings.map(filing => {
     const owned = source.filter(row => row.filer === filing.filer_name && row.agency === filing.agency && row.year === filing.filing_year);
-    const selected = owned.filter(row => row.filed === filing.versions[0].filed_serial && row.type === filing.filing_type);
+    const selected = owned.filter(row => filing.schedule_sources.some(source => source.sheet === row.sheet
+      && source.filed_serial === row.filed && source.filing_type === row.type));
     const schedules = Object.fromEntries(Object.keys(FIELDS).map(schedule => [schedule, compareScheduleRows(selected.filter(row => row.schedule === schedule).map(row => row.data), filing.schedules[schedule])]));
     return { filer: filing.filer_name, agency: filing.agency, year: filing.filing_year, office: filing.office_title, filedAt: filing.filed_at, filingType: filing.filing_type,
       schedules, selectedSourceRows: selected.map(({ sheet, row, schedule }) => ({ sheet, row, schedule })),
@@ -74,5 +77,5 @@ export function auditForm700Workbook(buffer) {
   });
   return { digest: parsed.digest, warnings: parsed.warnings, unsupportedSheets: unsupported, filings, parsed,
     supportedFieldsReconcile: !unsupported.length && filings.every(filing => Object.values(filing.schedules).every(result => result.equal)),
-    limitations: ['Compares supported columns only; not a completeness certification of the original disclosure.', 'Latest submission only: older submission rows are not merged into amendments.', 'A-2 income sources and entity-held assets, Schedule B lenders/rental sources, acquisition/disposal dates, and reporting-period dates are not fully ingested.', 'Filing year is not treated as a verified legal reporting period.'] };
+    limitations: ['Compares supported columns only; not a completeness certification of the original disclosure.', 'Amendments apply per schedule: each schedule comes from the newest submission that contains it; rows in a schedule that an amendment replaced are listed as olderRowsNotActive.', 'Every non-empty source cell is retained in each row\'s details; this audit compares the structured columns only.', 'Filing year is not treated as a verified legal reporting period.'] };
 }

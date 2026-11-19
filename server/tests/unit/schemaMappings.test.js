@@ -52,11 +52,12 @@ describe('Prisma mappings used by ingestion', () => {
     ]);
     const models = parseSchemaMappings(schema);
     const insertColumnsBlock = nightlySync.match(
-      /const insertColumns = \[([\s\S]*?)\]\.filter/,
+      /const SNAKE_COLUMNS = \{([\s\S]*?)\};/,
     )?.[1];
 
     expect(insertColumnsBlock, 'Legistar agenda insert column list').toBeDefined();
-    const insertColumns = [...insertColumnsBlock.matchAll(/'([^']+)'/g)].map(([, name]) => name);
+    const insertColumns = [...insertColumnsBlock.matchAll(/: '([^']+)'/g)].map(([, name]) => name);
+    expect(insertColumns).toContain('item_text');
 
     expect(nightlySync).toContain('FROM data_sources');
     expect(nightlySync).toContain('INSERT INTO agenda_items');

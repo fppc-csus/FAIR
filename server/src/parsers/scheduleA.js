@@ -5,7 +5,7 @@
  * `schedule_a_investments` and performs no DB writes. Returns [] when the
  * workbook cannot be read or has no Schedule A sheet.
  */
-import { cleanText, getField, readScheduleRows } from "./parserUtils.js";
+import { cleanText, getField, readScheduleRows, rowDetails } from "./parserUtils.js";
 
 const SHEET_KEYWORDS = ["schedule a", "schedule a1", "schedule a-1", "investments"];
 // "Schedule A-2" also contains "schedule a" — never treat it as Schedule A.
@@ -25,6 +25,7 @@ function mapRow(row, filingId) {
     fair_market_value: cleanText(getField(row, FMV_KEYS)),
     nature_of_investment: cleanText(getField(row, NATURE_KEYS)),
     filing_id: filingId ?? null,
+    details: rowDetails(row),
   };
 }
 

@@ -354,10 +354,12 @@ export default function AdminSourcesPage() {
                       type="url"
                       value={legistarBaseUrl}
                       onChange={(event) => setLegistarBaseUrl(event.target.value)}
-                      placeholder="https://webapi.legistar.com/v1/sacramento"
+                      placeholder="https://oakland.legistar.com or https://webapi.legistar.com/v1/oakland"
                       required
+                      aria-describedby="source-legistar-help"
                       className="field"
                     />
+                    <p id="source-legistar-help" className="mt-1 text-xs text-slate-600">Paste the city’s Legistar site address from your browser (e.g. https://oakland.legistar.com/Calendar.aspx) or its Web API URL; FAIR converts it to https://webapi.legistar.com/v1/&lt;client&gt;.</p>
                   </div>
                 ) : (
                   <div className="grid gap-4 md:col-span-2 md:grid-cols-2">

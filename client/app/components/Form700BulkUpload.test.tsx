@@ -34,7 +34,7 @@ it('requires a preview and warning acknowledgement before importing', async () =
   fireEvent.click(screen.getByRole('checkbox'));
   expect(screen.getByRole('button', { name: 'Confirm bulk import' })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: 'Confirm bulk import' }));
-  expect(await screen.findByText('1 imported · 0 skipped · 0 failed')).toBeVisible();
+  expect(await screen.findByText('1 imported · 0 replaced · 0 skipped · 0 failed')).toBeVisible();
   expect(screen.getByRole('link', { name: 'View profile' })).toHaveAttribute('href', '/politicians/alice');
   const init = vi.mocked(adminFetch).mock.calls[1][1]!;
   expect((init.body as FormData).get('digest')).toBe('digest');
@@ -49,14 +49,29 @@ it.each([true, false])('explains eligibility when all-skipped is %s', async allS
   await screen.findByRole('status');
   if (allSkipped) {
     expect(screen.getByRole('status')).toHaveTextContent('Nothing to import');
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /I reviewed/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirm bulk import' })).toBeDisabled();
   } else {
     expect(screen.getByRole('status')).toHaveTextContent('1 filing(s) ready');
     expect(screen.getByText(/Check the review acknowledgement/)).toBeVisible();
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /I reviewed/ }));
     expect(screen.getByRole('button', { name: 'Confirm bulk import' })).toBeEnabled();
   }
+});
+
+it('can replace existing filings after an explicit opt-in and sends that choice', async () => {
+  vi.mocked(adminFetch).mockResolvedValueOnce(Response.json({ ...preview, filings: [{ ...preview.filings[0], status: 'skipped' }] }))
+    .mockResolvedValueOnce(Response.json({ imported: 0, replaced: 1, skipped: 0, failed: 0, results: [{ filer_name: 'Alice One', status: 'replaced' }] }));
+  render(<Form700BulkUpload />);
+  fireEvent.change(screen.getByLabelText('Bulk workbook (maximum 10 MB)'), { target: { files: [new File(['xlsx'], 'county.xlsx')] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Preview bulk workbook' }));
+  expect(await screen.findByText('Existing filing — skip')).toBeVisible();
+  fireEvent.click(screen.getByRole('checkbox', { name: /Replace 1 existing filing/ }));
+  expect(screen.getByText('Existing filing — replace')).toBeVisible();
+  fireEvent.click(screen.getByRole('checkbox', { name: /I reviewed/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm bulk import' }));
+  expect(await screen.findByText('0 imported · 1 replaced · 0 skipped · 0 failed')).toBeVisible();
+  expect((vi.mocked(adminFetch).mock.calls[1][1]!.body as FormData).get('replace_existing')).toBe('true');
 });
 
 it('rejects invalid files and displays backend failures', async () => {

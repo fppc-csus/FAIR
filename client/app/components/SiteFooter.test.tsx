@@ -3,10 +3,14 @@ import { MemoryRouter } from "react-router";
 import { expect, it } from "vitest";
 import { SiteFooter } from "./SiteFooter";
 
-it("preserves the brand and destination links in the shared-width footer", () => {
+it("states the restricted, non-legal-finding nature of FAIR and links the investigator pages", () => {
   render(<MemoryRouter><SiteFooter /></MemoryRouter>);
-  expect(screen.getByRole("contentinfo")).toHaveTextContent("Financial Accountability & Interest Review");
-  for (const [name, href] of [["Conflict flags", "/conflicts"], ["Public officials", "/politicians"], ["About", "/about"], ["Admin", "/admin/login"]]) {
+  const footer = screen.getByRole("contentinfo");
+  expect(footer).toHaveTextContent("Financial Accountability & Interest Review");
+  expect(footer).toHaveTextContent("Restricted to authorized investigators");
+  expect(footer).toHaveTextContent("not legal determinations");
+  for (const [name, href] of [["Conflicts", "/conflicts"], ["Officials", "/politicians"], ["Methodology", "/about"]]) {
     expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
   }
+  expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
 });

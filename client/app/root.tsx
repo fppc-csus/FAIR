@@ -15,6 +15,10 @@ import "./app.css";
 import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
 import NotFound from "./components/NotFound";
+import { AdminGuard } from "./adminComponents";
+
+/** The only pages reachable without an investigator session. */
+export const UNAUTHENTICATED_PATHS = ["/admin/login", "/admin/account"];
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -35,6 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
         <Meta />
         <Links />
       </head>
@@ -51,15 +56,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  if (UNAUTHENTICATED_PATHS.includes(location.pathname)) return <Outlet />;
+  // Admin routes render their own guard and navigation.
+  if (isAdminRoute) return <div id="main-content"><Outlet /></div>;
 
+  // FAIR is an internal investigation tool: every other page requires sign-in.
   return (
-    <>
-      {!isAdminRoute && <SiteHeader />}
+    <AdminGuard>
+      <SiteHeader />
       <div id="main-content">
         <Outlet />
       </div>
-      {!isAdminRoute && <SiteFooter />}
-    </>
+      <SiteFooter />
+    </AdminGuard>
   );
 }
 
@@ -86,7 +95,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <h1 className="mt-3 text-3xl font-bold tracking-tight">{message}</h1>
       <p className="mt-3 text-slate-600">{details}</p>
       <button className="button-secondary mt-6" onClick={() => window.location.reload()}>Retry</button>
-      <a href="/" className="button-primary mt-6 ml-3">Return home</a>
+      <a href="/" className="button-primary mt-6 ml-3">Return to dashboard</a>
       </section>
     </main>
   );

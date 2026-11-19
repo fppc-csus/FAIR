@@ -101,7 +101,8 @@ describe("detectRealEstate", () => {
       description: "Consider a CUP for a mixed-use development.",
     };
 
-    const flags = await detectRealEstate([property], item);
+    expect(await detectRealEstate([property], item)).toHaveLength(0);
+    const flags = await detectRealEstate([property], item, { matchCity: true });
     expect(flags).toHaveLength(1);
     expect(flags[0].conflict_type).toBe(CONFLICT_TYPES.REAL_ESTATE);
   });
