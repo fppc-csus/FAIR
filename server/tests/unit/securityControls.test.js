@@ -201,13 +201,20 @@ describe('security response controls', () => {
   it('limits requests across all mounted admin routes without throttling normal browsing', async () => {
     const { ADMIN_API_LIMIT } = await import('../../src/middleware/rateLimits.js');
     expect(ADMIN_API_LIMIT).toBeGreaterThanOrEqual(120);
-    const statuses = [];
-    // Fixed windows can roll over mid-loop on a slow machine; allow two windows.
-    for (let index = 0; index <= ADMIN_API_LIMIT * 2; index += 1) {
-      statuses.push((await request(app).get('/api/admin/session')).status);
-      if (statuses.at(-1) === 429) break;
+    // One server for ~300 requests: a fresh supertest server per request made
+    // this test exceed the default timeout under full-suite load.
+    const server = app.listen(0);
+    try {
+      const statuses = [];
+      // Fixed windows can roll over mid-loop on a slow machine; allow two windows.
+      for (let index = 0; index <= ADMIN_API_LIMIT * 2; index += 1) {
+        statuses.push((await request(server).get('/api/admin/session')).status);
+        if (statuses.at(-1) === 429) break;
+      }
+      expect(statuses.at(-1)).toBe(429);
+      expect(statuses.slice(0, -1).every((status) => status === 401)).toBe(true);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
     }
-    expect(statuses.at(-1)).toBe(429);
-    expect(statuses.slice(0, -1).every((status) => status === 401)).toBe(true);
-  });
+  }, 30_000);
 });
