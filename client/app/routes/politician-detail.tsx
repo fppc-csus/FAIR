@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { ArrowLeft, Briefcase, Building2, ClipboardList, FileText, Flag, Gift, Home, Plane, Vote, Wallet } from "lucide-react";
 import { useApiData } from "../hooks/useApiData";
 import RequestError from "../components/RequestError";
-import { DetailsList, IdentityBadge, ReviewBadge, SeverityBadge, StatTile, formatDate, titleCase, type DetailPair } from "../components/investigator";
+import { DetailsList, IdentityBadge, districtLabel, ReviewBadge, SeverityBadge, StatTile, formatDate, titleCase, type DetailPair } from "../components/investigator";
 
 type Row = { id: string; details?: DetailPair[] | null };
 type Investment = Row & { entityName: string; fairMarketValue: string | null; natureOfInvestment: string | null };
@@ -68,6 +68,8 @@ function FilingCard({ filing }: { filing: Filing }) {
   </article>;
 }
 
+const DISCLOSURE_LABELS: Record<string, string> = { investments: "investment", businessPositions: "business position", realProperty: "real property interest", income: "income source", gifts: "gift", travel: "travel payment" };
+
 export function meta() { return [{ title: "Official | FAIR Investigations" }]; }
 
 export default function PoliticianDetail() {
@@ -84,13 +86,13 @@ export default function PoliticianDetail() {
     <header className="mt-7 border-b border-slate-200 pb-8">
       <div className="flex flex-wrap items-center gap-2"><IdentityBadge verified={politician.identityVerified} />{politician.identityVerified === false && <Link to="/admin/politicians" className="text-xs font-semibold text-blue-700">Verify on Identity review →</Link>}</div>
       <h1 className="mt-3 text-4xl font-bold tracking-tight">{politician.fullName}</h1>
-      <p className="mt-2 text-lg text-slate-700">{[politician.officeTitle, politician.jurisdiction?.name, politician.district && `District ${politician.district}`, politician.party].filter(Boolean).join(" · ") || "Office not recorded"}</p>
+      <p className="mt-2 text-lg text-slate-700">{[politician.officeTitle, politician.jurisdiction?.name, districtLabel(politician.district), politician.party].filter(Boolean).join(" · ") || "Office not recorded"}</p>
       <p className="mt-2 text-xs text-slate-500">Record created {formatDate(politician.createdAt)} · ID {politician.id}</p>
     </header>
 
     <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Summary">
       <StatTile label="Form 700 statements" value={politician.filings.length} hint={politician.filings.map((filing) => filing.filingYear).join(", ") || "None on file"} />
-      <StatTile label="Reported interests" value={disclosureTotal} hint={Object.entries(disclosures).filter(([, count]) => count).map(([key, count]) => `${count} ${titleCase(key).toLowerCase()}`).join(", ") || "None"} />
+      <StatTile label="Reported interests" value={disclosureTotal} hint={Object.entries(disclosures).filter(([, count]) => count).map(([key, count]) => `${count} ${DISCLOSURE_LABELS[key] ?? key}${count === 1 ? "" : "s"}`).join(", ") || "None"} />
       <StatTile label="Candidate conflicts" value={politician.summary?.conflicts.total ?? conflicts.length} hint={`${politician.summary?.conflicts.high ?? 0} high severity`} tone={(politician.summary?.conflicts.high ?? 0) > 0 ? "alert" : "default"} />
       <StatTile label="Awaiting review" value={politician.summary?.conflicts.pending ?? 0} />
     </section>

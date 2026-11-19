@@ -13,6 +13,8 @@ async function responseError(response: Response) {
   return payload.error ?? "The request could not be completed.";
 }
 
+export function meta() { return [{ title: "Identity review | FAIR Investigations" }]; }
+
 export default function AdminPoliticiansPage() {
   const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [form, setForm] = useState(emptyForm);

@@ -5,7 +5,7 @@ import { useApiData } from "../hooks/useApiData";
 import RequestError from "../components/RequestError";
 import { investigatorFetch } from "../adminAuth";
 import { safeMessage } from "../lib/request";
-import { DetailsList, IdentityBadge, ReviewBadge, SeverityBadge, formatDate, titleCase, type DetailPair } from "../components/investigator";
+import { DetailsList, IdentityBadge, districtLabel, ReviewBadge, SeverityBadge, formatDate, titleCase, type DetailPair } from "../components/investigator";
 
 type Review = { id: string; adminUserId: string; reviewedAt: string; oldStatus: string; newStatus: string; note: string };
 export type ConflictDetailData = {
@@ -102,7 +102,7 @@ export default function ConflictDetail() {
       <header className="mt-7 border-b border-slate-200 pb-7">
         <div className="flex flex-wrap items-center gap-2"><SeverityBadge severity={conflict.severity} /><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">{titleCase(conflict.conflictType)}</span><ReviewBadge status={conflict.reviewStatus} /><IdentityBadge verified={conflict.politician.identityVerified} /></div>
         <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl"><Link to={profileHref} className="hover:text-blue-800">{conflict.politician.name}</Link></h1>
-        <p className="mt-2 text-slate-600">{[conflict.politician.officeTitle, conflict.politician.jurisdiction, conflict.politician.district && `District ${conflict.politician.district}`].filter(Boolean).join(" · ") || "Office not recorded"}</p>
+        <p className="mt-2 text-slate-600">{[conflict.politician.officeTitle, conflict.politician.jurisdiction, districtLabel(conflict.politician.district)].filter(Boolean).join(" · ") || "Office not recorded"}</p>
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-5">
           <div><dt className="text-slate-500">Matched entity</dt><dd className="font-semibold">{conflict.entityName ?? "Not recorded"}</dd></div>
           <div><dt className="text-slate-500">Meeting</dt><dd className="font-semibold">{formatDate(conflict.agendaItem.meetingDate, { year: "numeric", month: "long", day: "numeric" })}</dd></div>

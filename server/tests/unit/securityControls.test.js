@@ -198,10 +198,16 @@ describe('security response controls', () => {
     expect((await request(syncApp).post('/')).status).toBe(429);
   });
 
-  it('limits requests across all mounted admin routes', async () => {
-    for (let index = 0; index < 10; index += 1) {
-      expect((await request(app).get('/api/admin/session')).status).toBe(401);
+  it('limits requests across all mounted admin routes without throttling normal browsing', async () => {
+    const { ADMIN_API_LIMIT } = await import('../../src/middleware/rateLimits.js');
+    expect(ADMIN_API_LIMIT).toBeGreaterThanOrEqual(120);
+    const statuses = [];
+    // Fixed windows can roll over mid-loop on a slow machine; allow two windows.
+    for (let index = 0; index <= ADMIN_API_LIMIT * 2; index += 1) {
+      statuses.push((await request(app).get('/api/admin/session')).status);
+      if (statuses.at(-1) === 429) break;
     }
-    expect((await request(app).get('/api/admin/session')).status).toBe(429);
+    expect(statuses.at(-1)).toBe(429);
+    expect(statuses.slice(0, -1).every((status) => status === 401)).toBe(true);
   });
 });

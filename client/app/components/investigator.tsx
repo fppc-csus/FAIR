@@ -18,6 +18,12 @@ export const ownerLinks = [{ to: "/admin/users", label: "Users", Icon: UsersRoun
 
 export const titleCase = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (character) => character.toUpperCase());
 
+/** "14" → "District 14"; values that already say "District" are left alone. */
+export function districtLabel(district: string | null | undefined) {
+  if (!district) return null;
+  return /district/i.test(district) ? district : `District ${district}`;
+}
+
 export function formatDate(value: string | null | undefined, options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" }) {
   if (!value) return "Not recorded";
   const parsed = new Date(value);

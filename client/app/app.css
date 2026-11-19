@@ -106,3 +106,6 @@
     @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
   }
 }
+
+/* The global search draws its own clear button. */
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

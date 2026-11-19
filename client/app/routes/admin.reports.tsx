@@ -13,7 +13,7 @@ const scopeOptions: { value: Scope; label: string; description: string }[] = [
   { value: "dateRange", label: "Date range", description: "Limit the report by conflict date." },
 ];
 
-export function meta() { return [{ title: "Conflict reports | FAIR Admin" }]; }
+export function meta() { return [{ title: "Conflict reports | FAIR Investigations" }]; }
 
 export default function AdminReportsPage() {
   const [scope, setScope] = useState<Scope>("all");

@@ -113,7 +113,7 @@ router.get("/", async (_req, res) => {
         prisma.meeting.count(),
         prisma.agendaItem.count(),
         prisma.form700Filing.count(),
-        prisma.conflict.count(),
+        prisma.conflict.count({ where: { OR: [{ eligibilityStatus: null }, { eligibilityStatus: 'active' }] } }),
         prisma.dataSource.count(),
         prisma.syncLog.count(),
       ]),
@@ -181,7 +181,8 @@ router.get("/", async (_req, res) => {
         meetings: counts[2],
         agendaItems: counts[3],
         form700Filings: counts[4],
-        conflicts: counts[5],
+        // Active candidates only; superseded (inactive) rows are kept for audit.
+        activeConflicts: counts[5],
         dataSources: counts[6],
         syncLogs: counts[7],
       },

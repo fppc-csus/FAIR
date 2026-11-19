@@ -44,7 +44,7 @@ async function refreshAdminSession(session: AdminSession) {
 }
 export async function getAdminSession(forceRefresh = false): Promise<AdminSession> { const session = readSession(); if (!session) throw new InvalidAdminSession("Admin session is missing."); if (!forceRefresh && session.expires_at > Date.now() + 30_000) return session; return refreshAdminSession(session); }
 export async function getAdminAccessToken() { return (await getAdminSession()).access_token; }
-export function clearAdminSession() { window.localStorage.removeItem(SESSION_KEY); window.sessionStorage.removeItem(SESSION_KEY); window.localStorage.removeItem("adminAccessToken"); window.localStorage.removeItem("isAdmin"); }
+export function clearAdminSession() { accessCache = null; window.localStorage.removeItem(SESSION_KEY); window.sessionStorage.removeItem(SESSION_KEY); window.localStorage.removeItem("adminAccessToken"); window.localStorage.removeItem("isAdmin"); }
 export async function signOut() { const session = readSession(); clearAdminSession(); if (!session) return; try { const { url, anonKey } = authConfig(); await request(`${url}/auth/v1/logout`, { method: "POST", headers: { apikey: anonKey, Authorization: `Bearer ${session.access_token}` } }); } catch { /* best effort */ } }
 
 async function authorizedRequest(path: string, init: RequestInit, forceRefresh = false) {
@@ -58,7 +58,21 @@ async function responseMessage(response: Response, fallback: string) {
   catch { return fallback; }
 }
 
-export async function verifyAdminAccess() {
+// One membership check per minute is enough: the guard and the admin nav both
+// ask on every page load, and the API rejects stale sessions regardless.
+const ACCESS_CACHE_MS = 60_000;
+let accessCache: { token: string; at: number; promise: Promise<{ userId: string; email: string; role: 'owner' | 'admin' }> } | null = null;
+
+export function verifyAdminAccess() {
+  const token = readSession()?.access_token ?? '';
+  if (accessCache && accessCache.token === token && Date.now() - accessCache.at < ACCESS_CACHE_MS) return accessCache.promise;
+  const promise = verifyAdminAccessUncached();
+  accessCache = { token, at: Date.now(), promise };
+  promise.catch(() => { if (accessCache?.promise === promise) accessCache = null; });
+  return promise;
+}
+
+async function verifyAdminAccessUncached() {
   let response: Response;
   try {
     response = await authorizedRequest('/api/admin/session', {});

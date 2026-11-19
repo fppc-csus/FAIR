@@ -11,6 +11,8 @@ type SearchGroups = { politicians: SearchResult[]; agendaItems: SearchResult[]; 
 type SearchResponse = { groups: SearchGroups };
 
 const navItems = [...investigatorLinks, { to: "/about", label: "Methodology", Icon: ShieldCheck, end: false }];
+// Day-to-day investigation pages stay visible on desktop; admin tools live in the menu.
+const primaryItems = navItems.filter((item) => ["/", "/conflicts", "/politicians", "/about"].includes(item.to));
 
 function ResultGroup({ title, results, onSelect }: { title: string; results: SearchResult[]; onSelect: () => void }) {
   if (!results.length) return null;
@@ -56,17 +58,17 @@ export function SiteHeader() {
     <div className="site-container">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 sm:h-16 sm:flex-nowrap sm:py-0">
         <Link to="/" className="flex shrink-0 items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-950 text-white"><ShieldCheck size={20} aria-hidden="true" /></span><span className="block whitespace-nowrap"><span className="block text-base font-bold leading-none text-slate-950">FAIR</span><span className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Investigations</span></span></Link>
-        <nav aria-label="Primary navigation" className="hidden shrink-0 items-center gap-1 2xl:flex">{navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>{item.label}</NavLink>)}</nav>
+        <nav aria-label="Primary navigation" className="hidden shrink-0 items-center gap-1 lg:flex">{primaryItems.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>{item.label}</NavLink>)}</nav>
         <div className="relative order-3 w-full min-w-0 sm:order-none sm:ml-auto sm:max-w-md">
           <label htmlFor="global-search" className="sr-only">Search FAIR records</label><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} aria-hidden="true" />
           <input id="global-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search officials, entities, agenda text" className="field h-10 pl-9 pr-9" aria-expanded={showResults} aria-controls="global-search-results" />
           {query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-100"><X size={16} /></button>}
           {showResults && <div id="global-search-results" className="absolute right-0 top-12 max-h-[70vh] w-full sm:w-[min(60vw,32rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl" aria-live="polite">{isLoading && <p className="px-4 py-5 text-sm text-slate-600">Searching records…</p>}{error && <RequestError message={error} onRetry={() => setAttempt(value => value + 1)} />}{!isLoading && !error && groups && total === 0 && <p className="px-4 py-5 text-sm text-slate-600">No records found for “{query.trim()}”.</p>}{!isLoading && !error && groups && total > 0 && <div className="pb-2"><ResultGroup title="Officials" results={groups.politicians} onSelect={() => setQuery("")} /><ResultGroup title="Agenda items" results={groups.agendaItems} onSelect={() => setQuery("")} /><ResultGroup title="Conflicts" results={groups.conflicts} onSelect={() => setQuery("")} /></div>}</div>}
         </div>
-        <button type="button" onClick={handleSignOut} className="hidden shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 2xl:inline-flex"><LogOut size={16} />Sign out</button>
-        <button type="button" onClick={() => setMobileOpen((open) => !open)} onKeyDown={(event) => { if (event.key === "Escape") setMobileOpen(false); }} className="ml-auto shrink-0 rounded-lg border border-slate-200 p-2 text-slate-700 sm:ml-0 2xl:hidden" aria-label="Toggle navigation" aria-controls="mobile-navigation" aria-expanded={mobileOpen}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</button>
+        <button type="button" onClick={handleSignOut} className="hidden shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 xl:inline-flex"><LogOut size={16} />Sign out</button>
+        <button type="button" onClick={() => setMobileOpen((open) => !open)} onKeyDown={(event) => { if (event.key === "Escape") setMobileOpen(false); }} className="ml-auto shrink-0 rounded-lg border border-slate-200 p-2 text-slate-700 sm:ml-0" aria-label="Toggle navigation" aria-controls="mobile-navigation" aria-expanded={mobileOpen}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</button>
       </div>
-      {mobileOpen && <nav id="mobile-navigation" aria-label="Mobile navigation" className="grid gap-1 border-t border-slate-100 py-3 sm:grid-cols-2 2xl:hidden">{navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `rounded-md px-3 py-2.5 text-sm font-medium ${isActive ? "bg-blue-50 text-blue-800" : "text-slate-700 hover:bg-slate-50"}`}>{item.label}</NavLink>)}<button type="button" onClick={handleSignOut} className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Sign out</button></nav>}
+      {mobileOpen && <nav id="mobile-navigation" aria-label="Mobile navigation" className="grid gap-1 border-t border-slate-100 py-3 sm:grid-cols-3 lg:grid-cols-5">{navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `rounded-md px-3 py-2.5 text-sm font-medium ${isActive ? "bg-blue-50 text-blue-800" : "text-slate-700 hover:bg-slate-50"}`}>{item.label}</NavLink>)}<button type="button" onClick={handleSignOut} className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Sign out</button></nav>}
     </div>
   </header>;
 }

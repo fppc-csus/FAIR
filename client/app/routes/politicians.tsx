@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Search } from "lucide-react";
 import { useApiData } from "../hooks/useApiData";
 import RequestError from "../components/RequestError";
-import { IdentityBadge } from "../components/investigator";
+import { IdentityBadge, districtLabel } from "../components/investigator";
 
 type Politician = { id: string; slug?: string; fullName: string; officeTitle?: string | null; district: string | null; jurisdiction?: string | null; identityVerified?: boolean | null; filingYears?: number[]; disclosureCount?: number; conflictCount: number };
 export function meta() { return [{ title: "Officials | FAIR Investigations" }]; }
@@ -31,7 +31,7 @@ export default function Politicians() {
     {!loading && !error && <section className="mt-6" aria-label="Officials directory"><p className="mb-3 text-sm text-slate-600">{visible.length} official{visible.length === 1 ? "" : "s"}</p>
       {visible.length === 0 ? <div className="surface p-10 text-center"><h2 className="font-semibold">No officials match</h2><p className="mt-2 text-sm text-slate-600">Clear a filter or shorten the search.</p></div>
         : <div className="surface overflow-x-auto"><table className="w-full min-w-[44rem] text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Official</th><th className="px-4 py-3">Jurisdiction</th><th className="px-4 py-3">Form 700 years</th><th className="px-4 py-3 text-right">Disclosures</th><th className="px-4 py-3 text-right">Flags</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{visible.map((p) => <tr key={p.id} className="hover:bg-slate-50"><td className="px-4 py-3"><Link to={`/politicians/${encodeURIComponent(p.slug ?? p.id)}`} className="font-semibold text-slate-950 hover:text-blue-800">{p.fullName}</Link><p className="text-xs text-slate-500">{p.officeTitle ?? "Office not listed"}{p.district ? ` · District ${p.district}` : ""}</p><div className="mt-1"><IdentityBadge verified={p.identityVerified} /></div></td><td className="px-4 py-3 text-slate-700">{p.jurisdiction ?? "—"}</td><td className="px-4 py-3 tabular-nums text-slate-700">{p.filingYears?.length ? p.filingYears.join(", ") : "None"}</td><td className="px-4 py-3 text-right tabular-nums">{p.disclosureCount ?? "—"}</td><td className={`px-4 py-3 text-right font-semibold tabular-nums ${p.conflictCount ? "text-red-700" : "text-slate-500"}`}>{p.conflictCount}</td></tr>)}</tbody></table></div>}
+          <tbody className="divide-y divide-slate-100">{visible.map((p) => <tr key={p.id} className="hover:bg-slate-50"><td className="px-4 py-3"><Link to={`/politicians/${encodeURIComponent(p.slug ?? p.id)}`} className="font-semibold text-slate-950 hover:text-blue-800">{p.fullName}</Link><p className="text-xs text-slate-500">{p.officeTitle ?? "Office not listed"}{p.district ? ` · ${districtLabel(p.district)}` : ""}</p><div className="mt-1"><IdentityBadge verified={p.identityVerified} /></div></td><td className="px-4 py-3 text-slate-700">{p.jurisdiction ?? "—"}</td><td className="px-4 py-3 tabular-nums text-slate-700">{p.filingYears?.length ? p.filingYears.join(", ") : "None"}</td><td className="px-4 py-3 text-right tabular-nums">{p.disclosureCount ?? "—"}</td><td className={`px-4 py-3 text-right font-semibold tabular-nums ${p.conflictCount ? "text-red-700" : "text-slate-500"}`}>{p.conflictCount}</td></tr>)}</tbody></table></div>}
     </section>}
   </div>;
 }

@@ -27,9 +27,15 @@ export const publicApiRateLimit = applicationRateLimit({
   limit: 120,
 });
 
+// Each signed-in page makes a session check plus its data requests (the
+// sources page also polls sync progress); 30/minute throttled a single
+// investigator during normal browsing. Sign-in itself is rate limited by
+// Supabase Auth.
+export const ADMIN_API_LIMIT = 300;
+
 export const adminApiRateLimit = applicationRateLimit({
   windowMs: 60_000,
-  limit: 30,
+  limit: ADMIN_API_LIMIT,
 });
 
 export const uploadRateLimit = applicationRateLimit({

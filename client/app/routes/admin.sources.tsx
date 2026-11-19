@@ -42,6 +42,8 @@ function statusClass(status: Source["status"]) {
   return "bg-gray-100 text-gray-700";
 }
 
+export function meta() { return [{ title: "Data sources | FAIR Investigations" }]; }
+
 export default function AdminSourcesPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [sources, setSources] = useState<Source[]>([]);

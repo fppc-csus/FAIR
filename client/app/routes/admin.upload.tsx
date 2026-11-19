@@ -21,6 +21,8 @@ function errorMessage(payload: unknown) {
     : "The upload could not be completed.";
 }
 
+export function meta() { return [{ title: "Form 700 upload | FAIR Investigations" }]; }
+
 export default function AdminUploadPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);

@@ -102,6 +102,10 @@ function sourceMatches(conflict, label) {
   return conflict.sourceKey === `${conflict.conflictType}:${normalizeEntityName(label) || fallback}`;
 }
 
+function detailValue(details, pattern) {
+  return Array.isArray(details) ? details.filter(({ label }) => pattern.test(label)).map(({ value }) => value).join(" · ") || null : null;
+}
+
 function formatScheduleEntry(row, scheduleType) {
   if (!row) return null;
 
@@ -110,7 +114,8 @@ function formatScheduleEntry(row, scheduleType) {
     scheduleType: row.scheduleType ?? scheduleType,
     entityName: row.entityName ?? row.sourceName ?? row.propertyDescription ?? null,
     dollarValue: row.fairMarketValue ?? row.amount ?? row.grossIncomeRange ?? null,
-    natureOfInterest: row.natureOfInvestment ?? row.natureOfInterest ?? row.businessPosition ?? null,
+    natureOfInterest: row.natureOfInvestment ?? row.natureOfInterest ?? row.businessPosition
+      ?? detailValue(row.details, /your business position|consideration for which income/i) ?? null,
     details: Array.isArray(row.details) ? row.details : [],
   };
 }

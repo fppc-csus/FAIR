@@ -143,7 +143,7 @@ describe("admin health API", () => {
       meetings: 3,
       agendaItems: 4,
       form700Filings: 5,
-      conflicts: 6,
+      activeConflicts: 6,
       dataSources: 7,
       syncLogs: 8,
     });
