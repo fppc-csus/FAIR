@@ -11,17 +11,17 @@ stdout | tests/runtime.test.ts > writes local JSONL without cloud credentials
  ✓ tests/runtime.test.ts > rejects incomplete cloud configuration 1ms
  ✓ tests/runtime.test.ts > propagates cloud dataset errors 0ms
  ✓ tests/runtime.test.ts > writes local JSONL without cloud credentials 0ms
- ✓ tests/discovery.test.ts > resolves only an exact California city government 1ms
+ ✓ tests/discovery.test.ts > resolves only an exact California city government 2ms
  ✓ tests/discovery.test.ts > handles quoted CSV fields and rejects malformed input 0ms
- ✓ tests/discovery.test.ts > discovers a URL with bounded defaults and preserves explicit URLs 14ms
- ✓ tests/network.test.ts > rejects private and mapped addresses 4ms
+ ✓ tests/discovery.test.ts > discovers a URL with bounded defaults and preserves explicit URLs 11ms
+ ✓ tests/network.test.ts > rejects private and mapped addresses 5ms
  ✓ tests/network.test.ts > fetches a bounded response with redirects disabled 13ms
- ✓ tests/network.test.ts > fails after bounded retries for unsafe or unavailable responses 2ms
  ✓ tests/network.test.ts > fails after bounded retries for unsafe or unavailable responses 3ms
+ ✓ tests/network.test.ts > fails after bounded retries for unsafe or unavailable responses 2ms
  ✓ tests/network.test.ts > fails after bounded retries for unsafe or unavailable responses 1ms
- ✓ tests/scraper.test.ts > input and helpers > validates defaults, bounds and URLs 2ms
+ ✓ tests/scraper.test.ts > input and helpers > validates defaults, bounds and URLs 4ms
  ✓ tests/scraper.test.ts > input and helpers > extracts and validates dates without inventing them 1ms
- ✓ tests/scraper.test.ts > input and helpers > uses Pacific calendar dates, including DST boundaries 10ms
+ ✓ tests/scraper.test.ts > input and helpers > uses Pacific calendar dates, including DST boundaries 9ms
  ✓ tests/scraper.test.ts > input and helpers > extracts relative links, row dates, and query parameters 1ms
  ✓ tests/scraper.test.ts > input and helpers > honors conservative robots rules 0ms
  ✓ tests/scraper.test.ts > scrape > emits the backend contract; deduplicates, filters and keeps future meetings 13ms
@@ -34,6 +34,6 @@ stdout | tests/runtime.test.ts > writes local JSONL without cloud credentials
 
  Test Files  4 passed (4)
       Tests  24 passed (24)
-   Start at  00:30:40
-   Duration  167ms (transform 168ms, setup 0ms, import 216ms, tests 76ms, environment 0ms)
+   Start at  15:58:05
+   Duration  166ms (transform 164ms, setup 0ms, import 216ms, tests 77ms, environment 0ms)
 

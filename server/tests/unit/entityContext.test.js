@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { compactAcronym, contextTermsFor, entityVariants, findEntityMentions, initialsOf, isAmbiguousName, isCorroborated } from '../../src/detection/entityContext.js';
+import { compactAcronym, contextTermsFor, entityVariants, findEntityMentions, isAmbiguousName, isCorroborated } from '../../src/detection/entityContext.js';
 import { matchNamedEntity } from '../../src/detection/matchEntity.js';
 import { evidenceExcerpt } from '../../src/routes/conflicts.js';
 
 describe('acronym and alias matching (PG&E = PGE = Pacific Gas and Electric)', () => {
-  it('normalises acronyms and derives initials', () => {
+  it('normalises acronyms', () => {
     expect(compactAcronym('PG&E')).toBe('pge');
     expect(compactAcronym('P.G.&E.')).toBe('pge');
     expect(compactAcronym('Apple')).toBeNull();
-    expect(initialsOf('Pacific Gas and Electric Company')).toBe('pge');
-    expect(initialsOf('LandPaths')).toBeNull();
+  });
+
+  it.each([
+    ['AIR PROD & CHEMICALS', 'Attachment 3 Draft Ordinance.pdf; Attachment 4 Planning Commission Staff Report.pdf'],
+    ['Annaly Capital Management', 'Chris Knerr is the Business Agent for Cement Masons Local 300.'],
+    ['Deutsch Family Wine', 'Due to the February 2019 Winter Storms and Flooding, Sonoma Water acted.'],
+  ])('never guesses %s from unrelated capitalised words', async (name, text) => {
+    expect((await matchNamedEntity(name, text)).matched).toBe(false);
   });
 
   it.each([
@@ -58,6 +64,14 @@ describe('ordinary-word company names (Apple the company vs apple the fruit)', (
   });
 
   it.each([
+    'Original Jurisdiction for Manzana Apple Processing Facility Use Permit and Lot Line Adjustment Application PLP18-0026',
+    'Community Investment Grant: Kid Scoop News, $500, for subscriptions and applications in schools.',
+  ])('rejects generic agenda vocabulary as corroboration: "%s"', async (text) => {
+    const name = text.includes('Scoop') ? 'Scoop' : 'Apple';
+    expect((await matchNamedEntity(name, text, { businessActivity: 'Technology' })).matched).toBe(false);
+  });
+
+  it.each([
     'Purchase 40 Apple iPads and device management licenses.',
     'Master agreement with Apple Inc. for hardware.',
   ])('accepts "%s"', async (text) => {
@@ -72,6 +86,8 @@ describe('ordinary-word company names (Apple the company vs apple the fruit)', (
   it('derives context vocabulary from the reported business activity', () => {
     expect(contextTermsFor('Technology')).toEqual(expect.arrayContaining(['software', 'iphone']));
     expect(contextTermsFor('Oil, Gas & Consumable Fuels')).toEqual(expect.arrayContaining(['refinery', 'fuels']));
+    expect(contextTermsFor('Technology Platform')).not.toContain('platform');
+    expect(contextTermsFor('Technology')).not.toEqual(expect.arrayContaining(['application']));
     expect(isCorroborated(findEntityMentions('Scoop', 'Kid Scoop News, $500'), 'Kid Scoop News, $500', tech)).toBe(false);
   });
 });

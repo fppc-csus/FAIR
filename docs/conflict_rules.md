@@ -25,10 +25,12 @@ scores from 0.70 through 0.899 are sent to Gemini for a constrained yes/no
 resolution. One-word names must match exactly.
 
 **Aliases and acronyms (deterministic, no AI).** A disclosed name also matches
-its known aliases (`server/src/config/entityAliases.js`, e.g. Southern California
-Edison ↔ SCE) and its acronym in either direction: "PG&E", "PGE", "P.G.&E." and
-the capitalised phrase "Pacific Gas and Electric" are the same entity. Spelled-out
-phrases may not cross sentence punctuation, and acronym tokens must be upper case.
+the other names in its alias group (`server/src/config/entityAliases.js`, e.g.
+Pacific Gas and Electric Company ↔ PG&E ↔ PGE, Southern California Edison ↔ SCE)
+and other spellings of an acronym ("PG&E", "PGE" and "P.G.&E." are equal;
+acronym tokens must be upper case). Initials are never guessed from an arbitrary
+name: guessing matched "Agent for Cement Masons" to Annaly Capital Management, so
+spelled-out ↔ acronym pairs must be listed in the alias table.
 
 **Ordinary-word company names.** A one-word name that is also a common English
 word ("Apple", "Scoop", "Shell" — curated in `COMMON_WORD_NAMES`), or that the

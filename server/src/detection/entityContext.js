@@ -1,9 +1,10 @@
 /**
  * Deterministic (no-AI) helpers that widen and narrow entity matching:
  *
- *  - Variants: an entity also matches its known aliases (config/entityAliases.js)
- *    and its acronym, so a Form 700 "PG&E" matches an agenda that says
- *    "Pacific Gas and Electric Company", "PGE" or "P.G.&E.", and vice versa.
+ *  - Variants: an entity also matches its configured aliases
+ *    (config/entityAliases.js) and other spellings of its acronym, so a Form 700
+ *    "PG&E" matches an agenda that says "Pacific Gas and Electric Company",
+ *    "PGE" or "P.G.&E.", and vice versa.
  *  - Ambiguity: a one-word name that is also an ordinary English word
  *    ("Apple", "Scoop") must be corroborated by context near the mention: a
  *    corporate suffix ("Apple Inc.") or vocabulary from the filer's reported
@@ -12,7 +13,6 @@
 import { COMMON_WORD_NAMES, ENTITY_ALIAS_GROUPS } from "../config/entityAliases.js";
 import { normalizeEntityName } from "../utils/entityNorm.js";
 
-const STOPWORDS = new Set(["and", "of", "the", "for", "in", "at", "on", "a", "an", "to"]);
 const LEGAL_SUFFIXES = new Set(["inc", "incorporated", "corp", "corporation", "co", "company", "llc", "ltd", "limited", "plc", "lp", "llp"]);
 
 /** "PG&E" → "pge", "P.G. & E." → "pge"; null when the text is not acronym-like. */
@@ -23,22 +23,17 @@ export function compactAcronym(value) {
   return letters.length >= 2 && letters.length <= 8 ? letters : null;
 }
 
-/** Initials of the significant words: "Pacific Gas and Electric Company" → "pge". */
-export function initialsOf(value) {
-  const words = normalizeEntityName(value).split(" ").filter(Boolean);
-  while (words.length && LEGAL_SUFFIXES.has(words.at(-1))) words.pop();
-  const significant = words.filter((word) => !STOPWORDS.has(word));
-  if (significant.length < 2) return null;
-  const initials = significant.map((word) => word[0]).join("");
-  return initials.length >= 3 ? initials : null;
+/** Normalised name with "and"/"&" ignored, so "Gas & Electric" = "Gas and Electric". */
+function aliasKey(value) {
+  return normalizeEntityName(value).split(" ").filter((word) => word && word !== "and").join(" ");
 }
 
 function aliasGroupFor(name) {
-  const key = normalizeEntityName(name);
+  const key = aliasKey(name);
   if (!key) return [];
   const compact = compactAcronym(name);
   return ENTITY_ALIAS_GROUPS.find((group) => group.some((alias) =>
-    normalizeEntityName(alias) === key || (compact && compactAcronym(alias) === compact))) ?? [];
+    aliasKey(alias) === key || (compact && compactAcronym(alias) === compact))) ?? [];
 }
 
 /** All phrase forms to look for: the name itself plus known aliases. */
@@ -53,10 +48,15 @@ export function entityVariants(name) {
   });
 }
 
-/** Acronyms the entity is known by: its own compact form and its initials. */
+/**
+ * Acronyms the entity is known by: the compact form of the name and of its
+ * configured aliases ("PG&E" → "pge"). Initials are never guessed from an
+ * arbitrary name: "Annaly Capital Management" must not match "Agent for Cement
+ * Masons". Spelled-out forms come only from the alias table.
+ */
 function acronymsFor(name) {
   return [...new Set(entityVariants(name)
-    .flatMap((variant) => [compactAcronym(variant), initialsOf(variant)])
+    .map((variant) => compactAcronym(variant))
     .filter((value) => value && value.length >= 3))];
 }
 
@@ -65,10 +65,9 @@ function escapeRegex(value) {
 }
 
 /**
- * Locate every mention of the entity in the agenda text: exact phrases of any
- * variant (case- and punctuation-insensitive), upper-case acronym tokens
- * ("PG&E", "PGE"), and capitalised spelled-out phrases whose initials equal
- * the entity's acronym ("Pacific Gas and Electric").
+ * Locate every mention of the entity in the agenda text: exact phrases of the
+ * name or any configured alias (case- and punctuation-insensitive) and
+ * upper-case acronym tokens in any spelling ("PG&E", "PGE", "P.G.&E.").
  * @returns {{ index: number, text: string, via: string }[]}
  */
 export function findEntityMentions(name, agendaText) {
@@ -92,25 +91,6 @@ export function findEntityMentions(name, agendaText) {
       const compact = match[0].replace(/[^A-Za-z]/g, "").toLowerCase();
       if (acronyms.includes(compact)) mentions.push({ index: match.index, text: match[0], via: "acronym" });
     }
-    // Spelled-out form of an acronym-only disclosure ("PG&E" → "Pacific Gas and Electric").
-    const tokens = [...text.matchAll(/[\p{L}][\p{L}'’-]*/gu)];
-    for (let start = 0; start < tokens.length; start += 1) {
-      if (!/^\p{Lu}/u.test(tokens[start][0])) continue;
-      let initials = "";
-      for (let end = start; end < Math.min(tokens.length, start + 8); end += 1) {
-        const word = tokens[end][0];
-        const lower = word.toLowerCase();
-        if (STOPWORDS.has(lower) && end > start) continue;
-        if (!/^\p{Lu}/u.test(word)) break;
-        initials += lower[0];
-        if (initials.length >= 3 && acronyms.includes(initials)) {
-          const last = tokens[end];
-          const phrase = text.slice(tokens[start].index, last.index + last[0].length);
-          if (!/[.;:!?,\n]/.test(phrase)) mentions.push({ index: tokens[start].index, text: phrase, via: "expansion" });
-          break;
-        }
-      }
-    }
   }
 
   return mentions.sort((a, b) => a.index - b.index);
@@ -127,31 +107,43 @@ export function isAmbiguousName(name, agendaText = "") {
   return new RegExp(`(?<![\\p{L}])${escapeRegex(word)}s?(?![\\p{L}])`, "u").test(String(agendaText));
 }
 
+// Distinctive vocabulary only. Words that are routine in government agendas
+// ("application", "subscription", "fund", "license", "utility", "network",
+// "data", "health") corroborated "Apple" in permit applications and "Scoop"
+// in a newspaper subscription, so they are deliberately excluded.
 const SECTOR_TERMS = [
   [/tech|software|it services|electronic|computer|semiconductor|internet|platform|digital/i,
-    ["technology", "software", "computer", "computers", "hardware", "device", "devices", "iphone", "ipad", "ipads", "mac", "macbook", "laptop", "laptops", "network", "networking", "cloud", "data", "database", "server", "servers", "license", "licenses", "licensing", "subscription", "app", "application", "applications", "platform", "digital", "internet", "it", "cyber", "cybersecurity", "telecommunications", "electronics"]],
+    ["technology", "software", "computer", "computers", "hardware", "iphone", "iphones", "ipad", "ipads", "mac", "macs", "macbook", "macbooks", "laptop", "laptops", "smartphone", "smartphones", "tablet", "tablets", "cloud", "database", "server", "servers", "cybersecurity", "telecommunications", "electronics", "semiconductor", "semiconductors"]],
   [/oil|gas|energy|fuel|petrol|utilit|electric|power/i,
-    ["energy", "oil", "gas", "fuel", "fuels", "petroleum", "pipeline", "refinery", "utility", "utilities", "electric", "electrical", "power", "station", "gasoline"]],
+    ["oil", "petroleum", "pipeline", "refinery", "refineries", "gasoline", "diesel", "fuels", "drilling"]],
   [/bank|financ|invest|broker|mortgage|wealth|insur|credit|capital/i,
-    ["bank", "banking", "loan", "loans", "financial", "finance", "investment", "credit", "deposit", "deposits", "mortgage", "broker", "insurance", "fund", "funds", "account"]],
+    ["bank", "banking", "banks", "mortgage", "mortgages", "brokerage", "insurer", "insurance", "securities"]],
   [/retail|store|e-?commerce|consumer/i,
-    ["store", "stores", "retail", "retailer", "purchase", "purchases", "shopping", "merchandise", "supplies", "online"]],
-  [/health|pharma|medic|hospital|biotech|drug/i,
-    ["health", "healthcare", "medical", "pharmaceutical", "pharmaceuticals", "drug", "drugs", "clinic", "hospital", "patients", "vaccine"]],
+    ["retailer", "retail", "shopping", "merchandise", "warehouse", "ecommerce"]],
+  [/pharma|biotech|drug|medical device/i,
+    ["pharmaceutical", "pharmaceuticals", "drug", "drugs", "vaccine", "vaccines", "prescription", "prescriptions"]],
   [/food|beverage|restaurant|grocery/i,
-    ["food", "beverage", "beverages", "restaurant", "restaurants", "grocery", "drinks", "catering"]],
+    ["beverage", "beverages", "restaurant", "restaurants", "grocery", "sandwich", "franchise"]],
   [/telecom|wireless|cable|communication/i,
-    ["telecommunications", "wireless", "cellular", "phone", "phones", "broadband", "cable", "communications", "fiber"]],
-  [/transport|airline|rail|shipping|logistic|vehicle|auto/i,
-    ["transportation", "airline", "airport", "flights", "rail", "shipping", "freight", "logistics", "vehicle", "vehicles", "fleet", "trucks"]],
+    ["telecommunications", "wireless", "cellular", "broadband", "fiber"]],
+  [/airline|aviation|transport|shipping|logistic/i,
+    ["airline", "airlines", "flights", "aircraft", "aviation", "freight", "logistics"]],
 ];
+
+const GENERIC_ACTIVITY_WORDS = new Set([
+  "company", "services", "service", "business", "industry", "industries", "consumable", "equipment", "products",
+  "product", "platform", "group", "holding", "holdings", "international", "national", "general", "public",
+  "profit", "nonprofit", "community", "development", "management", "systems", "system", "application",
+  "applications", "program", "programs", "health", "financial", "fund", "funds", "investment", "investments",
+  "data", "network", "consulting", "provider", "providers", "supplies",
+]);
 
 /** Vocabulary that corroborates a mention, derived from the reported business activity. */
 export function contextTermsFor(businessActivity) {
   const activity = String(businessActivity ?? "");
   if (!activity.trim()) return [];
   const own = normalizeEntityName(activity).split(" ")
-    .filter((word) => word.length >= 4 && !["company", "services", "business", "industry", "consumable", "equipment"].includes(word));
+    .filter((word) => word.length >= 4 && !GENERIC_ACTIVITY_WORDS.has(word));
   const sector = SECTOR_TERMS.filter(([pattern]) => pattern.test(activity)).flatMap(([, terms]) => terms);
   return [...new Set([...own, ...sector])];
 }
