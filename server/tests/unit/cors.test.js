@@ -56,3 +56,14 @@ describe('CORS configuration', () => {
       .toContain('authorization');
   });
 });
+describe('multiple client origins (Amplify + Cloudflare cutover)', () => {
+  it('accepts a comma-separated list and trims trailing slashes', async () => {
+    const { parseClientOrigins, primaryClientOrigin } = await import('../../src/middleware/clientOrigin.js');
+    expect(parseClientOrigins('https://fair.example.gov/, https://main.d123.amplifyapp.com'))
+      .toEqual(['https://fair.example.gov', 'https://main.d123.amplifyapp.com']);
+    expect(getClientOrigin({ clientOrigin: 'https://a.example, https://b.example' }))
+      .toEqual(['https://a.example', 'https://b.example']);
+    expect(getClientOrigin({ clientOrigin: 'https://a.example' })).toBe('https://a.example');
+    expect(primaryClientOrigin('https://a.example, https://b.example')).toBe('https://a.example');
+  });
+});

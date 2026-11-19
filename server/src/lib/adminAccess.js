@@ -1,3 +1,4 @@
+import { primaryClientOrigin } from '../middleware/clientOrigin.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { prisma } from './prisma.js';
 import { supabase } from './supabase.js';
@@ -62,7 +63,7 @@ export async function changeMember(actorId, userId, changes, db = prisma) {
 }
 
 function setupUrl(token) {
-  const origin = process.env.CLIENT_ORIGIN;
+  const origin = primaryClientOrigin();
   let url;
   try { url = new URL('/admin/account', origin); } catch { throw accessError(503, 'Set CLIENT_ORIGIN to the frontend URL before sending invitations.'); }
   if (url.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))) {

@@ -1,0 +1,50 @@
+# AWS Amplify Hosting build settings for the FAIR client (monorepo app root: client/).
+# The client is a static React Router SPA (ssr: false). The Express API is
+# deployed separately (Railway); point VITE_API_URL at it in the Amplify console.
+#
+# Also add this rewrite in Amplify console → Hosting → Rewrites and redirects
+# so deep links such as /conflicts/<id> load the app:
+#   Source: </^[^.]+$|\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|webmanifest)$)([^.]+$)/>
+#   Target: /index.html    Type: 200 (Rewrite)
+version: 1
+applications:
+  - appRoot: client
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - nvm use 20 || true
+            - npm ci
+        build:
+          commands:
+            - npm run typecheck
+            - npm test
+            - npm run build
+      artifacts:
+        baseDirectory: build/client
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+    customHeaders:
+      - pattern: '**'
+        headers:
+          - key: Strict-Transport-Security
+            value: max-age=31536000; includeSubDomains
+          - key: X-Content-Type-Options
+            value: nosniff
+          - key: X-Frame-Options
+            value: DENY
+          - key: Referrer-Policy
+            value: no-referrer
+          - key: X-Robots-Tag
+            value: noindex, nofollow
+      - pattern: 'assets/**'
+        headers:
+          - key: Cache-Control
+            value: public, max-age=31536000, immutable
+      - pattern: 'index.html'
+        headers:
+          - key: Cache-Control
+            value: no-cache

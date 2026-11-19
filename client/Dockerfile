@@ -1,22 +1,17 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
+# Static SPA image (ssr: false). Production hosting is AWS Amplify; this image
+# is for local or container-based previews.
+FROM node:20-alpine AS build
 WORKDIR /app
+COPY package.json package-lock.json ./
 RUN npm ci
-
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
-WORKDIR /app
-RUN npm ci --omit=dev
-
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
-WORKDIR /app
+COPY . .
+ARG VITE_API_URL
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
 RUN npm run build
 
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
-WORKDIR /app
-CMD ["npm", "run", "start"]
+FROM nginx:1.27-alpine
+COPY --from=build /app/build/client /usr/share/nginx/html
+# Serve index.html for client-side routes such as /conflicts/<id>.
+RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  location / { try_files $uri /index.html; }\n}\n' > /etc/nginx/conf.d/default.conf
+EXPOSE 80

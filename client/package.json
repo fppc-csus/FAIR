@@ -5,7 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
+    "start": "vite preview --outDir build/client --port 3000 --strictPort",
     "typecheck": "react-router typegen && tsc",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
