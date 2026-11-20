@@ -40,12 +40,12 @@ build/client/assets/about-CMyeYzNZ.js               10.64 kB │ gzip:  3.39 kB
 build/client/assets/admin.health-DUWyu2Tz.js        11.18 kB │ gzip:  2.94 kB
 build/client/assets/politician-detail-BNRDZ39M.js   11.54 kB │ gzip:  3.95 kB
 build/client/assets/index-BO_Vv_92.js               11.92 kB │ gzip:  4.80 kB
-build/client/assets/conflicts._id-dZG4muLC.js       11.99 kB │ gzip:  3.99 kB
+build/client/assets/conflicts._id-WYfTsq-p.js       12.70 kB │ gzip:  4.17 kB
 build/client/assets/admin.upload-CcjqOhqd.js        17.11 kB │ gzip:  5.73 kB
 build/client/assets/admin.sources-yNTnx8qK.js       19.44 kB │ gzip:  6.23 kB
 build/client/assets/chunk-6KYCQHYJ-BXRkrG2J.js     130.77 kB │ gzip: 44.12 kB
 build/client/assets/entry.client-Bv-hFIJc.js       190.07 kB │ gzip: 59.87 kB
-✓ built in 1.48s
+✓ built in 1.46s
   ⚠️  Future Flag Warning: Route middleware support is changing in React Router v8.
      You can use the `future.v8_middleware` flag to opt in early.
      -> https://reactrouter.com/v7/upgrading/future#futurev8_middleware
@@ -74,4 +74,4 @@ build/server/assets/server-build-B7z81OjC.css
 
 SPA Mode: Generated build/client/index.html
 Removing the server build in /Users/bina/Repos/Senior-Project/client/build/server due to ssr:false
-✓ built in 139ms
+✓ built in 153ms

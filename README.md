@@ -160,7 +160,7 @@ npm run docs:check && npm run test:docs
 | Apify Actor | `apify/tests/` | Vitest |
 | Run-for-record results and screenshots | [`testing/`](testing) | — |
 
-The latest recorded run (November 19, 2026): 708 automated tests across client,
+The latest recorded run (November 19, 2026): 713 automated tests across client,
 server and Actor, plus a browser end-to-end pass. Details and evidence are in the
 System Test Report (`docs/deliverables/FAIR-System-Test-Report.docx`).
 
