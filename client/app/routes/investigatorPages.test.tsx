@@ -149,4 +149,15 @@ describe("conflict investigation", () => {
     const reviewCall = fetch.mock.calls.find(([url]) => String(url).includes("/review"))!;
     expect(JSON.parse(String(reviewCall[1]?.body))).toEqual({ status: "confirmed_conflict", note: "Voted 12/17/2019 without recusal; spouse employed by LandPaths." });
   });
+
+  it("lists other lines of the same statement that the one report covers", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: { ...conflictDetail, scheduleEntry: {
+      ...conflictDetail.scheduleEntry,
+      otherLines: [{ scheduleType: "C", entityName: "LandPaths", dollarValue: "$10,001 - $100,000", natureOfInterest: "Salary", details: [{ label: "CONSIDERATION FOR WHICH INCOME WAS RECEIVED", value: "Salary" }] }],
+    } } }));
+    render(<MemoryRouter initialEntries={[`/conflicts/${conflictDetail.id}`]}><Routes><Route path="/conflicts/:id" element={<ConflictDetail />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Also reported on this statement" })).toBeInTheDocument();
+    expect(screen.getByText(/covered by this one report/)).toBeInTheDocument();
+    expect(screen.getByText("Salary")).toBeInTheDocument();
+  });
 });

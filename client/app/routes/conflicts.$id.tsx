@@ -7,6 +7,8 @@ import { investigatorFetch } from "../adminAuth";
 import { safeMessage } from "../lib/request";
 import { DetailsList, IdentityBadge, districtLabel, ReviewBadge, SeverityBadge, formatDate, titleCase, type DetailPair } from "../components/investigator";
 
+type ScheduleLine = { scheduleType: string; entityName: string | null; dollarValue: string | null; natureOfInterest: string | null; details?: DetailPair[] };
+
 type Review = { id: string; adminUserId: string; reviewedAt: string; oldStatus: string; newStatus: string; note: string };
 export type ConflictDetailData = {
   id: string;
@@ -21,7 +23,7 @@ export type ConflictDetailData = {
   reviewNote?: string | null;
   reviewedAt?: string | null;
   reviews?: Review[];
-  scheduleEntry: { scheduleType: string; entityName: string | null; dollarValue: string | null; natureOfInterest: string | null; details?: DetailPair[] } | null;
+  scheduleEntry: (ScheduleLine & { otherLines?: ScheduleLine[] }) | null;
   officialVote?: { vote: string; voteDate: string | null } | null;
   agendaItem: {
     id?: string; title: string | null; text: string | null; meetingDate: string | null; city: string | null;
@@ -139,6 +141,11 @@ export default function ConflictDetail() {
               </dl>
               <h3 className="mt-6 text-sm font-bold uppercase tracking-wide text-slate-500">Everything reported on this line</h3>
               <div className="mt-3"><DetailsList details={conflict.scheduleEntry.details} empty="Only the summary columns above were available for this filing." /></div>
+              {(conflict.scheduleEntry.otherLines?.length ?? 0) > 0 && <>
+                <h3 className="mt-6 text-sm font-bold uppercase tracking-wide text-slate-500">Also reported on this statement</h3>
+                <p className="mt-1 text-sm text-slate-600">The same {conflict.scheduleEntry.otherLines!.length === 1 ? "entity appears on another line" : "entity appears on other lines"} of this Form 700 (for example the filer's and a spouse's income). They are covered by this one report.</p>
+                {conflict.scheduleEntry.otherLines!.map((line, index) => <div key={index} className="mt-3 rounded-lg border border-slate-200 p-3"><DetailsList details={line.details} empty={`Schedule ${line.scheduleType}: ${line.entityName ?? ""} ${line.dollarValue ?? ""}`} /></div>)}
+              </>}
             </> : <p className="mt-3 text-sm text-slate-600">The supporting disclosure row could not be located; it may have been replaced by a newer import.</p>}
           </section>
         </div>

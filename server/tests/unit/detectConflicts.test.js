@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { persistConflicts } from "../../src/detection/persistConflicts.js";
-import { detectConflictsForAgendaItems } from "../../src/detection/detectConflicts.js";
+import { collapseCandidates, detectConflictsForAgendaItems } from "../../src/detection/detectConflicts.js";
 
 function identity(row) {
   return `${row.politicianId}|${row.agendaItemId}|${row.conflictType}|${row.sourceKey}`;
@@ -150,8 +150,50 @@ describe("detectConflictsForAgendaItems", () => {
     });
   });
 
+  it("reports one conflict when the same source appears on two lines of one statement", async () => {
+    // Filer's salary and spouse's income from the same employer.
+    const line = { filingId: "filing-1", politicianId: "pol-1", filingYear: 2025, politicianJurisdictionId: "sac",
+      sourceName: "Sonoma Ecology Center", amount: "$10,001 - $100,000", scheduleType: "C" };
+    const prisma = createMemoryPrisma({
+      agendaItems: [{ id: "item-dup", cityName: "Sacramento", meetingDate: "2026-03-01", title: "Grant to Sonoma Ecology Center" }],
+      scheduleCde: [{ ...line, id: "disclosure-b" }, { ...line, id: "disclosure-a" }],
+    });
+
+    const result = await detectConflictsForAgendaItems(["item-dup"], { prisma, eligibilityPolicy: { period: "YEAR_OFFSETS", offsets: [1] } });
+
+    expect(result.totalCandidates).toBe(2);
+    expect(result.inserted).toBe(1);
+    expect(prisma._conflicts).toHaveLength(1);
+    expect(prisma._conflicts[0]).toMatchObject({ disclosureId: "disclosure-a", entityName: "Sonoma Ecology Center" });
+  });
+
   it("returns zeros for an empty id list", async () => {
     const result = await detectConflictsForAgendaItems([]);
     expect(result).toEqual({ inserted: 0, skipped: 0, totalCandidates: 0 });
+  });
+});
+
+describe("collapseCandidates", () => {
+  const base = { politician_id: "p", agenda_item_id: "i", conflict_type: "INCOME", entity_name: "Acme Builders, Inc." };
+
+  it("keeps the most severe candidate, then the lowest disclosure id", () => {
+    const kept = collapseCandidates([
+      { ...base, severity: "MEDIUM", disclosureId: "a", source_key: "INCOME:acme:disclosure:a" },
+      { ...base, entity_name: "ACME BUILDERS INC", severity: "HIGH", disclosureId: "c", source_key: "INCOME:acme:disclosure:c" },
+      { ...base, severity: "HIGH", disclosureId: "b", source_key: "INCOME:acme:disclosure:b" },
+    ]);
+    expect(kept).toHaveLength(1);
+    expect(kept[0].disclosureId).toBe("b");
+  });
+
+  it("keeps different entities, types, officials and items apart", () => {
+    const kept = collapseCandidates([
+      { ...base, severity: "LOW", disclosureId: "a" },
+      { ...base, entity_name: "Other Co", severity: "LOW", disclosureId: "a" },
+      { ...base, conflict_type: "GIFT", severity: "LOW", disclosureId: "a" },
+      { ...base, politician_id: "q", severity: "LOW", disclosureId: "a" },
+      { ...base, agenda_item_id: "j", severity: "LOW", disclosureId: "a" },
+    ]);
+    expect(kept).toHaveLength(5);
   });
 });

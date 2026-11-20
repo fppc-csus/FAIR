@@ -261,11 +261,37 @@ async function detectLockedAgendaItems(client, ids, deps) {
 
   // A review-required disclosure must not invalidate earlier matches, but it
   // must not prevent independently eligible disclosures from being recorded.
-  const persisted = await persistConflicts(candidates, {
+  const persisted = await persistConflicts(collapseCandidates(candidates), {
     prisma: client,
     agendaItemIds: items.map((item) => item.id),
     preserveAgendaItemIds: [...pendingItemIds],
     lockedAgendaItems: true,
   });
   return { ...persisted, totalCandidates: candidates.length, reviewRequired };
+}
+
+const SEVERITY_RANK = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+
+/**
+ * One report per official, agenda item, conflict type and entity. A filer can
+ * list the same source on several lines of one statement (their own salary and
+ * a spouse's income from the same employer) or on more than one eligible
+ * statement; those are one potential conflict, not several. The kept candidate
+ * is the most severe, then the lowest disclosure id so reruns stay stable; the
+ * conflict page lists the other matching lines.
+ */
+export function collapseCandidates(candidates) {
+  const kept = new Map();
+  for (const candidate of candidates) {
+    const key = [candidate.politician_id ?? candidate.politicianId, candidate.agenda_item_id ?? candidate.agendaItemId,
+      candidate.conflict_type ?? candidate.conflictType,
+      normalizeEntityName(candidate.entity_name ?? candidate.entityName) || candidate.source_key].join("|");
+    const current = kept.get(key);
+    const rank = (row) => SEVERITY_RANK[row.severity] ?? 0;
+    if (!current || rank(candidate) > rank(current)
+      || (rank(candidate) === rank(current) && String(candidate.disclosureId ?? "") < String(current.disclosureId ?? ""))) {
+      kept.set(key, candidate);
+    }
+  }
+  return [...kept.values()];
 }

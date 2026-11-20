@@ -41,6 +41,14 @@ software, computer, iPhone, network…). "Apple Blossom Festival" and "Gravenste
 Apple Fair" are rejected for an Apple Inc. investment; "Apple iPads" is accepted. Every stored conflict retains its entity,
 rule reference, severity, and source key for auditability.
 
+**One report per entity.** Matches for the same official, agenda item, conflict
+type and entity are stored as a single candidate, even when the entity appears on
+several disclosure lines (for example the filer's salary and a spouse's income
+from the same employer). The most severe line is kept as the supporting
+disclosure, and the conflict page lists the other matching lines from that
+statement. Different agenda items, including the same Legistar matter heard at
+two meetings, remain separate candidates because each is a separate decision.
+
 ## Approval status
 
 ### Eligibility (SH-324)

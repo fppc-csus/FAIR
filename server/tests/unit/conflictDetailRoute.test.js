@@ -84,6 +84,24 @@ describe('public conflict detail', () => {
     expect(response.body.data.scheduleEntry.details).toEqual([{ label: 'GENERAL DESCRIPTION OF THIS BUSINESS ACTIVITY', value: 'Paving' }]);
   });
 
+  it('lists other lines on the same statement that name the same entity', async () => {
+    db.conflict.findUnique.mockResolvedValue({
+      id, politicianId, conflictType: 'INCOME', sourceKey: 'INCOME:sonoma ecology center:disclosure:x',
+      entityName: 'Sonoma Ecology Center', filingId: id, disclosureId: politicianId,
+      politician: { fullName: 'Caitlin Cornwall' }, agendaItem: { title: 'Grant', meeting: null },
+    });
+    db.scheduleCdeIncome.findFirst = vi.fn().mockResolvedValue({ id: politicianId, filingId: id, scheduleType: 'C', sourceName: 'Sonoma Ecology Center', amount: '$10,001 - $100,000', details: [{ label: 'CONSIDERATION', value: 'Salary' }] });
+    db.scheduleCdeIncome.findMany.mockResolvedValue([
+      { id: 's', filingId: id, scheduleType: 'C', sourceName: 'SONOMA ECOLOGY CENTER', amount: '$10,001 - $100,000', details: [{ label: 'CONSIDERATION', value: 'Spouse income' }] },
+      { id: 'o', filingId: id, scheduleType: 'C', sourceName: 'LandPaths', amount: '$500' },
+    ]);
+    const response = await request(app).get(`/api/conflicts/${id}`);
+    expect(db.scheduleCdeIncome.findMany).toHaveBeenCalledWith({ where: { filingId: id, id: { not: politicianId } } });
+    expect(response.body.data.scheduleEntry.otherLines).toEqual([
+      expect.objectContaining({ id: 's', scheduleType: 'C', details: [{ label: 'CONSIDERATION', value: 'Spouse income' }] }),
+    ]);
+  });
+
   it('finds the parent disclosure of a related-party candidate on another schedule', async () => {
     db.conflict.findUnique.mockResolvedValue({
       id, politicianId, conflictType: 'INCOME', sourceKey: 'related:INCOME:sonoma ecology center:disclosure:x',

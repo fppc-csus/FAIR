@@ -121,6 +121,20 @@ function formatScheduleEntry(row, scheduleType) {
 }
 
 /**
+ * Other lines on the same statement that name the same entity, such as the
+ * filer's salary and a spouse's income from one employer. Detection reports
+ * them as one conflict, so the page shows every line behind it.
+ */
+async function otherMatchingLines(delegate, row, type) {
+  const name = row.entityName ?? row.sourceName ?? row.propertyDescription;
+  if (!delegate?.findMany || !row.filingId || !normalizeEntityName(name)) return [];
+  const siblings = await delegate.findMany({ where: { filingId: row.filingId, id: { not: row.id } } }) ?? [];
+  return siblings
+    .filter((other) => normalizeEntityName(other.entityName ?? other.sourceName ?? other.propertyDescription) === normalizeEntityName(name))
+    .map((other) => formatScheduleEntry(other, type));
+}
+
+/**
  * The agenda passage that produced the match, so investigators can verify it
  * without reading a whole staff report. Related-party labels such as
  * "Elizabeth Gore (… on disclosure for Hello Alice)" are searched by name only.
@@ -165,7 +179,11 @@ async function findScheduleEntry(conflict) {
         filingId: conflict.filingId,
         filing: { politicianId: conflict.politicianId },
       } });
-      if (row) return formatScheduleEntry(row, type);
+      if (row) {
+        const entry = formatScheduleEntry(row, type);
+        entry.otherLines = await otherMatchingLines(delegate, row, type);
+        return entry;
+      }
     }
     return null;
   }
