@@ -103,6 +103,7 @@ export function parseExportFilters(query) {
     ),
     fromDate,
     toDate,
+    politicianId: scalar("politicianId"),
   };
 }
 
@@ -111,6 +112,7 @@ export function matchesFilters(row, filters) {
   const date = row.detectedAt.slice(0, 10);
 
   return (
+    (!filters.politicianId || row.politicianId === filters.politicianId) &&
     (!filters.reviewStatus || row.reviewStatus === filters.reviewStatus) &&
     (!filters.city || row.city === filters.city) &&
     (

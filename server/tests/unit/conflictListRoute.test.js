@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { parseConflictQuery, conflictSql } from '../../src/utils/conflictQuery.js';
+import { matchesFilters, parseExportFilters } from '../../src/utils/conflictExport.js';
 const db = vi.hoisted(() => ({
   $transaction: vi.fn(),
   $queryRaw: vi.fn(),
@@ -38,7 +39,7 @@ describe('conflict list contract', () => {
     expect(res.body).toEqual({ data: [], total: 1, page: 9, pageSize: 20 });
     expect(db.conflict.findMany).not.toHaveBeenCalled();
   });
-  it.each(['page=0', 'page=-1', 'page=1.5', 'page=1x', 'pageSize=101', 'limit=0', 'sort=sql', 'types=NOPE', 'severities=CRITICAL', 'reviewStatus=private', 'fromDate=2026-02-30', 'fromDate=2026-10-02&toDate=2026-10-01', 'city[x]=a', 'page=1&page=2'])('rejects %s without querying the DB', async query => {
+  it.each(['page=0', 'page=-1', 'page=1.5', 'page=1x', 'pageSize=101', 'limit=0', 'sort=sql', 'types=NOPE', 'severities=CRITICAL', 'reviewStatus=private', 'fromDate=2026-02-30', 'fromDate=2026-10-02&toDate=2026-10-01', 'city[x]=a', 'page=1&page=2', 'politicianId=x', "politicianId=1' OR '1'='1"])('rejects %s without querying the DB', async query => {
     const res = await request(app).get(`/api/conflicts?${query}`);
     expect(res.status).toBe(400); expect(res.body.error).toEqual(expect.any(String));
     expect(db.$transaction).not.toHaveBeenCalled();
@@ -61,5 +62,43 @@ describe('conflict list contract', () => {
     db.$queryRaw.mockResolvedValue([{ city: 'Davis' }, { city: 'Sacramento' }]);
     const res = await request(app).get('/api/conflicts/filters');
     expect(res.body).toEqual({ data: ['Davis', 'Sacramento'] });
+  });
+  it('filters the flag list to one official with a parameter', () => {
+    const politicianId = '3ecbdca3-c69d-4a38-9e41-a57f31d0973e';
+    const { from } = conflictSql(parseConflictQuery({ politicianId }));
+    expect(from.sql).toContain('c.politician_id = ');
+    expect(from.values).toContain(politicianId);
+  });
+  it('consolidates flags per official with counts and entities', async () => {
+    const politicianId = '3ecbdca3-c69d-4a38-9e41-a57f31d0973e';
+    db.$queryRaw
+      .mockResolvedValueOnce([{ politicianId, name: 'Caitlin Cornwall', slug: 'caitlin-cornwall', needsReview: false, city: 'Sonoma County', flags: 21, agendaItems: 21, meetings: 19, pending: 21, severityRank: 3, firstMeeting: null, lastMeeting: null }])
+      .mockResolvedValueOnce([{ politicianId, name: 'Sonoma Ecology Center', flags: 21 }]);
+    const res = await request(app).get('/api/conflicts/by-official?city=Sonoma%20County&severities=HIGH');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ total: 1, data: [{ politicianId, name: 'Caitlin Cornwall', slug: 'caitlin-cornwall', city: 'Sonoma County', flags: 21, agendaItems: 21, meetings: 19, pending: 21,
+      highestSeverity: 'HIGH', identityVerified: true, firstMeeting: null, lastMeeting: null, entities: [{ name: 'Sonoma Ecology Center', flags: 21 }] }] });
+    const [summary] = db.$queryRaw.mock.calls[0];
+    expect(summary.sql).toContain('COUNT(DISTINCT c.agenda_item_id)');
+    expect(summary.sql).toContain('GROUP BY p.id');
+    expect(summary.values).toEqual(expect.arrayContaining(['Sonoma County', 'HIGH']));
+    expect(db.$queryRaw.mock.calls[1][0].values).toContain(politicianId);
+  });
+  it('returns no officials without a second query', async () => {
+    db.$queryRaw.mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/conflicts/by-official');
+    expect(res.body).toEqual({ data: [], total: 0 });
+    expect(db.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+  it('rejects invalid filters on the per-official summary', async () => {
+    const res = await request(app).get('/api/conflicts/by-official?politicianId=nope');
+    expect(res.status).toBe(400);
+    expect(db.$queryRaw).not.toHaveBeenCalled();
+  });
+  it('limits the CSV export to the selected official', () => {
+    const filters = parseExportFilters({ politicianId: 'p1' });
+    const base = { detectedAt: '2026-10-01T00:00:00Z', severity: 'HIGH', conflictType: 'INCOME', city: 'Davis', reviewStatus: 'pending' };
+    expect(matchesFilters({ ...base, politicianId: 'p1' }, filters)).toBe(true);
+    expect(matchesFilters({ ...base, politicianId: 'p2' }, filters)).toBe(false);
   });
 });

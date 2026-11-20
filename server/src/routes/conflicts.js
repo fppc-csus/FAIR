@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { parseConflictQuery, conflictSql } from '../utils/conflictQuery.js';
+import { parseConflictQuery, conflictSql, conflictsByOfficial } from '../utils/conflictQuery.js';
 import express from "express";
 import { prisma } from "../lib/prisma.js";
 import { normalizeEntityName } from "../utils/entityNorm.js";
@@ -37,6 +37,15 @@ router.get("/", async (req, res, next) => {
       };
     }, { isolationLevel: 'RepeatableRead' });
     return res.json(result);
+  } catch (error) { return next(error); }
+});
+
+// The same filters, consolidated to one row per official.
+router.get('/by-official', async (req, res, next) => {
+  try {
+    const filters = parseConflictQuery(req.query);
+    const data = await conflictsByOfficial(prisma, filters);
+    return res.json({ data, total: data.length });
   } catch (error) { return next(error); }
 });
 

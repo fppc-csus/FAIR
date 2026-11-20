@@ -55,7 +55,7 @@ More screenshots of every page are in [`docs/assets/screenshots/`](docs/assets/s
 
 ## Features
 
-- **Investigator workspace:** dashboard, conflict list with filters and CSV export, conflict investigation page, official dossiers, agenda items with roll call and attachments, global search, methodology page.
+- **Investigator workspace:** dashboard, conflict list grouped by official (agenda items, meetings and entities per person) with filters and CSV export, conflict investigation page, official dossiers, agenda items with roll call and attachments, global search, methodology page.
 - **Review workflow:** Awaiting review / Confirmed conflict / Not applicable decisions with required notes and a permanent history.
 - **Form 700 ingestion:** bulk NetFile XLSX and individual XLSX/PDF uploads; every column kept; amendments applied per schedule; corrected filings replace earlier ones in place.
 - **Agenda ingestion:** nightly Legistar sync with full matter text (staff report and recommended action), roll-call votes and attachments; Apify Actor for cities without Legistar.

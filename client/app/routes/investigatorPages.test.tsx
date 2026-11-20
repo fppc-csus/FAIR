@@ -34,7 +34,7 @@ describe("conflict list", () => {
       const url = String(input);
       return Response.json(url.includes('/filters') ? { data: ['Sacramento'] } : { data: url.includes('severities=LOW') ? [] : [record], total: url.includes('severities=LOW') ? 0 : 1 });
     });
-    render(<MemoryRouter><Conflicts /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/conflicts?view=flags"]}><Conflicts /></MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Jordan Lee" })).toBeInTheDocument();
     expect(screen.getByText("LandPaths")).toBeInTheDocument();
     expect(screen.getByText("Identity unverified")).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("conflict list", () => {
       if (url.includes("/export")) return new Response("id\n1", { headers: { "Content-Disposition": 'attachment; filename="fair-conflicts-2026.csv"' } });
       return Response.json(url.includes('/filters') ? { data: [] } : { data: [record], total: 1 });
     });
-    render(<MemoryRouter><Conflicts /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/conflicts?view=flags"]}><Conflicts /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /Download CSV/ }));
     await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalled());
     const exportCall = fetch.mock.calls.find(([url]) => String(url).includes("/export"))!;
@@ -68,9 +68,33 @@ describe("conflict list", () => {
       if (!failed) { failed = true; return Response.json({}, { status: 500 }); }
       return Response.json({ data: [record], total: 1 });
     });
-    render(<MemoryRouter><Conflicts /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/conflicts?view=flags"]}><Conflicts /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("heading", { name: "Jordan Lee" })).toBeInTheDocument();
+  });
+
+  it("consolidates flags under each official and opens one official's flags", async () => {
+    const official = { politicianId: "3ecbdca3-c69d-4a38-9e41-a57f31d0973e", name: "Caitlin Cornwall", slug: "caitlin-cornwall", city: "Sonoma County", flags: 21, agendaItems: 21, meetings: 19, pending: 20, highestSeverity: "HIGH", identityVerified: true, firstMeeting: "2019-06-11", lastMeeting: "2020-07-28",
+      entities: [{ name: "Sonoma Ecology Center", flags: 20 }, { name: "WRA (list single sources of income of $10,000 or more on disclosure for Tamura Environmental, Inc.)", flags: 1 }] };
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input);
+      if (url.includes("/filters")) return Response.json({ data: [] });
+      if (url.includes("/by-official")) return Response.json({ data: [official], total: 1 });
+      return Response.json({ data: [{ ...record, politicianName: "Caitlin Cornwall", entityName: "Sonoma Ecology Center" }], total: 21 });
+    });
+    render(<MemoryRouter initialEntries={["/conflicts"]}><Conflicts /></MemoryRouter>);
+    const card = await screen.findByRole("article", { name: "Caitlin Cornwall" });
+    expect(within(card).getByRole("link", { name: "Caitlin Cornwall" })).toHaveAttribute("href", "/politicians/caitlin-cornwall");
+    expect(within(card).getByText("Agenda items").nextSibling).toHaveTextContent("21");
+    expect(within(card).getByText("Meetings").nextSibling).toHaveTextContent("19");
+    expect(within(card).getByText("Awaiting review").nextSibling).toHaveTextContent("20");
+    expect(within(card).getByText("WRA (via Tamura Environmental, Inc.)")).toBeInTheDocument();
+    expect(screen.getByText(/official with/)).toHaveTextContent("1 official with 21 flags");
+    fireEvent.click(within(card).getByRole("button", { name: "View 21 flags →" }));
+    expect(await screen.findByText(/Showing flags for/)).toHaveTextContent("Caitlin Cornwall");
+    expect(fetch.mock.calls.some(([url]) => String(url).startsWith("/api/conflicts?") || String(url).includes(`/api/conflicts?politicianId=${official.politicianId}`))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "← All officials" }));
+    expect(await screen.findByRole("article", { name: "Caitlin Cornwall" })).toBeInTheDocument();
   });
 });
 
